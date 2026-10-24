@@ -1,0 +1,15 @@
+namespace AccountServer;
+
+public enum MsgFeeType : uint
+{
+	FEE_BEGIN,
+	FEE_END,
+	FEE_POINT,
+	HEARTBEAT,
+	FEE_KICKOUT,
+	FEE_OFFLINE,
+	SERVER_BUSY,
+	SERVER_FULL,
+	SERVER_CLOSE,
+	FEE_TICK
+}

@@ -1,0 +1,6 @@
+#!/bin/sh
+# Test fixture: restore the seeded record positions (persistence keeps
+# last position across runs, which the position-sensitive tests don't want).
+mysql cq -e "UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300 WHERE id IN (1,3,4); \
+             UPDATE cq_user SET recordx=405, recordy=300 WHERE id=2; UPDATE cq_user SET recordx=398, recordy=298 WHERE id=7; \
+             UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300, money=5000 WHERE id=8; UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300 WHERE id=9; UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300 WHERE id=11; UPDATE cq_user SET recordmap_id=1002, recordx=407, recordy=300, money=1000, pk=0 WHERE id=13; UPDATE cq_user SET recordmap_id=1002, recordx=401, recordy=300 WHERE id=12; UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300, mana=300 WHERE id=14; DELETE FROM cq_magic WHERE ownerid=14; INSERT INTO cq_magic (ownerid,type,level,exp,old_level,unlearn) VALUES (14,1000,0,1998,0,0),(14,1001,0,0,0,0),(14,1005,0,0,0,0); DELETE FROM cq_weapon_skill WHERE owner_id=9; INSERT INTO cq_weapon_skill (type,level,exp,old_level,owner_id,unlearn) VALUES (613,0,1180,0,9,0);"
