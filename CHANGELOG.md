@@ -112,3 +112,35 @@
   map w/o monsters -> fail; 1-token param -> fail; exactly ONE
   'armed event monster' line in the server log.
 - Suite: 39/39 green.
+
+## v54b (Oct 24, 2026) — DECODE ONLY: 2006 (0x7d6) monster-create + 2014 (0x7de) — no code change
+- 2006 (534 rows, case 0x7d6 @224163-273) = RUNTIME MONSTER CREATE on a
+  map (original errors: "map[%lu] is market map, can not create monster"
+  / "...is Arenic map, can not create monster!"). sscanf
+  "%d %u %u %d %d %u %u %d %s" (9 fields, need >= 7; <7 -> DBERROR +
+  return 0 = id_nextfail). Sample row: "0 0 1038 86 78 1070 3120 0
+  GuildBeast" -> (d1=0, u2=0, MAP=1038, 86, 78, 1070, TYPE=3120, d8=0,
+  name=GuildBeast). Flow: name token (if present) must be <= 0x24=36
+  chars, pass NameStrCheck, and FUN_14008a1d0(sys,name,0) must be 0
+  (nonzero -> FAIL, semantics unknown). Map via FUN_1400876b0(sys)
+  (MAP system, same as 2011) (vtbl+0x20)(sys, mapid, 1): not found ->
+  fall into the spawn path anyway?? (lVar15==0 -> LAB_1401476dd =
+  SPAWN STRUCT BUILD + call); found -> arena guard FUN_14011dbb0(map)
+  -> FAIL ("Arenic"); market guard FUN_140119540(map) -> FAIL
+  ("market"); else LAB_1401476dd. The 0x40-byte spawn request struct:
+  [+0]=u (local_408) [+4]=d (local_3e8) [+8]=MAPID [+0xC..0x10]=bits
+  (local_434:u2, local_438:u1) [+0x14]=u (local_428+uStack_426)
+  [+0x18]=u2 (local_3f8) [+0x1A]=u2 (local_430). Name empty or
+  "ACTIONSTR_NONE" -> (vtbl+0x20)(spawnSys, struct, NULL) else
+  (vtbl+0x20)(spawnSys, struct, name); return that bool (TRUE ->
+  id_next). spawnSys = singleton+0xA0 via FUN_1400e1d30 (accessor,
+  169000: returns this+0xa0 with null-check).
+- NEXT-CYCLE RECIPE for 2006: decode the class stored at singleton+0xA0
+  (find its ctor/vtbl) and the +0x20 create function to get exact
+  struct field roles (x/y/type/count/dir?), THEN port. Reuse our
+  action-304 spawn_one + 307 count_region for the test.
+- 2014 (1 row "0 8 1 3 9 1 9 8 1 3", case 0x7de @224591): sscanf 10
+  ints, need > 9 matches, then CurrentInstanceGet() singleton ->
+  (vtbl+0x20)(,5) subsystem + (param_2 vtbl+0x10)(,4) getter +0x48
+  on player, then a 4-arg virtual call (obj, uVar7, local_428,
+  &local_418). Undecoded subsystem — needs CurrentInstance map.
