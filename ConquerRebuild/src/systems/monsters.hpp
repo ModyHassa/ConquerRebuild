@@ -77,6 +77,8 @@ struct Monster {
     uint32_t hp = 1, max_hp = 1;
     CombatActorStats combat;  // monstertype stats for the damage pipeline
     // AI state (CMonster::OnTimer loop, FUN_1403929b0/140394680):
+    int event_flag = 0;        // 0x154: armed event/boss flag
+                               // (2009 sets it to 1 via FUN_14038e270)
     uint32_t target_id = 0;        // aggro target (0 = passive)
     time_t next_attack_at = 0;     // attack_speed cooldown
     time_t next_move_at = 0;       // move_speed cooldown (chase steps)
@@ -187,6 +189,21 @@ public:
     Monster* find(uint32_t id) {
         auto it = monsters_.find(id);
         return it == monsters_.end() ? nullptr : &it->second;
+    }
+
+    // v54: 2009 (0x7d9) — first LIVE monster of this type whose name
+    // matches (empty name = any). Original searched the map's live
+    // monster tree with vtbl+8 (map id) / +0x50 (type) getters, then
+    // compared the monster's name (vtbl+0x18) when the token is set.
+    Monster* find_event_target(uint32_t type_id, const char* name) {
+        for (auto& kv : monsters_) {
+            Monster& m = kv.second;
+            if (m.hp == 0) continue;               // alive gate
+            if (m.type_id != type_id) continue;
+            if (name[0] && m.name != name) continue;
+            return &m;
+        }
+        return nullptr;
     }
 
     // v34 / action 304 (case 0x130 ~219345): runtime monster spawn at

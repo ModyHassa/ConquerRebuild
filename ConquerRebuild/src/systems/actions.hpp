@@ -1980,7 +1980,43 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
-                        case 2010: {  // 0x7da: system talk broadcast to EVERYONE.
+                                case 2009: {  // 0x7d9: arm a LIVE monster as an event monster
+            // sscanf "%u %u %d %s" = (mapid, monstertype id, t3, name).
+            // Original (224372-451 + tail 224874-224900): searches the
+            // monster system's live list for the first monster with
+            // (vtbl+8)==t1 [map] && (vtbl+0x50)==t2 [type] && (t3==0 ||
+            // FUN_1401178a0()==t3 [UNKNOWN getter, 0 rows use it]);
+            // name token empty -> use it directly; else the monster's
+            // name must equal the token (strcmp at 224874). Found and
+            // field@0x154 == 0 -> FUN_14038e270(m,1) + return TRUE
+            // (chain id_next); not found / name mismatch / already
+            // armed -> FALSE (id_nextfail). sscanf < 2 -> DBERROR.
+            // No client packet — pure server-side state + branch.
+            unsigned t1 = 0, t2 = 0; int t3 = 0; char nm[128] = {0};
+            int n = sscanf(a->param.c_str(), "%u %u %d %127s",
+                           &t1, &t2, &t3, nm);
+            bool ok = false;
+            if (n >= 2 && t3 == 0) {
+                GameMap& mp = w.get_or_create_map(t1);
+                Monster* m = mp.monsters().find_event_target(t2, nm);
+                if (m && m->event_flag == 0) {
+                    m->event_flag = 1;   // FUN_14038e270(m, 1)
+                    std::printf("[action] %u armed event monster %u "
+                                "(%s) on map %u\n",
+                                p.id, m->id, m->name.c_str(), t1);
+                    ok = true;
+                }
+            } else if (n >= 2 && t3 != 0) {
+                std::printf("[action] %u: 2009 t3!=0 filter "
+                            "(FUN_1401178a0 unknown) -> fail\n", p.id);
+            } else {
+                std::printf("[action] %u: 2009 DBERROR (param '%s')\n",
+                            p.id, a->param.c_str());
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
+                case 2010: {  // 0x7da: system talk broadcast to EVERYONE.
             // Original: FUN_14010b370(sys, 0, "SYSTEM", param); return 1
             // — one CMsgTalk from "SYSTEM" to all online players, no
             // fail branch. 0 rows in this DB but engine-complete.

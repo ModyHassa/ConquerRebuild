@@ -93,3 +93,22 @@
   CurrentInstanceGet()+system-5 call — needs that subsystem decoded.
   2009 (0x7d9) still the big remaining target.
 - Suite: 38/38 green.
+
+## v54 (Oct 24, 2026) — 2009 event-monster arming, 39/39
+- Ported 2009 (0x7d9, 77 rows): arm a LIVE monster as an event/boss
+  monster. sscanf "%u %u %d %s" = (mapid, monstertype id, t3, name).
+  Original: search the monster system's live list for the first
+  monster with map==t1 (vtbl+8), type==t2 (vtbl+0x50), name equal to
+  the token when present (strcmp tail at 224874; empty token = any);
+  then if field@0x154 == 0 -> FUN_14038e270(m, 1) + TRUE (id_next).
+  Not found / name mismatch / already armed -> FALSE. sscanf < 2 ->
+  DBERROR. t3 != 0 filter uses UNKNOWN getter FUN_1401178a0 (0 rows
+  in DB use it; we log + fail those). No client packet — pure
+  server-side state. Rows: "1038 3120 0 GuildBeast" etc (guild war).
+- Impl: Monster.event_flag (0x154 analog), MonsterManager::
+  find_event_target(type, name), case 2009 in actions.hpp.
+- Test (test_actions_v54): arm Pheasant (type 1, 19 generators on
+  1002) -> ok; re-arm -> fail (already armed); name mismatch -> fail;
+  map w/o monsters -> fail; 1-token param -> fail; exactly ONE
+  'armed event monster' line in the server log.
+- Suite: 39/39 green.
