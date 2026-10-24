@@ -261,6 +261,8 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     virtual void update_user_lookface(uint32_t player_id,
                                      uint32_t lookface) = 0;
     virtual uint32_t itemtype_amount(uint32_t itemtype) = 0;
+    // v48: cq_itemtype.ident (GetCell 0x17) — 543 consume gate
+    virtual bool itemtype_ident(uint32_t itemtype) = 0;
     // v32: raw SQL execute (action 127 — original runs the param
     // string straight through InstanceGet()->ExecuteSQL, case 0x7f)
     virtual bool execute_sql(const std::string& sql) = 0;
@@ -326,6 +328,7 @@ public:
     bool update_item(uint32_t, uint32_t, uint32_t) override { return false; }
     void update_user_lookface(uint32_t, uint32_t) override {}
     uint32_t itemtype_amount(uint32_t) override { return 0; }
+    bool itemtype_ident(uint32_t) override { return false; }
     bool execute_sql(const std::string&) override { return true; }
     bool query_string(const std::string&, std::string&) override {
         return false;

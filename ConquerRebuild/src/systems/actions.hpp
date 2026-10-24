@@ -1962,6 +1962,31 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = taken ? a->id_next : a->id_nextfail;
             break;
         }
+        case 543: {  // consume one DATA item (0x21f: ItemSystem
+            // lookup by DATA itemtype; found AND ident cell (0x17,
+            // cq_itemtype.ident) == 0 -> erase ONE copy
+            // (FUN_140340190) -> true; unknown itemtype or player
+            // lacks the item -> fail branch. All 76 real DB rows are
+            // Pack items with ident=0.
+            bool consumed = false;
+            if (a->data != 0 && !active_db()->itemtype_ident(a->data)) {
+                for (const auto& it : active_db()->load_player_items(p.id)) {
+                    if (it.type != (uint32_t)a->data) continue;
+                    if (active_db()->delete_item(it.id)) {
+                        consumed = true;
+                        // erase-notify, same wire as the 502 erase
+                        if (p.session)
+                            p.session->send(build_item_status_2077(
+                                it.id, 7, it.position, it.amount, it.amount));
+                    }
+                    break;   // one copy only
+                }
+            }
+            std::printf("[action] %u consume item type=%u -> %s\n",
+                        p.id, (uint32_t)a->data, consumed ? "ok" : "fail");
+            cur = consumed ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 9001: {  // ProcessActionOS case 0x2329 (FUN_140167b70):
             // special/dev-account gate — player id must exceed the
             // 0xee69a15e threshold AND a user flag at +0x12fc must be

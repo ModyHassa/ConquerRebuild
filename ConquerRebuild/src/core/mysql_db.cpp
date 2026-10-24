@@ -435,6 +435,21 @@ bool MySQLDatabase::update_item(uint32_t item_id, uint32_t type,
     return exec(sql);
 }
 
+bool MySQLDatabase::itemtype_ident(uint32_t itemtype) {  // v48
+    if (!conn_) return false;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[128];
+    std::snprintf(sql, sizeof(sql),
+        "SELECT ident+0 FROM cq_itemtype WHERE id=%u LIMIT 1", itemtype);
+    if (mysql_query(conn_, sql)) return false;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return false;
+    MYSQL_ROW row = mysql_fetch_row(res);
+    bool ident = (row && row[0]) ? strtoul(row[0],nullptr,10) != 0 : false;
+    mysql_free_result(res);
+    return ident;
+}
+
 uint32_t MySQLDatabase::itemtype_amount(uint32_t itemtype) {
     if (!conn_) return 0;
     std::lock_guard<std::mutex> lk(mtx_);

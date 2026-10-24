@@ -54,6 +54,7 @@ public:
     bool update_item(uint32_t item_id, uint32_t type,
                      uint32_t amount) override;
     uint32_t itemtype_amount(uint32_t itemtype) override;
+    bool itemtype_ident(uint32_t itemtype) override;
     void update_user_lookface(uint32_t player_id, uint32_t lookface) override;
     bool add_money(uint32_t user_id, int64_t delta) override;
     // ---- v24: weapon skill (proficiency) ----

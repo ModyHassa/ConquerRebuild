@@ -90,7 +90,7 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
   menu remapper (u2 slot = index into per-user 20-entry menu list, cap 20 → 0xFFFF on overflow).
 - **cq_action chain engine:** ActionTable loads all 192,895 rows at startup. Ported types:
   101 102 103 104 105 120 121 123 125 127 150 201 205 207 208 301 302 303 304 306 307 308 311 312 314
-  501 502 503 506 509 510 511 513 516 517 518 1001 1003 1004 1005 1020 1021 1022 1026 1027 1030* 1064
+  501 502 503 543 9001 506 509 510 511 513 516 517 518 1001 1003 1004 1005 1020 1021 1022 1026 1027 1030* 1064
   1070 1071* 1073 1074 1075 1076 1077 1080 1081 1085 2003 2004 1075-family… (see actions.hpp switch
   for the authoritative list; * = partial).
 - **cq_task system:** qualification checks, dual-task model, real-NPC chains (Shopkeeper etc.) verified.
@@ -110,9 +110,11 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
 
 ## 5. What REMAINS (by priority)
 
-1. **Unported action types** (old engine `FUN_140123590` + new engine `FUN_14012a6e0` byte-map
-   cases): 112 124 126 131 218 219, 401-403 (402 = Top8-PK flymap), 498, 512, 532 542-544,
-   2001-2002 remnants, 2005+, 3001-3008, 3501+, 9001, task-quota chains. Method: find the case in
+1. **Unported action types**: 112 (talk-ch, packet unclear), 131 (styled self-talk, needs
+   CMsgTalk wire), 218 219, 512 (item-pos op, packet FUN_1403873d0 unidentified), 542-544
+   (decompile-mangled bodies), 2005-2014, 3001-3008, 3501+ family, task-quota chains.
+   VERIFIED v48: 401-403/498/532/544 have NO case in the original switches -> original default
+   (DBERROR + false) = id_nextfail routing; our engine already matches (regression-covered). Method: find the case in
    the switch (note: new engine `switch((byte_map)[type-1001])` — case number ≠ type-1000), read the
    body, port, fixture in a NEW id band, extend the wave test.
 2. **1083/1086 "online god"** (exp-privilege, packed datetime at user+0xf38 — partially decoded, deferred).
@@ -128,7 +130,8 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
 v30=99000001-98, v32=99000200-59, v33=options 99000260-69+chains 270-291, v34=chains 300-330,
 v35=chains 340-361, v36=options 400-05+chains 410-37, v37=options 406-09, v38=options 440-44+chains
 480-99, v39=63900-63919 (small ids for u2 slot), v41=chains 510-39, v42=540-59, v46=600-45,
-v47=660-99. **Next free: 99000700+.** Rules: (a) never widen a DELETE past your band,
+v47=660-99, v48=700-19 (MapSage menu extended via UPDATE 99000661 id_next).
+**Next free: 99000720+.** Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 

@@ -868,3 +868,25 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000669,0,0,101,0,'V47~REC2~FAIL.'),
   (99000670,0,0,101,0,'V47~RELIVE~OK.'),
   (99000671,0,0,101,0,'V47~RELIVE~FAIL.');
+
+-- ============================================================
+-- v48: MapSage menu extension — 543 consume-pack (case 0x21f:
+-- ItemSystem lookup by DATA + ident==0 gate -> erase ONE copy),
+-- plus DEFAULT-ROUTE coverage: types with no original handler
+-- (401/0x191 etc.) -> DBERROR + false -> id_nextfail.
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000700 AND 99000719;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000700,99000701,0,102,0,'Consume~pack 99000702'),
+  (99000701,0,0,102,0,'Default~route 99000706'),
+  (99000702,99000704,99000705,543,723855,''),
+  (99000709,99000710,99000711,543,0,''),
+  (99000706,99000707,99000708,401,0,'1 2 3'),
+  (99000704,0,0,101,0,'V48~CONSUME~OK.'),
+  (99000705,0,0,101,0,'V48~CONSUME~FAIL.'),
+  (99000707,0,0,101,0,'V48~DEFAULT~NEXT.'),
+  (99000708,0,0,101,0,'V48~DEFAULT~FAIL.'),
+  (99000710,0,0,101,0,'V48~BADTYPE~OK.'),
+  (99000711,0,0,101,0,'V48~BADTYPE~FAIL.');
+UPDATE cq_action SET id_next=99000700 WHERE id=99000661;
+DELETE FROM cq_item WHERE player_id=10 AND type=723855;
