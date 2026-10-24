@@ -81,3 +81,15 @@
   chain), and any record-pos reset must use cq_user.account_id (the
   game login id), NOT cq_user.id — TestKnight's cq_user.id is 1.
 - Suite: 37/37 green (test_actions_v52 added).
+
+## v53 (Oct 24, 2026) — 2005 test coverage, 38/38
+- No engine change: added test_actions_v53 covering the EXISTING 2005
+  (0x7d5) case — both the real DB row shape (plain text -> sscanf 0 ->
+  DBERROR -> fail branch) and a short numeric param. Fresh decode of
+  0x7d5 confirmed the old stub is wire-accurate for all DB content; a
+  duplicate case attempt was reverted (duplicate case build error —
+  2005 was already ported; check `grep "case 2005"` before adding).
+- DECODED but deferred: 2014 (0x7de, 1 row) = 10-field sscanf then a
+  CurrentInstanceGet()+system-5 call — needs that subsystem decoded.
+  2009 (0x7d9) still the big remaining target.
+- Suite: 38/38 green.

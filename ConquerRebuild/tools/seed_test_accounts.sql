@@ -978,3 +978,19 @@ UPDATE cq_action SET id_next=99000780 WHERE id=99000761;
 INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000775,99000777,0,2012,0,'1000 1002 400 300'),
   (99000777,0,0,101,0,'V51~BACK~OK.');
+
+-- ============================================================
+-- v53: test coverage for the EXISTING 2005 case (0x7d5): plain-
+-- text params -> sscanf != 7 -> DBERROR -> FAIL branch.
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000800 AND 99000819;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000800,99000801,0,102,0,'Spacecheck 99000802'),
+  (99000801,0,0,102,0,'Spacebad 99000806'),
+  (99000802,99000804,99000805,2005,0,'Sorry,you did not have enough space for the item.'),
+  (99000806,99000808,99000809,2005,0,'1011 2494'),
+  (99000804,0,0,101,0,'V53~OK.'),
+  (99000805,0,0,101,0,'V53~FAIL.'),
+  (99000808,0,0,101,0,'V53~OK2.'),
+  (99000809,0,0,101,0,'V53~FAIL2.');
+UPDATE cq_action SET id_next=99000800 WHERE id=99000781;
