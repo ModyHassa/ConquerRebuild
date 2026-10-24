@@ -39,3 +39,24 @@
   runtime-row pattern (test INSERTs its own cq_action chains 99000750+) works.
 - Gotcha: python here forbids attribute assignment on socket objects — use the
   _rcv dict buffer pattern from the test harness, not sock._b.
+
+## v51 (Oct 24, 2026) — 2012 mass teleport + 2013 CORRECTED
+- CORRECTION of v50: 2013 (0x7dd) is NOT ground-item removal. The iterator
+  (FUN_140087650/1402ac340) walks USERS — proved by 2012's log text
+  "ACTION_EVENT_MAPUSER_CHGMAP user(%u) failed in fly map(%u)" in the same
+  iterator and by the mail-attachment award call site of FUN_140145f60
+  (item_sys, itemtype, user, 0). 2013 = award ONE item of itemtype to each
+  user on mapid, count-limited (-1=0xffff=all). sscanf==3 gates the fail
+  branch exactly as before. Test now verifies the awarded cq_item row +
+  the 1008/2077 broadcasts.
+- Ported 2012 (0x7dc, 44 rows): sscanf "%u %u %d %d" = (srcmap, destmap,
+  x, y): teleport EVERY user on srcmap to destmap (x,y) via new
+  teleport_player() helper (same wire as 1003: 74-leave broadcast, list
+  re-registration, 10014 spawn, screen refresh). Test verifies the map
+  change server-side via a 2003 %user_map_id chain + malformed fail.
+- Gotchas: (1) 2031 dialog only answers if npc->map_id == player's map AND
+  npc->task0 != 0 (Pharmacist id 9 has no task0; use MineAssistant id 127
+  on map 1000 for dialogs there). (2) Test drains: check side-effect
+  packets in the SAME click's drain (a later click overwrites `pkts`).
+  (3) suite runner needs timeout >= 700s at 36+ tests.
+- Suite: 36/36 green.

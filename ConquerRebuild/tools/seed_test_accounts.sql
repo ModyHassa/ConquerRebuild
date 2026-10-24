@@ -934,3 +934,22 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000748,0,0,101,0,'V50~BAD~OK.'),
   (99000749,0,0,101,0,'V50~BAD~FAIL.');
 UPDATE cq_action SET id_next=99000740 WHERE id=99000721;
+
+-- ============================================================
+-- v51: 2012 (0x7dc) mass teleport + 2013 CORRECTED to mass item
+--      award (was ground-removal in v50 — iterator walks USERS).
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000760 AND 99000779;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000760,99000761,0,102,0,'Flyme 99000762'),
+  (99000761,0,0,102,0,'Whereami 99000766'),
+  (99000762,99000764,99000765,2012,0,'1002 1000 318 330'),
+  (99000766,99000768,99000769,2003,0,'%user_map_id == 1000'),
+  (99000770,99000772,99000773,2012,0,'1002 1000'),
+  (99000764,0,0,101,0,'V51~FLY~OK.'),
+  (99000765,0,0,101,0,'V51~FLY~FAIL.'),
+  (99000768,0,0,101,0,'V51~MAP~OK.'),
+  (99000769,0,0,101,0,'V51~MAP~FAIL.'),
+  (99000772,0,0,101,0,'V51~BAD~OK.'),
+  (99000773,0,0,101,0,'V51~BAD~FAIL.');
+UPDATE cq_action SET id_next=99000760 WHERE id=99000741;

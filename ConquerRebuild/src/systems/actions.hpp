@@ -138,6 +138,33 @@ static bool apply_effect(Player& p, IDatabase* db, const std::string& lhs,
     return false;
 }
 
+        // v51 (0x7dc ACTION_EVENT_MAPUSER_CHGMAP): teleport an arbitrary
+// player across maps — same wire behavior as the 1003 self-teleport
+// (74 leave broadcast, list re-registration, 10014 spawn, screen refresh).
+static void teleport_player(World& w, Player& pl, uint32_t map,
+                            int tx, int ty) {
+    GameMap& oldm = w.get_or_create_map(pl.map_id);
+    Packet leave = build_action_10010(pl.id, pl.id, 74, 0,
+                                     pl.pos.x, pl.pos.y);
+    w.broadcast_to_screen(oldm, pl.pos, leave, pl.session);
+    oldm.players().remove(&pl);
+    { std::lock_guard<std::mutex> lk(pl.known_mtx);
+      pl.known_monsters.clear();
+      pl.known_ground.clear(); }
+    pl.map_id = map;
+    pl.pos = Position{(uint16_t)tx, (uint16_t)ty};
+    GameMap& newm = w.get_or_create_map(pl.map_id);
+    newm.players().push_back(&pl);
+    SpawnInfo si; si.id = pl.id; si.name = pl.name;
+    si.x = pl.pos.x; si.y = pl.pos.y;
+    Packet sp = build_spawn_10014(si);
+    w.broadcast_to_screen(newm, pl.pos, sp, pl.session);
+    if (pl.session) pl.session->send(sp);
+    w.send_monsters_in_screen(pl, newm);
+    std::printf("[action] %u teleported to map %u (%u,%u)\n",
+                pl.id, pl.map_id, pl.pos.x, pl.pos.y);
+}
+
 // ---- the chain walker ------------------------------------------------------
 // Runs the chain from action_id, sending the resulting dialog over the
 // session. Returns the action id the walk stopped at (0 = clean end).
@@ -484,7 +511,7 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = a->id_next;
             break;
         }
-        case 121: {  // random check (ProcessAction case 0x79:
+case 121: {  // random check (ProcessAction case 0x79:
             // tq::RandGet(range) < threshold). param = "threshold range"
             // (DB VERIFIED: "1 2"=50%, "1 5"=20%, "312 10000"=3.12%).
             int thresh = 0, range = 0;
@@ -1882,46 +1909,78 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
-        case 2013: {  // 0x7dd: remove up to N ground items of an
-            // itemtype from a map. sscanf "%u %u %d" =
-            // (mapid, itemtype, count); count -1 means ALL (0xffff).
-            // The original returns FALSE only when sscanf != 3 — even
-            // zero matches return TRUE (fail texts 2005 pair with it).
+        case 2013: {  // 0x7dd (CORRECTED v51): award an item to the
+            // users of a map. sscanf "%u %u %d" = (mapid, itemtype,
+            // count); count -1 means ALL users (0xffff). v50 first
+            // read this as ground-item removal — WRONG: the iterator
+            // (FUN_140087650/1402ac340) walks USERS (proved by 2012's
+            // "ACTION_EVENT_MAPUSER_CHGMAP" user log + the mail-
+            // attachment award FUN_140145f60 call site), match is the
+            // USER's map id, and FUN_140145f60(item_sys, itemtype,
+            // user, 0) awards one item per user, count-limited.
+            // Returns FALSE only when sscanf != 3 (matches original).
             std::string prm = subst_templates(a->param, p.id, p.name,
                 p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
             unsigned mapid = 0, itype = 0; int cnt = 0;
             bool ok = sscanf(prm.c_str(), "%u %u %d",
                             &mapid, &itype, &cnt) == 3;
-            int removed = 0;
+            int awarded = 0;
             if (ok) {
                 if (cnt == -1) cnt = 0xffff;
                 for (auto& [mid, mp] : w.maps()) {
                     if (mid != mapid) continue;
-                    std::vector<uint32_t> hit;
-                    for (const auto& [gid, g] : mp.ground().all()) {
-                        if ((int)hit.size() >= cnt) break;
-                        if (g.itemtype == itype) hit.push_back(gid);
-                    }
-                    for (uint32_t gid : hit) {
-                        auto* gptr = const_cast<GroundItem*>(
-                            &mp.ground().all().at(gid));
-                        Packet rm = build_map_item_1101(*gptr,
-                                                        MAPITEM_REMOVE);
-                        mp.ground().remove(gid);
-                        for (Player* other : mp.players())
-                            if (other->session) other->session->send(rm);
-                        ++removed;
+                    std::vector<Player*> targets;
+                    for (Player* u : mp.players())
+                        if (awarded + (int)targets.size() < cnt)
+                            targets.push_back(u);
+                    for (Player* u : targets) {
+                        uint32_t nid = active_db()->insert_item(
+                            u->id, itype, 1);
+                        if (nid != 0 && u->session) {
+                            u->session->send(build_item_info_1008(
+                                nid, itype, 1, 0, 1));
+                            u->session->send(build_item_status_2077(
+                                nid, 8, 0, 1, 1));
+                        }
+                        ++awarded;
                     }
                     break;
                 }
-                std::printf("[action] %u remove ground type=%u on map "
-                            "%u: %d removed\n", p.id, itype, mapid,
-                            removed);
+                std::printf("[action] %u award type=%u on map %u: "
+                            "%d users\n", p.id, itype, mapid, awarded);
             }
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
-        case 1010: {  // system message to the player (12,378 rows).
+                case 2012: {  // 0x7dc ACTION_EVENT_MAPUSER_CHGMAP: mass
+            // teleport. sscanf "%u %u %d %d" = (srcmap, destmap, x, y):
+            // every user on srcmap flies to destmap at (x,y). Returns
+            // FALSE only on malformed param; a missing src map is a
+            // no-op TRUE (original returns 1 at empty iteration).
+            std::string prm = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            unsigned src = 0, dest = 0; int tx = 0, ty = 0;
+            bool ok = sscanf(prm.c_str(), "%u %u %d %d",
+                            &src, &dest, &tx, &ty) == 4;
+            int moved = 0;
+            if (ok) {
+                for (auto& [mid, mp] : w.maps()) {
+                    if (mid != src) continue;
+                    std::vector<Player*> targets;
+                    for (Player* u : mp.players()) targets.push_back(u);
+                    for (Player* u : targets) {
+                        teleport_player(w, *u, dest, tx, ty);
+                        ++moved;
+                    }
+                    break;
+                }
+                std::printf("[action] %u chgmap %u -> %u (%d,%d): "
+                            "%d users\n", p.id, src, dest, tx, ty, moved);
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
+                case 1010: {  // system message to the player (12,378 rows).
                      // Original 1010 (both engines): CUser::SendMsg
                      // (vtbl+0x150) with channel = data column
                      // (2005/2007 in the DB), default 2000, words =

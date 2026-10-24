@@ -76,6 +76,7 @@ def check(cond, msg):
     if not cond: fails.append(msg)
 
 sql("DELETE FROM cq_action WHERE id BETWEEN 99000750 AND 99000753")
+sql("DELETE FROM cq_item WHERE player_id=1 AND type=152008")
 sql("UPDATE cq_user SET recordmap_id=1002, recordx=400, recordy=300 "
     "WHERE id=1")
 a, login_pkts = login(100001, 777)   # TestKnight, map 1002
@@ -99,6 +100,12 @@ check(any('V50~RM~OK' in t for t in tx)
       and not any('V50~RM~FAIL' in t for t in tx),
       '2013 well-formed -> ok branch (nothing to remove)')
 
+pkts += drain_all(a, 2.0)   # award 1008/2077 can trail the dialog
+n = sql("SELECT COUNT(*) FROM cq_item WHERE player_id=1 AND type=152008")
+check(int(n) >= 1, f'2013 awarded item 152008 to map user (rows={n})')
+has1008 = any(p[1] == 1008 for p in pkts)
+check(has1008, 'item info 1008 broadcast after award')
+
 # --- 2013 malformed (2 tokens) -> FALSE -> fail branch ---
 pkts = click_option(a, 99000746, 'Badparam 99000746')
 tx = texts_of_dialog(pkts)
@@ -106,26 +113,9 @@ check(any('V50~BAD~FAIL' in t for t in tx)
       and not any('V50~BAD~OK' in t for t in tx),
       '2013 malformed param -> fail branch only')
 
-# --- opportunistic: remove a REAL visible pile by its type ---
-if piles:
-    gid, ity = next(iter(piles.items()))
-    sql(f"INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) "
-        f"VALUES (99000750,99000752,99000753,2013,0,"
-        f"'1002 {ity} -1')")
-    sql("INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) "
-        "VALUES (99000752,0,0,101,0,'V50~LIVE~OK.'),"
-        "(99000753,0,0,101,0,'V50~LIVE~FAIL.')")
-    pkts = click_option(a, 99000750, 'Rmground 99000750')
-    tx = texts_of_dialog(pkts)
-    check(any('V50~LIVE~OK' in t for t in tx),
-          f'2013 live pile type {ity} -> ok branch')
-    rm = [p for p in pkts if p[1] == 1101 and len(p[2]) >= 0x13
-          and p[2][0x12] == 3
-          and struct.unpack_from('<I', p[2], 4)[0] == gid]
-    check(len(rm) >= 1, f'pile {gid} removed with 1101 action-3 broadcast')
-else:
-    print('skip live-pile check: no pile visible at login')
-
+# --- 2013 awards the item to every user on the map (v51 semantics):
+# TestKnight is the only user on 1002 -> he gets ONE 152008 copy.
 sql("DELETE FROM cq_action WHERE id BETWEEN 99000750 AND 99000753")
+sql("DELETE FROM cq_item WHERE player_id=1 AND type=152008")
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)
