@@ -68,6 +68,7 @@ inline bool is_monster_id(uint32_t id) {
 struct Monster {
     uint32_t id = 0;          // role id (MONSTER_ID_BASE + seq)
     uint32_t type_id = 0;     // cq_monstertype.id
+    uint32_t gen_id = 0;      // cq_generator.id (v49: 2008 gen_id mode)
     std::string name;         // cq_monstertype.name
     uint32_t lookface = 0;    // cq_monstertype.lookface
     uint32_t level = 1;
@@ -156,6 +157,7 @@ public:
                 Monster m;
                 m.id = MONSTER_ID_BASE + next_seq_++;
                 m.type_id = g.npctype;
+                m.gen_id = g.id;
                 m.name = it->second.name;
                 m.lookface = it->second.lookface;
                 m.level = it->second.level;
@@ -203,6 +205,19 @@ public:
             if ((int)m.x < x0 || (int)m.x >= x0 + w) continue;
             if ((int)m.y < y0 || (int)m.y >= y0 + h) continue;
             ++n;
+        }
+        return n;
+    }
+
+    // v49: 2008 (0x7d8) named-entity count on this map — mode
+    // "name" counts alive monsters by name, "gen_id" by generator id
+    size_t count_named(const std::string& name, uint32_t gen_id) const {
+        size_t n = 0;
+        for (const auto& kv : monsters_) {
+            const Monster& m = kv.second;
+            if (m.hp == 0) continue;
+            if (gen_id != 0) { if (m.gen_id == gen_id) ++n; }
+            else if (m.name == name) ++n;
         }
         return n;
     }

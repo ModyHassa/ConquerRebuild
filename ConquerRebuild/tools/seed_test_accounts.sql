@@ -890,3 +890,31 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000711,0,0,101,0,'V48~BADTYPE~FAIL.');
 UPDATE cq_action SET id_next=99000700 WHERE id=99000661;
 DELETE FROM cq_item WHERE player_id=10 AND type=723855;
+
+-- ============================================================
+-- v49: 2008 (0x7d8) named-entity count check — MapSage options
+--      extended. Real rows: "4025 name UltimatePluto < 1" style.
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000720 AND 99000739;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000720,99000721,0,102,0,'Mobcount 99000722'),
+  (99000721,0,0,102,0,'Badmode 99000730'),
+  -- Pheasant (19 generators on map 1002) -> count >= 1 -> < 999 true
+  (99000722,99000724,99000725,2008,0,'1002 name Pheasant < 999'),
+  -- nonexistent monster, count == 0 -> true
+  (99000726,99000728,99000729,2008,0,'1002 name ZebraUnicorn == 0'),
+  -- Pheasant == 0 is FALSE (mobs alive) -> fail branch
+  (99000731,99000733,99000734,2008,0,'1002 name Pheasant == 0'),
+  -- invalid mode string -> original returns false outright
+  (99000730,99000732,99000735,2008,0,'1002 bogusmode Foo == 0'),
+  -- NOTE: id_next=99000732 prints BADMODE~OK (unreachable),
+  -- id_nextfail=99000735 prints BADMODE~FAIL (expected)
+  (99000724,0,0,101,0,'V49~CNT~LT~OK.'),
+  (99000725,0,0,101,0,'V49~CNT~LT~FAIL.'),
+  (99000728,0,0,101,0,'V49~CNT~EQ~OK.'),
+  (99000729,0,0,101,0,'V49~CNT~EQ~FAIL.'),
+  (99000732,0,0,101,0,'V49~BADMODE~OK.'),
+  (99000733,0,0,101,0,'V49~CNT~EQZ~OK.'),
+  (99000734,0,0,101,0,'V49~CNT~EQZ~FAIL.'),
+  (99000735,0,0,101,0,'V49~BADMODE~FAIL.');
+UPDATE cq_action SET id_next=99000720 WHERE id=99000701;

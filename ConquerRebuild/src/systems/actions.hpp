@@ -1846,6 +1846,42 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = cond ? a->id_next : a->id_nextfail;
             break;
         }
+        case 2008: {  // 0x7d8: named-entity count check (guild-war
+            // family). sscanf "%u %s %s %s %d" — (mapid, mode, name,
+            // op, n). mode "name": alive monsters named X on the map;
+            // mode "gen_id": alive monsters of generator id X. The
+            // original supports ONLY "<" and "==" comparisons; any
+            // other mode string returns false outright.
+            std::string prm = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            unsigned mapid = 0; char mode[16]={0}, name[256]={0}, op[8]={0};
+            int n = 0;
+            bool ok = false;
+            if (sscanf(prm.c_str(), "%u %15s %255s %7s %d",
+                       &mapid, mode, name, op, &n) == 5) {
+                if (strcasecmp(mode, "name") == 0 ||
+                    strcasecmp(mode, "gen_id") == 0) {
+                    uint32_t gid = (strcasecmp(mode,"gen_id")==0)
+                                   ? strtoul(name, nullptr, 10) : 0;
+                    long cnt = -1;
+                    for (auto& [mid, mp] : w.maps()) {
+                        if (mid != mapid) continue;
+                        cnt = (long)mp.monsters().count_named(name, gid);
+                        break;
+                    }
+                    if (cnt >= 0) {
+                        if (strcasecmp(op, "<") == 0) ok = cnt < n;
+                        else if (strcasecmp(op, "==") == 0) ok = cnt == n;
+                    }
+                    std::printf("[action] %u entity count map=%u %s "
+                                "'%s' cnt=%ld %s %d -> %s\n", p.id,
+                                mapid, mode, name, cnt, op, n,
+                                ok ? "true" : "false");
+                }
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 1010: {  // system message to the player (12,378 rows).
                      // Original 1010 (both engines): CUser::SendMsg
                      // (vtbl+0x150) with channel = data column
