@@ -27,3 +27,15 @@
 - MapSage menu now 6 options; v49 test resets TestKnight record pos first
   (v47's relive leaves him on map 1015 — any MapSage test must do this).
 - Suite: 34/34 green.
+
+## v50 (Oct 24, 2026) — 2013 ground-item removal
+- Ported action 2013 (0x7dd, 101 rows): sscanf "%u %u %d" (mapid, itemtype,
+  count; -1 = ALL/0xffff); scans the map's GroundItemManager, removes matches
+  (1101 action-3 broadcast to the map) up to count. Returns FALSE only on
+  malformed param — zero matches still TRUE (matches the original).
+- Test v50: branch semantics both paths green (35/35 suite). Live-pile e2e
+  removal check attempted 3x (piles expire ~60s; every suite test picks up
+  its drops) — removal uses the same remove+1101 path as tested pickup;
+  runtime-row pattern (test INSERTs its own cq_action chains 99000750+) works.
+- Gotcha: python here forbids attribute assignment on socket objects — use the
+  _rcv dict buffer pattern from the test harness, not sock._b.

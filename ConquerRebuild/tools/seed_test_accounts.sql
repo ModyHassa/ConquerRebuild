@@ -918,3 +918,19 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000734,0,0,101,0,'V49~CNT~EQZ~FAIL.'),
   (99000735,0,0,101,0,'V49~BADMODE~FAIL.');
 UPDATE cq_action SET id_next=99000720 WHERE id=99000701;
+
+-- ============================================================
+-- v50: 2013 (0x7dd) ground-item removal — MapSage menu extended.
+-- Real rows: "%user_map_id 6014760 -1" (remove ALL of a type).
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000740 AND 99000759;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000740,99000741,0,102,0,'Rmground 99000742'),
+  (99000741,0,0,102,0,'Badparam 99000746'),
+  (99000742,99000744,99000745,2013,0,'%user_map_id 152008 -1'),
+  (99000746,99000748,99000749,2013,0,'1002 152008'),
+  (99000744,0,0,101,0,'V50~RM~OK.'),
+  (99000745,0,0,101,0,'V50~RM~FAIL.'),
+  (99000748,0,0,101,0,'V50~BAD~OK.'),
+  (99000749,0,0,101,0,'V50~BAD~FAIL.');
+UPDATE cq_action SET id_next=99000740 WHERE id=99000721;

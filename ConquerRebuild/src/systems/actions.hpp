@@ -1882,6 +1882,45 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
+        case 2013: {  // 0x7dd: remove up to N ground items of an
+            // itemtype from a map. sscanf "%u %u %d" =
+            // (mapid, itemtype, count); count -1 means ALL (0xffff).
+            // The original returns FALSE only when sscanf != 3 — even
+            // zero matches return TRUE (fail texts 2005 pair with it).
+            std::string prm = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            unsigned mapid = 0, itype = 0; int cnt = 0;
+            bool ok = sscanf(prm.c_str(), "%u %u %d",
+                            &mapid, &itype, &cnt) == 3;
+            int removed = 0;
+            if (ok) {
+                if (cnt == -1) cnt = 0xffff;
+                for (auto& [mid, mp] : w.maps()) {
+                    if (mid != mapid) continue;
+                    std::vector<uint32_t> hit;
+                    for (const auto& [gid, g] : mp.ground().all()) {
+                        if ((int)hit.size() >= cnt) break;
+                        if (g.itemtype == itype) hit.push_back(gid);
+                    }
+                    for (uint32_t gid : hit) {
+                        auto* gptr = const_cast<GroundItem*>(
+                            &mp.ground().all().at(gid));
+                        Packet rm = build_map_item_1101(*gptr,
+                                                        MAPITEM_REMOVE);
+                        mp.ground().remove(gid);
+                        for (Player* other : mp.players())
+                            if (other->session) other->session->send(rm);
+                        ++removed;
+                    }
+                    break;
+                }
+                std::printf("[action] %u remove ground type=%u on map "
+                            "%u: %d removed\n", p.id, itype, mapid,
+                            removed);
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 1010: {  // system message to the player (12,378 rows).
                      // Original 1010 (both engines): CUser::SendMsg
                      // (vtbl+0x150) with channel = data column

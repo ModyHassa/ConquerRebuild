@@ -90,7 +90,7 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
   menu remapper (u2 slot = index into per-user 20-entry menu list, cap 20 → 0xFFFF on overflow).
 - **cq_action chain engine:** ActionTable loads all 192,895 rows at startup. Ported types:
   101 102 103 104 105 120 121 123 125 127 150 201 205 207 208 301 302 303 304 306 307 308 311 312 314
-  501 502 503 543 9001 2008 506 509 510 511 513 516 517 518 1001 1003 1004 1005 1020 1021 1022 1026 1027 1030* 1064
+  501 502 503 543 9001 2008 2013 506 509 510 511 513 516 517 518 1001 1003 1004 1005 1020 1021 1022 1026 1027 1030* 1064
   1070 1071* 1073 1074 1075 1076 1077 1080 1081 1085 2003 2004 1075-family… (see actions.hpp switch
   for the authoritative list; * = partial).
 - **cq_task system:** qualification checks, dual-task model, real-NPC chains (Shopkeeper etc.) verified.
@@ -112,9 +112,9 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
 
 1. **Unported action types**: 112 (talk-ch, packet unclear), 131 (styled self-talk, needs
    CMsgTalk wire), 218 219, 512 (item-pos op, packet FUN_1403873d0 unidentified), 542-544
-   (decompile-mangled bodies), 2005-2007/2009-2014 (guild-war/syn entity family: 2006=multi-cond batch
-   checks with %iter vars, 2007=%syn_name rows, 2009=map-spawn, 2012=timed
-   spawn, 2013=ground-item check), 3001-3008 (NO original cases — default
+   (decompile-mangled bodies), 2005-2007/2009-2012/2014 (guild-war/syn entity family: 2006=multi-cond batch
+   checks with %iter vars, 2007=%syn_name rows, 2009=map-spawn (0x7d9: heavy Ghidra
+   iterator spaghetti, needs patient decode), 2012=timed spawn), 3001-3008 (NO original cases — default
    id_nextfail routing, same as 401), 3501+ family, task-quota chains.
    v49 findings: 131 = Create(id,color,style) + two %u format args + fixed
    string-table index 0xa2=162 + lookface -> SELF talk (needs STR table);
@@ -136,8 +136,8 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
 v30=99000001-98, v32=99000200-59, v33=options 99000260-69+chains 270-291, v34=chains 300-330,
 v35=chains 340-361, v36=options 400-05+chains 410-37, v37=options 406-09, v38=options 440-44+chains
 480-99, v39=63900-63919 (small ids for u2 slot), v41=chains 510-39, v42=540-59, v46=600-45,
-v47=660-99, v48=700-19, v49=720-39 (menu chain: 99000661→99000700→99000701→99000720).
-**Next free: 99000740+.** Rules: (a) never widen a DELETE past your band,
+v47=660-99, v48=700-19, v49=720-39, v50=740-59 (menu chain now: ...99000720→99000721→99000740).
+**Next free: 99000760+.** Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 
