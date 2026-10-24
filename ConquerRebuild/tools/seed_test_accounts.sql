@@ -953,3 +953,28 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000772,0,0,101,0,'V51~BAD~OK.'),
   (99000773,0,0,101,0,'V51~BAD~FAIL.');
 UPDATE cq_action SET id_next=99000760 WHERE id=99000741;
+
+-- ============================================================
+-- v52: 2010 (0x7da) SYSTEM broadcast + 2011 (0x7db) map attr set.
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000780 AND 99000799;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000780,99000781,0,102,0,'Broadcast 99000782'),
+  (99000781,0,0,102,0,'Setmap 99000786'),
+  (99000782,99000784,99000785,2010,0,'V52BC hello from 2010'),
+  (99000786,99000788,99000789,2011,0,'1002 type 12345'),
+  (99000794,99000796,99000797,2011,0,'1002 type'),
+  (99000784,0,0,101,0,'V52~BC~OK.'),
+  (99000785,0,0,101,0,'V52~BC~FAIL.'),
+  (99000788,0,0,101,0,'V52~SM~OK.'),
+  (99000789,0,0,101,0,'V52~SM~FAIL.'),
+  (99000796,0,0,101,0,'V52~BAD~OK.'),
+  (99000797,0,0,101,0,'V52~BAD~FAIL.');
+UPDATE cq_action SET id_next=99000780 WHERE id=99000761;
+
+-- v51b: fly-back chain (state cleanup so v51's chgmap doesn't poison
+-- the DB record pos for later tests: the disconnect save persists the
+-- in-memory teleport as recordmap_id!).
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000775,99000777,0,2012,0,'1000 1002 400 300'),
+  (99000777,0,0,101,0,'V51~BACK~OK.');

@@ -1980,6 +1980,56 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
+                        case 2010: {  // 0x7da: system talk broadcast to EVERYONE.
+            // Original: FUN_14010b370(sys, 0, "SYSTEM", param); return 1
+            // — one CMsgTalk from "SYSTEM" to all online players, no
+            // fail branch. 0 rows in this DB but engine-complete.
+            std::string text = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            if (!text.empty()) {
+                uint16_t channel = a->data ? (uint16_t)a->data : 2000;
+                Packet sys = build_talk_1004("SYSTEM", p.name, text,
+                    "", 0xFFFFFF, channel, 0, 0, 0, 0);
+                for (auto& [mid, mp] : w.maps())
+                    for (Player* u : mp.players())
+                        if (u->session) u->session->send(sys);
+                std::printf("[action] %u broadcast 2010 to all\n", p.id);
+            }
+            cur = a->id_next;
+            break;
+        }
+        case 2011: {  // 0x7db: set a live map attribute.
+            // sscanf "%u %s %s" = (mapid, key, value). Keys: "id" ->
+            // map object id (FUN_1402cbdc0), "name" -> map name
+            // (FUN_1402cbbb0), "type" -> map type flag (FUN_1402cb9e0).
+            // 15 rows, all "type" (guild-war map switching). Returns
+            // FALSE only on sscanf < 3. "id" is stored in attribs —
+            // re-keying the live maps_ container is unsafe (documented
+            // simplification); "type" follows the 306 attrib pattern.
+            std::string prm = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            unsigned mapid = 0; char key[64] = {0}, val[128] = {0};
+            bool ok = sscanf(prm.c_str(), "%u %63s %127s",
+                            &mapid, key, val) == 3;
+            if (ok) {
+                GameMap& mp = w.get_or_create_map(mapid);
+                if (!strcasecmp(key, "type")) {
+                    mp.attribs["type"] = strtoul(val, nullptr, 10);
+                    std::printf("[action] %u set map %u type=%s\n",
+                                p.id, mapid, val);
+                } else if (!strcasecmp(key, "name")) {
+                    mp.set_name(val);
+                    std::printf("[action] %u set map %u name=%s\n",
+                                p.id, mapid, val);
+                } else if (!strcasecmp(key, "id")) {
+                    mp.attribs["id"] = strtoul(val, nullptr, 10);
+                    std::printf("[action] %u set map %u id=%s (attrib)\n",
+                                p.id, mapid, val);
+                }
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
                 case 1010: {  // system message to the player (12,378 rows).
                      // Original 1010 (both engines): CUser::SendMsg
                      // (vtbl+0x150) with channel = data column

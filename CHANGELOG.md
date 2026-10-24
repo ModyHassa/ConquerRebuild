@@ -60,3 +60,24 @@
   packets in the SAME click's drain (a later click overwrites `pkts`).
   (3) suite runner needs timeout >= 700s at 36+ tests.
 - Suite: 36/36 green.
+
+## v52 (Oct 24, 2026) — 2010 broadcast + 2011 map attributes, 37/37
+- Ported 2010 (0x7da): one CMsgTalk from "SYSTEM" to EVERY online player
+  (original FUN_14010b370(sys,0,"SYSTEM",param), no fail branch). 0 rows
+  in this DB but engine-complete; test verifies BOTH sessions (sender +
+  a second player) receive the 1004.
+- Ported 2011 (0x7db): set a live map attribute. sscanf "%u %s %s" =
+  (mapid, key, value); keys id/name/type (FUN_1402cbdc0/cbbb0/cb9e0).
+  15 rows in DB, all "type" (guild-war map switching). "type" follows
+  the 306 attrib pattern (GameMap::attribs), "name" via new set_name();
+  "id" stored in attribs (re-keying maps_ unsafe, documented).
+  Fail branch only on sscanf < 3. Test verifies the write via the
+  server log printf.
+- GOTCHA (major): the disconnect save PERSISTS the in-memory map of a
+  teleported player into cq_user.recordmap_id — v51's chgmap left
+  TestKnight spawning on map 1000, so his MapSage (1002) clicks were
+  silently dropped by the npc->map_id != p.map_id guard. Fixture tests
+  that teleport MUST fly back (v51 now clicks the 99000775 fly-back
+  chain), and any record-pos reset must use cq_user.account_id (the
+  game login id), NOT cq_user.id — TestKnight's cq_user.id is 1.
+- Suite: 37/37 green (test_actions_v52 added).

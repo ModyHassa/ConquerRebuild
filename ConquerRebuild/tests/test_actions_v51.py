@@ -102,5 +102,10 @@ check(any('V51~BAD~FAIL' in t for t in tx)
       and not any('V51~BAD~OK' in t for t in tx),
       '2012 malformed param -> fail branch only')
 
+# --- state cleanup: fly back so the disconnect save persists 1002 ---
+pkts = click_option(a, 99000775, 'Flyme 99000775', npc=PHARM)
+tx = texts_of_dialog(pkts)
+check(any('V51~BACK~OK' in t for t in tx), '2012 fly back to 1002 (cleanup)')
+
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

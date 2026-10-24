@@ -90,6 +90,8 @@ public:
         : id_(id), name_(std::move(name)), width_(w), height_(h) {}
     uint32_t id() const { return id_; }
     const std::string& name() const { return name_; }
+    // v52 / action 2011 (0x7db): rename a live map at runtime
+    void set_name(std::string n) { name_ = std::move(n); }
     std::list<Player*>& players() { return players_; }
     MonsterManager& monsters() { return monsters_; }
     // v34 / action 306 (case 0x132 ~219390): named int attributes on
