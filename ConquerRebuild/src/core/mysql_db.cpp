@@ -385,6 +385,28 @@ std::vector<EquipTypeRecord> MySQLDatabase::load_equip_types() {
     return out;
 }
 
+uint32_t MySQLDatabase::insert_item_attrs(uint32_t player_id, uint32_t type,
+                                          uint32_t amount, const ItemAttrs& at) {
+    if (!conn_) return 0;
+    std::lock_guard<std::mutex> lk(mtx_);
+    // v67: full-attribute insert used by action 528. The original writes
+    // ITEMTYPEDATA slots through the generic SetInt FUN_140104140; the
+    // cq_item columns mirror those slots (attr 17 = chk_sum is the value it
+    // recomputes on every change). cq_item.data is int(4) in the real dump.
+    char sql[1024];
+    std::snprintf(sql, sizeof(sql),
+        "INSERT INTO cq_item (type,owner_id,player_id,amount,amount_limit,"
+        "position,gem1,gem2,magic1,magic2,magic3,data,del_time) "
+        "VALUES (%u,%u,%u,%u,%u,0,%u,%u,%u,%u,%u,%d,0)",
+        type, player_id, player_id, amount, at.amount_limit,
+        at.gem1, at.gem2, at.magic1, at.magic2, at.magic3, at.data);
+    if (!exec(sql)) {
+        std::printf("[db] insert_item_attrs failed: %s\n", mysql_error(conn_));
+        return 0;
+    }
+    return (uint32_t)mysql_insert_id(conn_);
+}
+
 uint32_t MySQLDatabase::insert_item(uint32_t player_id, uint32_t type, uint32_t amount) {
     if (!conn_) return 0;
     std::lock_guard<std::mutex> lk(mtx_);

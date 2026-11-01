@@ -63,7 +63,7 @@ Flow: `FUN_14034a8d0(player, uin, mode, 1)` creates the item, then
 BLOCKER: the slot-id enum for `FUN_140104140` (item attribute ids) is not
 recovered, and the sscanf pointer order is incomplete.
 
-## 528 — 49 rows — item generation, 9 fields (case 0x210, line 214599)
+## 528 — 49 rows — PORTED in v67 (was: item generation, 9 fields (case 0x210, line 214599))
 `sscanf("%d %d %d %d %d %d %d %d %d")`, requires all 9. Creates the item
 with `FUN_14034a8d0(player, uin, 0, 1)`, writes slots 4,5,8,9,10,0xB,0xC
 plus slot `0xD = FUN_140385cf0(player, 1, value)`, finalises with
@@ -116,3 +116,16 @@ part of the newer action family.
 
 ## Queue after these
 129 (36), 519 done above, 332 above; then everything under 24 rows.
+
+## v67 outcome for 528
+Ported and verified live. The stack-slot order of the sscanf pointers gives
+the full mapping, and the DB row proves it:
+  field1 -> attr 4 amount | field2 -> attr 5 amount_limit
+  field3 -> unused        | field4 -> attr 12 magic3
+  field5 -> attr 11 magic2| field6 -> attr 10 magic1
+  field7 -> attr 9 gem2   | field8 -> attr 8 gem1
+  field9 -> FUN_140117670(item, !=0, 1)  (still un-named -> logged only)
+`cq_item.data` (attr 13) is int(4) in the real dump, so the original's
+FUN_140385cf0(player,1,field2) resolution is the last missing piece; we
+insert 0 there and log the field rather than guess a resolved value.
+529 is the 2-field sibling of the same generator and is next.

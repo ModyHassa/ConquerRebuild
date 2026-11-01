@@ -44,6 +44,8 @@ public:
     std::vector<std::pair<uint32_t, std::string>> load_itemtype_names() override;
     std::vector<EquipTypeRecord> load_equip_types() override;
     uint32_t insert_item(uint32_t player_id, uint32_t type, uint32_t amount) override;
+    uint32_t insert_item_attrs(uint32_t player_id, uint32_t type,
+                               uint32_t amount, const ItemAttrs& at) override;
     bool delete_item(uint32_t item_id) override;
     bool execute_sql(const std::string& sql) override;
     bool query_string(const std::string& sql,

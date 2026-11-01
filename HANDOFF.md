@@ -255,3 +255,12 @@ FUN_140104140 decoded = generic item SetInt over ITEMTYPEDATA (idx < 100,
 That was the blocker for 542+528+529 (211 rows); what remains there is only
 mapping the indices onto our flat ItemInfo (4=amount, 5=max_dur,
 8-12=gem/magic, 13=ref id, 20/21/24=quality family). Suite 45/45.
+
+## v67 (Nov 1, 2026) — M-I
+Action 528 PORTED + live-tested (13 assertions). IDatabase gained
+ItemAttrs + insert_item_attrs for attribute-bearing item inserts.
+Confirmed slot mapping: 4=amount, 5=amount_limit, 8=gem1, 9=gem2,
+10=magic1, 11=magic2, 12=magic3, 13=data (int(4) in the real dump).
+Suite 46/46. Next: 529 (2-field sibling of the same generator, 49 rows),
+then 542 (17 fields) which needs the FUN_140385cf0 data resolution and
+the two register-passed sscanf pointers.

@@ -450,3 +450,24 @@ encrypted reply frames (first = 10014 player spawn).
   ITEMTYPEDATA_OFFSET", "durability", STR_DURABILITY_REPAIR only), so the
   names above come from call sites, not guesses.
 - DEFERRED_TYPES.md updated with the decode. No server code touched; suite 45/45.
+
+## v67 (Nov 1, 2026) — wave M-I: action 528 (item generation) PORTED
+- 528 (case 0x210, 49 rows) implemented in ProcessAction with the
+  ITEMTYPEDATA slot mapping derived in v66:
+  field1->attr 4 amount, field2->attr 5 amount_limit, field3 unused,
+  field4->attr 12 magic3, field5->attr 11 magic2, field6->attr 10 magic1,
+  field7->attr 9 gem2, field8->attr 8 gem1, field9 -> FUN_140117670 flag
+  (logged only - meaning still undecoded). Original requires all NINE
+  fields, so fewer fields takes id_nextfail with no item created.
+- New IDatabase::ItemAttrs + insert_item_attrs(player,type,amount,attrs)
+  (default falls back to insert_item) and the MySQL override writing
+  amount_limit/gem1/gem2/magic1/magic2/magic3/data in one INSERT. Note
+  cq_item.data is int(4) in the real dump, not a varchar: the original
+  resolves attr 13 from field2 through FUN_140385cf0(player,1,value) and
+  that resolution is still unknown, so we insert 0 and log the field.
+- tests/test_actions_v67.py (new, 13 live assertions): 9-field row
+  continues to id_next; the created cq_item row has amount=7,
+  amount_limit=2, gem1=55, gem2=44, magic1=33, magic2=22, magic3=11
+  exactly as the decode predicts; a 3-field row takes id_nextfail and
+  creates nothing. Fixtures 99000890-99000899.
+- Suite: 46/46 green (test_actions_v67 registered).

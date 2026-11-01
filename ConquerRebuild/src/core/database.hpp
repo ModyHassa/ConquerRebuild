@@ -252,6 +252,25 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     virtual std::vector<TaskRow> load_tasks() = 0;
     virtual std::vector<std::pair<uint32_t, std::string>> load_itemtype_names() = 0;
     virtual uint32_t insert_item(uint32_t player_id, uint32_t type, uint32_t amount) = 0;
+    // v67: ITEMTYPEDATA attribute set for generated items (action 528/529).
+    // Field indices follow the item attribute table decoded from the
+    // binary (FUN_140104140 is a generic SetInt(idx<100); the column order
+    // of cq_item matches it, and 17 = chk_sum is the value the original
+    // recomputes whenever an attribute changes).
+    struct ItemAttrs {
+        uint32_t amount_limit = 0;   // attr 5
+        uint32_t gem1 = 0, gem2 = 0; // attrs 8, 9
+        uint32_t magic1 = 0, magic2 = 0, magic3 = 0;  // attrs 10, 11, 12
+        int32_t data = 0;            // attr 13 (cq_item.data is int(4);
+                                     // the original resolves it from
+                                     // field 2 via FUN_140385cf0)
+    };
+    virtual uint32_t insert_item_attrs(uint32_t player_id, uint32_t type,
+                                       uint32_t amount, const ItemAttrs& at) {
+        (void)at;
+        return insert_item(player_id, type, amount);
+    }
+
     // delete one cq_item row by id (action 502 "take item"); true if a
     // row was actually removed
     virtual bool delete_item(uint32_t item_id) = 0;
@@ -324,6 +343,8 @@ public:
     void delete_magic(uint32_t, uint32_t) override {}
     std::vector<PlayerItemRecord> load_player_items(uint32_t) override { return {}; }
     uint32_t insert_item(uint32_t, uint32_t, uint32_t) override { return 0; }
+    uint32_t insert_item_attrs(uint32_t, uint32_t, uint32_t,
+                               const ItemAttrs&) override { return 0; }
     bool delete_item(uint32_t) override { return false; }
     bool update_item(uint32_t, uint32_t, uint32_t) override { return false; }
     void update_user_lookface(uint32_t, uint32_t) override {}

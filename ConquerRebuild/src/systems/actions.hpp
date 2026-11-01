@@ -772,6 +772,61 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = all_ok ? a->id_next : a->id_nextfail;
             break;
         }
+        case 528: {  // item generation with ITEMTYPEDATA attributes
+            // (case 0x210, MsgServer.c ~214599). Original: sscanf of NINE
+            // ints (all required), creates the item (FUN_14034a8d0), then
+            // writes attribute slots through the generic SetInt
+            // FUN_140104140 (idx < 100 = the item attribute table; cq_item's
+            // column order matches it and slot 17 = chk_sum is the value the
+            // original recomputes on every change). Slot mapping read off the
+            // stack slot order of the sscanf pointers:
+            //   field 1 -> slot 4  = amount
+            //   field 2 -> slot 5  = amount_limit, and slot 0xD (data) is
+            //              resolved through FUN_140385cf0(player,1,field2)
+            //   field 3 -> unused
+            //   field 4 -> slot 0xC = magic3
+            //   field 5 -> slot 0xB = magic2
+            //   field 6 -> slot 0x10 is magic1 (attr 10)
+            //   field 7 -> slot 9   = gem2
+            //   field 8 -> slot 8   = gem1
+            //   field 9 -> FUN_140117670(item, field9 != 0, 1) (flag whose
+            //              meaning is not decoded -> logged, not invented)
+            // Finally the manager broadcasts the new item (vtbl+0x130).
+            int f[9] = {0};
+            int n = std::sscanf(a->param.c_str(),
+                                "%d %d %d %d %d %d %d %d %d",
+                                &f[0], &f[1], &f[2], &f[3], &f[4],
+                                &f[5], &f[6], &f[7], &f[8]);
+            if (n != 9) {
+                std::printf("[action] %u 528 needs 9 fields, got %d\n",
+                            p.id, n);
+                cur = a->id_nextfail;
+                break;
+            }
+            IDatabase::ItemAttrs at;
+            at.amount_limit = f[1] > 0 ? (uint32_t)f[1] : 0;
+            at.magic3 = f[3] > 0 ? (uint32_t)f[3] : 0;
+            at.magic2 = f[4] > 0 ? (uint32_t)f[4] : 0;
+            at.magic1 = f[5] > 0 ? (uint32_t)f[5] : 0;
+            at.gem2   = f[6] > 0 ? (uint32_t)f[6] : 0;
+            at.gem1   = f[7] > 0 ? (uint32_t)f[7] : 0;
+            uint32_t amount = f[0] > 0 ? (uint32_t)f[0] : 1;
+            uint32_t new_id = active_db()->insert_item_attrs(
+                p.id, (uint32_t)a->data, amount, at);
+            if (new_id != 0 && p.session) {
+                p.session->send(build_item_info_1008(
+                    new_id, (uint32_t)a->data, amount, 0, 1));
+                p.session->send(build_item_status_2077(new_id, 8, 0, 1, 1));
+            }
+            std::printf("[action] %u 528 gen type %u amount %u "
+                        "limit %u g1 %u g2 %u m1 %u m2 %u m3 %u "
+                        "unused3 %d flag9 %d -> %s\n",
+                        p.id, (uint32_t)a->data, amount, at.amount_limit,
+                        at.gem1, at.gem2, at.magic1, at.magic2, at.magic3,
+                        f[2], f[8], new_id ? "true" : "false");
+            cur = new_id ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 205: {  // map-empty check (case 0xcd ~218053):
             // original: iterate the mapgroup role list; return true iff
             // NO other alive user on the actor's map (mining/arena-room

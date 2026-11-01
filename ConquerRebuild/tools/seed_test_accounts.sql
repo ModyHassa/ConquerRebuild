@@ -1057,3 +1057,15 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000874,99000876,99000877,112,1,''),
   (99000876,0,0,101,0,'V62~EMPTY~OK.'),
   (99000877,0,0,101,0,'V62~EMPTY~FAIL.');
+
+-- ============================================================
+-- v67: 528 item generation with ITEMTYPEDATA attributes
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000890 AND 99000899;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000890,99000892,99000893,528,750000,'7 2 999 11 22 33 44 55 1'),
+  (99000892,0,0,101,0,'V67~GEN~OK.'),
+  (99000893,0,0,101,0,'V67~GEN~FAIL.'),
+  (99000894,99000896,99000897,528,750000,'7 2 3'),
+  (99000896,0,0,101,0,'V67~BAD~OK.'),
+  (99000897,0,0,101,0,'V67~BAD~FAIL.');
