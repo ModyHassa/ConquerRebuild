@@ -861,6 +861,57 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = new_id ? a->id_next : a->id_nextfail;
             break;
         }
+        case 131: {  // action/animation packet 10010 at (x,y) (case 0x83,
+            // ~223015). Original: sscanf("%d %d %u %u") (4 fields) or
+            // "%d %d %u" (3 fields), then FUN_140362620 builds CMsgAction
+            // 10010 (message id 0x271A) with the actor id in +4, the two
+            // coordinate fields in +0x18/+0x1A and the literal 0xa2 (162)
+            // in the +8 data slot, and the whole thing is sent to the actor
+            // only (param_4[2] vtbl+0x350). Live content is 253 rows of
+            // "x y aux" with x/y inside real map bounds (195..772 /
+            // 205..703), which is what pins field 1 = x and field 2 = y.
+            int fx = 0, fy = 0;
+            unsigned aux = 0;
+            int n = std::sscanf(a->param.c_str(), "%d %d %u",
+                                &fx, &fy, &aux);
+            if (n < 3) {
+                std::printf("[action] %u 131 needs 3 fields, got %d\n",
+                            p.id, n);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (p.session) {
+                p.session->send(build_action_10010(
+                    p.id, 162u, 0, 0,
+                    (uint16_t)fx, (uint16_t)fy, (uint32_t)aux));
+            }
+            std::printf("[action] %u 131 action 10010 at (%d,%d) aux %u\n",
+                        p.id, fx, fy, aux);
+            cur = a->id_next;
+            break;
+        }
+        case 519: {  // remove EVERY carried item of type <data> (0x207,
+            // ~214527). FUN_1403408c0(player, itemtype) walks the carried
+            // item-id vector, collects all ids whose attribute 1 (type)
+            // equals the action data column, erases each one through
+            // FUN_14033a6a0 and returns true iff the list was non-empty.
+            // So this is "take all of this type", unlike 502 which takes one.
+            int removed = 0;
+            for (const auto& it : active_db()->load_player_items(p.id)) {
+                if (it.type != (uint32_t)a->data) continue;
+                if (active_db()->delete_item(it.id)) {
+                    ++removed;
+                    // same erase-notify wire the 502/543 paths use
+                    if (p.session)
+                        p.session->send(build_item_status_2077(
+                            it.id, 7, it.position, it.amount, it.amount));
+                }
+            }
+            std::printf("[action] %u 519 remove-all type=%u -> %d\n",
+                        p.id, (uint32_t)a->data, removed);
+            cur = removed ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 205: {  // map-empty check (case 0xcd ~218053):
             // original: iterate the mapgroup role list; return true iff
             // NO other alive user on the actor's map (mining/arena-room
