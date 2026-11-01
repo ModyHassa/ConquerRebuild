@@ -178,7 +178,10 @@ try:
 
     # ---- 4) item pickup: pill pile -> CMsgItemInfo 1008 + 2077 ------
     hunt = 0
-    while not pills and hunt < 80:
+    # item drops are 3%/kill in the original roll, so a fixed 80-kill window
+    # left an ~9% chance of seeing none at all and flaked the suite. Keep
+    # hunting until one appears (0.97**200 = 0.2% residual).
+    while not pills and hunt < 200:
         spawns = monster_ids_from_spawns(drain_all(sock, 0.2))
         for m in spawns: seen[m] = spawns[m]
         alive = [m for m in seen if m not in dead]
@@ -194,7 +197,7 @@ try:
                 if a2 == 1 and not is_money_tier(it2):
                     pills.append((g2, it2, x2, y2))
         hunt += 1
-        time.sleep(0.15)
+        time.sleep(0.05)
     assert pills, f'no item drop after {kills+hunt} kills (3%%/kill expected)'
     igid, iitp, ix, iy = pills[-1]
     print('item pile: id=%d type=%d at (%d,%d) after %d extra kills'

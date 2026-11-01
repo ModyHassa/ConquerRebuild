@@ -1,15 +1,15 @@
 # Action-type coverage (generated)
 
-- cq_action rows: **193435**
-- rows whose type has a `case` in actions.hpp: **189044** (97.7%)
-- distinct types: **216**, implemented: **114**
+- cq_action rows: **193442**
+- rows whose type has a `case` in actions.hpp: **189063** (97.7%)
+- distinct types: **216**, implemented: **115**
 
 - original ProcessAction cases: **173**
 
 | type | rows | status |
 |---:|---:|:---|
 | 501 | 20960 | OK |
-| 101 | 20591 | OK |
+| 101 | 20595 | OK |
 | 102 | 20230 | OK |
 | 1085 | 13393 | OK |
 | 1010 | 12380 | OK |
@@ -75,7 +75,7 @@
 | 3701 | 122 | n/a (no case in the original switch) |
 | 1083 | 121 | n/a (no case in the original switch) |
 | 542 | 115 | OK |
-| 2101 | 106 | OK |
+| 2101 | 107 | OK |
 | 302 | 105 | OK |
 | 2013 | 103 | OK |
 | 1084 | 99 | n/a (no case in the original switch) |
@@ -115,29 +115,30 @@
 | 519 | 28 | OK |
 | 1204 | 27 | n/a (no case in the original switch) |
 | 1029 | 25 | n/a (no case in the original switch) |
-| 130 | 24 | TODO (original has the case) |
 | 144 | 24 | TODO (original has the case) |
+| 130 | 24 | TODO (original has the case) |
 | 1048 | 20 | n/a (no case in the original switch) |
 | 205 | 19 | OK |
 | 112 | 18 | OK |
 | 2011 | 17 | OK |
 | 1028 | 16 | n/a (no case in the original switch) |
 | 1053 | 14 | n/a (no case in the original switch) |
-| 1508 | 13 | n/a (no case in the original switch) |
+| 2102 | 14 | OK |
 | 1511 | 13 | n/a (no case in the original switch) |
-| 2102 | 12 | TODO (original has the case) |
+| 1508 | 13 | n/a (no case in the original switch) |
 | 1041 | 11 | n/a (no case in the original switch) |
 | 1094 | 11 | n/a (no case in the original switch) |
+| 3523 | 10 | OK |
 | 3524 | 10 | OK |
 | 3521 | 10 | OK |
-| 3523 | 10 | OK |
 | 307 | 9 | OK |
 | 1509 | 9 | n/a (no case in the original switch) |
 | 1107 | 9 | n/a (no case in the original switch) |
 | 311 | 9 | OK |
 | 3510 | 8 | OK |
-| 1078 | 7 | n/a (no case in the original switch) |
 | 224 | 7 | TODO (original has the case) |
+| 1078 | 7 | n/a (no case in the original switch) |
+| 208 | 6 | OK |
 | 3012 | 6 | n/a (no case in the original switch) |
 | 308 | 6 | OK |
 | 1652 | 6 | n/a (no case in the original switch) |
@@ -146,7 +147,7 @@
 | 1102 | 6 | n/a (no case in the original switch) |
 | 1110 | 6 | n/a (no case in the original switch) |
 | 1025 | 6 | n/a (no case in the original switch) |
-| 208 | 6 | OK |
+| 1052 | 5 | n/a (no case in the original switch) |
 | 3010 | 5 | OK |
 | 722 | 5 | TODO (original has the case) |
 | 1109 | 5 | n/a (no case in the original switch) |
@@ -154,7 +155,6 @@
 | 2002 | 5 | OK |
 | 720 | 5 | TODO (original has the case) |
 | 1024 | 5 | n/a (no case in the original switch) |
-| 1052 | 5 | n/a (no case in the original switch) |
 | 314 | 4 | OK |
 | 2005 | 4 | OK |
 | 8011 | 4 | n/a (no case in the original switch) |
@@ -172,6 +172,15 @@
 | 126 | 2 | OK |
 | 2205 | 2 | TODO (original has the case) |
 | 9001 | 2 | OK |
+| 3007 | 1 | OK |
+| 219 | 1 | OK |
+| 1111 | 1 | n/a (no case in the original switch) |
+| 705 | 1 | n/a (no case in the original switch) |
+| 1079 | 1 | n/a (no case in the original switch) |
+| 1076 | 1 | n/a (no case in the original switch) |
+| 1 | 1 | OK |
+| 3008 | 1 | OK |
+| 707 | 1 | TODO (original has the case) |
 | 706 | 1 | TODO (original has the case) |
 | 1023 | 1 | n/a (no case in the original switch) |
 | 2010 | 1 | OK |
@@ -215,24 +224,14 @@
 | 2203 | 1 | TODO (original has the case) |
 | 20002 | 1 | OK |
 | 0 | 1 | OK |
-| 3007 | 1 | OK |
-| 219 | 1 | OK |
-| 1111 | 1 | n/a (no case in the original switch) |
-| 705 | 1 | n/a (no case in the original switch) |
-| 1079 | 1 | n/a (no case in the original switch) |
-| 1076 | 1 | n/a (no case in the original switch) |
-| 1 | 1 | OK |
-| 3008 | 1 | OK |
-| 707 | 1 | TODO (original has the case) |
 
 ## Real remaining work (original switches on it)
 
 - type **2007**: 54 rows
 - type **129**: 36 rows
 - type **332**: 30 rows
-- type **130**: 24 rows
 - type **144**: 24 rows
-- type **2102**: 12 rows
+- type **130**: 24 rows
 - type **224**: 7 rows
 - type **722**: 5 rows
 - type **720**: 5 rows
@@ -241,6 +240,7 @@
 - type **715**: 2 rows
 - type **721**: 2 rows
 - type **2205**: 2 rows
+- type **707**: 1 rows
 - type **706**: 1 rows
 - type **711**: 1 rows
 - type **712**: 1 rows
@@ -256,7 +256,6 @@
 - type **544**: 1 rows
 - type **704**: 1 rows
 - type **2203**: 1 rows
-- type **707**: 1 rows
 
 ## Not in the original switch (task-engine steps / no-ops)
 

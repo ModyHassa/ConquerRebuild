@@ -247,3 +247,27 @@ The live params confirm it: 26 of the 54 rows are gate toggles of the form
 BLOCKED on FUN_1402c2390 (the guild domain manager: map ownership, domain
 gates, and the 0x6c request struct layout) which is a subsystem, not a
 single function. Not guessed.
+
+
+## 129 — 36 rows — pet condition / pet create (case 0x81, 222882)
+Two branches selected by the dword the triggering message carries at +4:
+- == 1: sscanf("%u") = pet id; FUN_14021b560(container, id) must find it;
+  FUN_140380900(pet) is just `*(int *)(pet + 0x90) != 0` (an in-use flag).
+  When that flag is clear the pet is released from the container through
+  FUN_14021bd20(container, id) (a list-node removal, not a DB delete) and
+  the script continues; when it is set the action fails.
+- otherwise: sscanf("%u %s %s %d %s %s %d %s %s %d %s %s %d %s %s %d
+  %s %s %d") = a pet id plus six (name, op, value) triples. A pet with that
+  id must NOT exist yet; FUN_1403814c0(type) allocates one,
+  FUN_140381a40(pet, name_buf, value_buf, {6, id}) fills it and
+  FUN_14021c1d0(container, pet) inserts it (success = continue, failure
+  frees it and fails).
+But the 36 live rows sit inside task chains as CHECKS, e.g.
+3001030 (type 123) -> 3001031 (129, data=1, param "1") -> 3001032
+(129, param "1 level >= 1"), which reads as "pet 1, level >= 1" and matches
+the second form only if the code is being used as an evaluator.
+Open question before porting: where the message dword at +4 comes from (it
+selects the branch), i.e. whether the script VM passes `data` there. Not
+guessed; cq_pet columns are id, ownerid, ownertype, generatorid, name,
+typeid, life, mana, recordmap_id, recordx, recordy, data.
+

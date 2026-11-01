@@ -70,6 +70,12 @@ public:
         return false;
     }
     const std::vector<Trap>& all() const { return traps_; }
+    // the trap a script context stands on (action 2102 target)
+    Trap* find_at(uint32_t map_id, uint16_t x, uint16_t y) {
+        for (auto& t : traps_)
+            if (t.map_id == map_id && t.x == x && t.y == y) return &t;
+        return nullptr;
+    }
     std::vector<Trap> on_map(uint32_t map_id) const {
         std::vector<Trap> out;
         for (const auto& t : traps_) if (t.map_id == map_id) out.push_back(t);
@@ -91,7 +97,10 @@ inline uint16_t trap_look(uint32_t traptype_look, uint32_t info_look) {
     return (uint16_t)(((traptype_look / 10) - (low / 10)) * 10 + low);
 }
 
-inline conquer::Packet build_trap_1101(const Trap& t, uint8_t kind_override = 0xFF) {
+// action = the MSGMAPITEM action byte at +0x12: 10 (0xa) shows the trap,
+// 12 (0xc) is what FUN_1403a7180 sends when the trap is deleted.
+inline conquer::Packet build_trap_1101(const Trap& t, uint8_t kind_override = 0xFF,
+                                      uint8_t action = MAPITEM_CAST_TRAP) {
     uint8_t buf[0x41];
     std::memset(buf, 0, sizeof(buf));
     uint8_t kind = (kind_override == 0xFF) ? t.kind : kind_override;
@@ -107,7 +116,7 @@ inline conquer::Packet build_trap_1101(const Trap& t, uint8_t kind_override = 0x
     w2(0x08, t.x);            // trap layout: x sits where an item has itemtype
     w2(0x0C, t.y);
     w2(0x10, t.look);
-    buf[0x12] = MAPITEM_CAST_TRAP;
+    buf[0x12] = action;
     w4(0x13, t.owner);        // packed: u4 at 0x13 (unaligned, as the original)
     buf[0x17] = kind;
     w4(0x18, t.owner);        // the +0x2b0 sub-object id, when present

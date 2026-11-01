@@ -611,3 +611,28 @@ encrypted reply frames (first = 10014 player spawn).
   RNG flake (0 drops in 122 kills that run); it passes 3/3 standalone.
   Coverage 97.7%, 114 of 216 types.
 
+## v73 (Nov 1, 2026) — action 2102 (traps) + a fully green suite
+- 2102 PORTED (case 0x836, 224661): the script context asks its owner for
+  the trap object it stands on ((vtbl+0x298)(ctx, 0x1400, &out); a null
+  context logs ERROR 0x3304). FUN_1403a7180 then builds ONE MSGMAPITEM with
+  action byte 0xc through the same trap builder, broadcasts it to the map,
+  sets the trap's removed flag (+0x74) and returns 1; a second call on the
+  same trap returns 0 and the chain takes id_nextfail. Our script context is
+  the acting player, so the trap is resolved with the new
+  TrapSystem::find_at(map, x, y) at the player's own cell.
+- build_trap_1101 gained a third parameter: the MSGMAPITEM action byte at
+  +0x12 (10 = show, 12 = remove). The old signature only overrode the kind
+  byte at +0x17, which is why 2102 first sent a creation-looking packet.
+- tests/test_actions_v73.py: 9 live assertions. One click on a chain of
+  2101 -> 2102 proves the create broadcast (action 10) and the removal
+  broadcast (action 0xc) carry the same trap id, then a second bare 2102
+  must take id_nextfail and broadcast nothing. The test purges leftover
+  traps from earlier waves first, because the trap registry lives in the
+  server process and 2102 always resolves the first trap at the actor cell.
+- test_drops de-flaked: the item hunt now keeps killing until a 3% drop
+  appears (cap 200) instead of stopping at 80 kills, which left an ~9%
+  chance of a false red. That was the last known flaky test.
+- Suite: 52 tests, 52 green, zero failures. Coverage 97.7%, 115 of 216
+  types. The only remaining TODO rows are 2007 (54, guild domain manager)
+  and 129 (36, pet condition/create).
+

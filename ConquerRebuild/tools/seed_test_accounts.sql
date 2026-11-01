@@ -1164,3 +1164,16 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
 DELETE FROM cq_syndicate WHERE id=999001;
 INSERT INTO cq_syndicate (id,name,money,member_title,leader_id)
   VALUES (999001,'TestGuild',500000,0,1);
+
+-- ============================================================
+-- v73: action 2102 trap deletion (case 0x836)
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99001000 AND 99001019;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99001000,99001002,99001003,2101,0,'51 11 0 1002 400 300 0 0 0'),
+  (99001002,99001004,99001005,2102,0,''),
+  (99001004,0,0,101,0,'V73~TRAPDEL~OK.'),
+  (99001005,0,0,101,0,'V73~TRAPDEL~FAIL.'),
+  (99001006,99001008,99001009,2102,0,''),
+  (99001008,0,0,101,0,'V73~AGAIN~OK.'),
+  (99001009,0,0,101,0,'V73~AGAIN~FAIL.');

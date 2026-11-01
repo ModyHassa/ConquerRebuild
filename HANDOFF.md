@@ -311,3 +311,17 @@ Next: 2007 guild members/ranks (54 rows, the remaining guild piece), 129
 pet system (36 rows, 19-field pet template), 2102 trap deletion, 332
 item-vtable bit (documented blocker).
 
+## v73 (Nov 1, 2026) — 2102 traps, suite fully green
+2102 ported: the acting player's cell is resolved to a trap through
+TrapSystem::find_at, the removal is broadcast as MSGMAPITEM action 0xc and
+the trap is dropped; a second run takes id_nextfail. The trap packet
+builder now takes the action byte explicitly (10 show / 12 remove).
+test_drops was de-flaked (3%/kill hunt up to 200 kills) and the trap test
+purges leftover registry entries, so the suite is 52/52 green with no known
+flaky test. Coverage 97.7% (115/216).
+Next: 2007 (54) needs the guild domain manager FUN_1402c2390; 129 (36) needs
+one decision - the Dexed body both creates a pet (19-field form) and, when
+the msg dword at +4 is 1, releases an existing one via FUN_14021bd20, while
+the live params look like conditions ("1 level >= 1"). Resolve the msg dword
+source before porting either branch.
+

@@ -924,6 +924,38 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = consumed ? a->id_next : a->id_nextfail;
             break;
         }
+        case 2102: {  // ACTION_TRAP_DELETE (case 0x836, 224661)
+            // The context asks its owner for the trap object it stands on
+            // ((vtbl+0x298)(ctx, 0x1400, &out)); a null context logs ERROR
+            // 0x3304. FUN_1403a7180 then builds one MSGMAPITEM with action
+            // byte 0xc through the same trap builder and broadcasts it to the
+            // map, sets the trap's removed flag (+0x74) and returns 1; a
+            // second call on the same trap returns 0 (the already-removed
+            // check) and the script takes id_nextfail. Our script context is
+            // the acting player, so the trap is resolved at the player's
+            // cell on the player's map.
+            Trap* tr = TrapSystem::instance().find_at(p.map_id,
+                                                      (uint16_t)p.pos.x,
+                                                      (uint16_t)p.pos.y);
+            if (!tr) {
+                std::printf("[action] %u 2102 no trap at %u:(%u,%u) "
+                            "-> id_nextfail\n", p.id, p.map_id,
+                            (unsigned)p.pos.x, (unsigned)p.pos.y);
+                cur = a->id_nextfail;
+                break;
+            }
+            Packet dp = build_trap_1101(*tr, 0xFF, 12);  // 0xc = trap remove
+            const uint32_t dead_id = tr->id;
+            auto& dm = w.get_or_create_map(tr->map_id);
+            Position dc; dc.x = tr->x; dc.y = tr->y;
+            TrapSystem::instance().remove(dead_id);
+            w.broadcast_to_screen(dm, dc, dp, nullptr);
+            if (p.session) p.session->send(dp);
+            std::printf("[action] %u 2102 removed trap %u at %u:(%u,%u)\n",
+                        p.id, dead_id, p.map_id, tr->x, tr->y);
+            cur = a->id_next;
+            break;
+        }
         case 717: {  // guild fund / title / domain script (case 0x2cd, 216466)
             // sscanf("%s %s %d %u") must give at least 3 fields, else the
             // original writes a DBERROR log and falls to the shared fail
