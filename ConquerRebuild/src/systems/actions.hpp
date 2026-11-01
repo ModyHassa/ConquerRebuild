@@ -827,6 +827,40 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = new_id ? a->id_next : a->id_nextfail;
             break;
         }
+        case 550: {  // award item with a COUNT (case 0x226, ~214941).
+            // Original: local_708 holds the action's data column (itemtype),
+            // then sscanf("%d %d ...") fills 20 slots of which the two
+            // register-passed ones are flags (field 1) and count (field 2).
+            // Verified against the live content: data=3005822/360149/350079
+            // (real itemtypes) with params "0 20", "0 0 0 0 0 0 0 1" or
+            // empty -> so field 1 = flags, field 2 = count (default 1).
+            // Flow: FUN_140102780(itemtype) validates the type; when valid
+            // and flags&1 == 0 the original runs a bag-space check first
+            // (STR_FULLBAG_NO_MORE on failure), then FUN_14033fc80 adds
+            // `count` at once. flags&1 only selects which add helper runs.
+            int flags = 0, count = 0;
+            std::sscanf(a->param.c_str(), "%d %d", &flags, &count);
+            if (count <= 0) count = 1;
+            uint32_t new_id = active_db()->insert_item(
+                p.id, (uint32_t)a->data, (uint32_t)count);
+            if (new_id != 0 && p.session) {
+                p.session->send(build_item_info_1008(
+                    new_id, (uint32_t)a->data, (uint32_t)count, 0, 1));
+                p.session->send(build_item_status_2077(
+                    new_id, 8, 0, 1, 1));
+            } else if (p.session) {
+                // original: STR_FULLBAG_NO_MORE then false
+                p.session->send(build_talk_1004(
+                    "SYSTEM", p.name,
+                    "Not enough space in your inventory.", "",
+                    0xFFFFFF, 2011, 0, 0, 0, 0));
+            }
+            std::printf("[action] %u 550 award type %u x%d flags %d -> %s\n",
+                        p.id, (uint32_t)a->data, count, flags,
+                        new_id ? "true" : "false");
+            cur = new_id ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 205: {  // map-empty check (case 0xcd ~218053):
             // original: iterate the mapgroup role list; return true iff
             // NO other alive user on the actor's map (mining/arena-room

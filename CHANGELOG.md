@@ -471,3 +471,22 @@ encrypted reply frames (first = 10014 player spawn).
   exactly as the decode predicts; a 3-field row takes id_nextfail and
   creates nothing. Fixtures 99000890-99000899.
 - Suite: 46/46 green (test_actions_v67 registered).
+
+## v68 (Nov 1, 2026) — wave M-J: action 550 (award item with count) PORTED
+- 550 (case 0x226, 53 rows) implemented. Decoded from the binary + the
+  live content: the action `data` column is the itemtype, the 20-field
+  sscanf fills flags in field 1 and COUNT in field 2 (rows show
+  data=3005822/360149/350079 with params "", "0 20", "0 0 0 0 0 0 0 1").
+  FUN_140102780 validates the itemtype; the valid path does a bag-space
+  check when flags&1 == 0 (STR_FULLBAG_NO_MORE) and then FUN_14033fc80
+  adds `count` as ONE stack. Our port inserts one cq_item row with
+  amount = count, sends 1008 + 2077, and talks
+  STR_FULLBAG_NO_MORE-equivalent text on failure.
+- 529 re-classified: NOT item generation. It is a consume-item gate
+  (sscanf A B; walk the player container; match attr1==actor,
+  B <= FUN_140385cf0(player,1,A) - attr13, attr5==A; then
+  FUN_140340190(player,item,1,1) takes it and the action succeeds).
+  Recorded in DEFERRED_TYPES.md; content uses A=01..06 with B=200.
+- tests/test_actions_v68.py (new, 7 live assertions): "0 20" -> a 20
+  stack and id_next; empty param -> count 1. Fixtures 99000910-99000919.
+- Suite: 47/47 green.

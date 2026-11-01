@@ -264,3 +264,11 @@ Confirmed slot mapping: 4=amount, 5=amount_limit, 8=gem1, 9=gem2,
 Suite 46/46. Next: 529 (2-field sibling of the same generator, 49 rows),
 then 542 (17 fields) which needs the FUN_140385cf0 data resolution and
 the two register-passed sscanf pointers.
+
+## v68 (Nov 1, 2026) — M-J
+Action 550 PORTED + live-tested: the `data` column is the itemtype, field 1
+of the param is flags, field 2 is the COUNT (default 1). 529 decoded as a
+consume-item gate (not generation) and left deferred with its evidence.
+Suite 47/47. Next candidates: 529 (needs FUN_140385cf0), 542 (needs it too
++ the two register sscanf pointers), 2101 (103 rows, still undecoded),
+131 (253 rows, needs the third 1004 renderer), 2007 (guild system).

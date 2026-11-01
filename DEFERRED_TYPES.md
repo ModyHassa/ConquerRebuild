@@ -72,10 +72,17 @@ Also calls `FUN_140118320()` at the top and, if the looked-up entry is
 non-zero, `vtbl+0x88` on it.
 BLOCKER: same slot enum as 542.
 
-## 529 — 49 rows — item generation, 2 fields (case 0x211, line 214669)
-`sscanf("%d %d")`, both must be non-zero, then `FUN_14032b450(player)`
-and `FUN_140385cf0(player, 1, first)`; the rest walks a container.
-BLOCKER: same slot/string-resolution semantics.
+## 529 — 49 rows — CONSUME-item gate (case 0x211, line 214669) — decoded, not ported
+NOT item generation. `sscanf("%d %d")` -> A,B (both must be non-zero);
+`FUN_14032b450(player)` returns the player container; `resolved =
+FUN_140385cf0(player,1,A)`; then for every id in the container
+`item = manager->Get(id)` and it returns true on the first item with
+`attr1 == actor-id && B <= resolved - attr13 && attr5 == A` after
+`FUN_140340190(player, item_id, 1, 1)` succeeds (a take/remove).
+So it is a "player must own A x B and they are consumed" gate. Live
+content uses A=01..06 with B=200.
+BLOCKER: FUN_140385cf0 resolution + whether attr1 is compared against the
+actor id or the uin - both would need guessing to finish.
 
 ## 519 — 27 rows — inventory lookup (case 0x207, line 214527)
 ```
@@ -95,8 +102,13 @@ attribute 1 is the item type id.
 `if (player) { sub = (*(player[2]+0x160))(player+2); return sub ? FUN_1401196c0(sub) : true; }`
 BLOCKER: identify the `+0x160` sub-object and `FUN_1401196c0`.
 
-## 550 — 53 rows (case 0x226, line 214941)
-Multi-field `sscanf` over ~10 locals; not decoded yet.
+## 550 — 53 rows — PORTED in v68 (case 0x226, line 214941)
+Decoded: the action `data` column is the itemtype; the 20-field sscanf
+puts flags in field 1 and COUNT in field 2 (live content proves it:
+data=3005822/360149/350079 with params "", "0 20", "0 0 0 0 0 0 0 1").
+FUN_140102780 validates the itemtype; the valid path runs a bag-space
+check when flags&1 == 0 (STR_FULLBAG_NO_MORE) and then FUN_14033fc80
+adds `count` in one stack. flags&1 only selects the add helper.
 
 ## 144 — 24 rows (case 0x90, line 223241)
 `sscanf("%s")` then `_strnicmp(param, "==", 0x100)` — a string-compare
