@@ -318,3 +318,33 @@ Decode-only wave: nailed how the real v6159 client talks to the game port.
 - Suite: 43/43 green. NOTE: the first attempt failed across the board
   because MariaDB was down (seed silently failed) — restart it with
   `service mariadb start` before the suite (already a HANDOFF gotcha).
+
+## v60 (Nov 1, 2026) — wave M-D: the server HELLO (pub key publication), 43/43 green
+- CLIENT EVIDENCE (Conquer.c): the client does NOT start the handshake
+  blind — its recv loop calls FUN_00806995 on the SERVER's first packet and
+  only then sends its FUN_008064c9 exchange. FUN_00806995 proves the wire:
+    wire = [11-byte prefix][u32 cursor][u32 L][p hex][u32 L][g hex]
+           [u32 L][pub hex]["TQServer" 8]
+    all CAST-CFB64 with the fixed key "C238xs65pjy7HU9Q" (decrypts 15 bytes,
+    length at bytes 11..14). It BN_hex2bn's p and g into its own DH,
+    DH_generate_key()s, DH_compute_key()s against the published pub, runs the
+    SAME md5-chain token (FUN_00806399, == our FUN_140503c00) and
+    CAST_set_key()s the session. That is why our receiver already produces a
+    key the real client can reproduce: no extra reply is needed.
+- SERVER EVIDENCE (MsgServer.c ~0x140504f80): three TLV appends via
+  FUN_140503ac0 (running cursor kept at buf[0..3]) + 0x7265767265535154
+  ("TQServer" LE) + CAST_set_key(..,"C238xs65pjy7HU9Q") +
+  CAST_cfb64_encrypt(prefix_and_payload, wire, len+0x13) — encrypting the
+  11-byte prefix together with the payload.
+- Implemented src/net/transport.hpp: tlv_append (FUN_140503ac0 port) and
+  build_server_hello(DH*, out) publishing p/g/pub as BN_bn2hex strings.
+- Live hook in src/main.cpp: on accept, when CQ_TRANSPORT_HELLO is set, the
+  hello goes out before any framing (env-gated so the dev-protocol tests keep
+  a plaintext stream; the real client deployment enables it).
+- tests/transport_unit_test.cpp: the hello is decrypted with the handshake key
+  and the client-model reader extracts p/g/pub and verifies p==dh.pem,
+  g==dh.pem, pub==server pub + the TQServer tail magic.
+- Suite 43/43 green. GOTCHA reconfirmed twice today: MariaDB stops on its own
+  between runs and run_suite.sh seeds silently — always `service mariadb
+  start` before a suite run or nearly every test fails with confusing
+  symptoms (missing accounts, "no cq_item rows", polluted UIN).

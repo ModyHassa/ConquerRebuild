@@ -84,6 +84,55 @@ inline uint32_t rd_u32le(const unsigned char* p) {
 // FUN_140505bc0 — returns the consumed stream length (len+7) on
 // success, 0 when the packet is not (yet) a complete key exchange,
 // and -1 on a malformed / unauthentic exchange.
+// Port of the server HELLO (builder around 0x140504f80). The client parses it
+// in FUN_00806995 (Conquer.c 803355):
+//   wire = [11-byte prefix][u32 cursor][u32 L][p hex][u32 L][g hex]
+//          [u32 L][pub hex]["TQServer" 8]
+// everything CAST-CFB64 encrypted with the fixed handshake key
+// "C238xs65pjy7HU9Q". The client BN_hex2bn's p and g, DH_generate_key()s its
+// own pair, DH_compute_key()s against the published pub and derives the same
+// md5-chain token (FUN_00806399) that it then feeds to CAST_set_key.
+// tlv_append mirrors FUN_140503ac0 (running cursor kept at buf[0..3]).
+inline void tlv_append(std::vector<unsigned char>& buf, const char* str) {
+    uint32_t n = (uint32_t)std::strlen(str);
+    buf.insert(buf.end(), (const unsigned char*)&n,
+               (const unsigned char*)&n + 4);
+    buf.insert(buf.end(), (const unsigned char*)str,
+               (const unsigned char*)str + n);
+    uint32_t c = (uint32_t)buf.size();       // cursor back into the header
+    std::memcpy(buf.data(), &c, 4);
+}
+
+inline bool build_server_hello(DH* dh, std::vector<unsigned char>& out) {
+    if (!dh) return false;
+    const BIGNUM* p = nullptr; const BIGNUM* q = nullptr;
+    const BIGNUM* g = nullptr; const BIGNUM* pub = nullptr;
+    DH_get0_pqg(dh, &p, &q, &g);
+    DH_get0_key(dh, &pub, nullptr);
+    if (!p || !g || !pub) return false;
+    char* p_hex = BN_bn2hex(p);
+    char* g_hex = BN_bn2hex(g);
+    char* pub_hex = BN_bn2hex(pub);
+    if (!p_hex || !g_hex || !pub_hex) {
+        OPENSSL_free(p_hex); OPENSSL_free(g_hex); OPENSSL_free(pub_hex);
+        return false;
+    }
+    std::vector<unsigned char> payload(4, 0);   // header dword = cursor
+    tlv_append(payload, p_hex);
+    tlv_append(payload, g_hex);
+    tlv_append(payload, pub_hex);
+    const unsigned char magic[8] = {'T','Q','S','e','r','v','e','r'};
+    std::vector<unsigned char> stream(11, 0);   // 11-byte prefix
+    stream.insert(stream.end(), payload.begin(), payload.end());
+    stream.insert(stream.end(), magic, magic + 8);
+    crypto::CastCipher hk; hk.set_key("C238xs65pjy7HU9Q", 16);
+    unsigned char ivec[8] = {0}; int num = 0;
+    out.assign(stream.size(), 0);
+    hk.cfb64(stream.data(), out.data(), (int)stream.size(), ivec, &num, 1);
+    OPENSSL_free(p_hex); OPENSSL_free(g_hex); OPENSSL_free(pub_hex);
+    return true;
+}
+
 inline int receive_key_exchange(TransportSession& s, DH* dh,
                                 const unsigned char* wire, int wire_len) {
     if (!dh || !wire || wire_len < 0) return -1;

@@ -18,6 +18,9 @@
 
 using namespace conquer;
 
+// Wave M-D: the game-socket DH instance (dh.pem params + generated key pair).
+static crypto::DhParams server_dh;
+
 static uint16_t listen_port() {
     if (const char* p = std::getenv("CONQUER_PORT")) return static_cast<uint16_t>(std::atoi(p));
     return 5816; // same default as the original config.ini
@@ -30,7 +33,6 @@ int main() {
 
     // v59: the game-socket key exchange needs the dh.pem parameters
     // (FUN_140505380 loads them and leaves DH ready with a key pair).
-    static crypto::DhParams server_dh;
     if (server_dh.load("dh.pem")) {
         DH_generate_key(server_dh.dh);
     } else if (server_dh.load("../conquer_source/Source/dh.pem")) {
@@ -114,6 +116,17 @@ int main() {
         inet_ntop(AF_INET, &cli.sin_addr, ipbuf, sizeof(ipbuf));
         std::thread([cs, ip = std::string(ipbuf), &dispatcher] {
             ClientSession session(cs, ip);
+            // Wave M-D: publish the DH hello the real client waits for
+            // (FUN_00806995). Gated so the dev-protocol tests keep their
+            // plaintext stream.
+            if (server_dh.dh && std::getenv("CQ_TRANSPORT_HELLO")) {
+                std::vector<unsigned char> hello;
+                if (net::build_server_hello(server_dh.dh, hello)) {
+                    sock_send_all(cs, hello.data(), hello.size());
+                    std::printf("[transport] hello published to %s\n",
+                                ip.c_str());
+                }
+            }
             std::printf("[connect] %s\n", ip.c_str());
             std::vector<uint8_t> buf;
             bool handshake_tried = false;

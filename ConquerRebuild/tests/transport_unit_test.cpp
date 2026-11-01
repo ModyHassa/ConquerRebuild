@@ -87,6 +87,47 @@ int main() {
     std::vector<unsigned char> wire = stream;
     for (int i = 0; i < 4; ++i) wire.push_back(0);
 
+    // ---- server HELLO -> client parse (FUN_00806995 model) ----
+    {
+        std::vector<unsigned char> hello;
+        check(net::build_server_hello(server_dh.dh, hello),
+              "server hello built");
+        crypto::CastCipher hk; hk.set_key("C238xs65pjy7HU9Q", 16);
+        unsigned char hiv[8] = {0}; int hnum = 0;
+        std::vector<unsigned char> hd(hello.size());
+        hk.cfb64(hello.data(), hd.data(), (int)hello.size(), hiv, &hnum, 0);
+        uint32_t cur = 0;
+        std::memcpy(&cur, hd.data() + 11, 4);
+        check(hd.size() >= 15u + cur, "hello length field fits the wire");
+        check(std::memcmp(hd.data() + hd.size() - 8, "TQServer", 8) == 0,
+              "hello tail magic is TQServer");
+        size_t off = 15;
+        std::vector<std::string> els;
+        while (off + 4 <= hd.size() - 8) {
+            uint32_t L = 0;
+            std::memcpy(&L, hd.data() + off, 4);
+            off += 4;
+            if (L > hd.size() - 8 - off) break;
+            els.emplace_back((const char*)hd.data() + off, L);
+            off += L;
+        }
+        check(els.size() >= 3, "hello carries p/g/pub TLVs");
+        if (els.size() >= 3) {
+            BIGNUM* cp = nullptr; BN_hex2bn(&cp, els[0].c_str());
+            BIGNUM* cg = nullptr; BN_hex2bn(&cg, els[1].c_str());
+            BIGNUM* spub = nullptr; BN_hex2bn(&spub, els[2].c_str());
+            const BIGNUM* dp = nullptr; const BIGNUM* dg = nullptr;
+            DH_get0_pqg(server_dh.dh, &dp, nullptr, &dg);
+            const BIGNUM* dpub = nullptr;
+            DH_get0_key(server_dh.dh, &dpub, nullptr);
+            check(cp && dp && BN_cmp(cp, dp) == 0, "hello p == dh.pem p");
+            check(cg && dg && BN_cmp(cg, dg) == 0, "hello g == dh.pem g");
+            check(spub && dpub && BN_cmp(spub, dpub) == 0,
+                  "hello pub == server pub");
+            BN_free(cp); BN_free(cg); BN_free(spub);
+        }
+    }
+
     // ---- drive the ported receiver ----
     TransportSession sess;
     int used = receive_key_exchange(sess, server_dh.dh, wire.data(),
