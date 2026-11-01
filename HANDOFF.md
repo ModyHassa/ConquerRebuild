@@ -160,7 +160,15 @@ CAST token end-to-end (42/42 green). NEXT = M-C: wire the transport into
 the live socket layer (first-packet detection, 4-spare-byte recv buffer,
 per-message framing FUN_1404f6c90: len u2 + type u2 + payload + 8-byte
 trailing magic), then M-D account-net login (1002 MsgLogin 0x20 / 1052
-MsgConnect 0x1c / 1055 CMsgConnectEx) on the encrypted channel. Rules: (a) never widen a DELETE past your band,
+MsgConnect 0x1c / 1055 CMsgConnectEx) on the encrypted channel.
+M-C DONE (v59): src/net/frame.hpp + the live wiring in src/main.cpp /
+src/net/net.hpp (handshake detection on the first bytes, decrypted
+recv with the trailing "TQClient" check, encrypted send with "TQServer"),
+proven by tests/transport_live_test.cpp against the running server
+(43/43 green). NEXT = M-D: the server must PUBLISH its DH public key to
+the client (the client's element 2 is ITS pub key; the counterpart reply
+that lets the client derive the token is still undecoded — find who calls
+FUN_140505bc0 and what it sends next), then the account-net login. Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 

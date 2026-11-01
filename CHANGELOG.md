@@ -285,3 +285,36 @@ Decode-only wave: nailed how the real v6159 client talks to the game port.
   live server the recv buffer must provide >= 4 spare bytes and the
   follow-up packet's CFB position needs checking against the client.
 - Suite: 42/42 green (40 live + crypto_unit + transport_unit).
+
+## v59 (Nov 1, 2026) — wave M-C: transport wired live, 43/43 green
+- src/net/frame.hpp: the framing ports — FUN_1404f6c90 (parse:
+  [len u2][type u2][payload len-4] + optional PLAINTEXT 8-byte trailing
+  magic compared at buf+len; len<4 or >0x400 rejected; returns len/0/-1),
+  FUN_1404f6d30 (build len=payload+4) and FUN_1404f6dc0 (build with a
+  u32 extra at +4, len=payload+8).
+- src/main.cpp + src/net/net.hpp: the live integration.
+  * startup loads dh.pem (FUN_140505380 semantics) and DH_generate_key;
+    missing dh.pem only disables the encrypted handshake (logged).
+  * per-connection: if the first 4 buffered bytes are NOT a plausible dev
+    frame (len 4..0x400, type 1..20000) the transport tries
+    receive_key_exchange; >0 consumes the handshake and arms the session,
+    0 waits for more bytes, -1 falls back to the plaintext dev protocol.
+  * encrypted sessions: the 4-byte header is decrypted once, the rest when
+    the frame is complete, the trailing plaintext "TQClient" must match,
+    then the decrypted frame goes to the SAME dispatcher; bad length or
+    magic closes the socket. Outbound: ClientSession::send routes through
+    build_outbound (CAST-CFB64 + "TQServer") whenever the session cipher
+    is armed, plaintext otherwise.
+  * The session CFB64 ivec/num start FRESH after the handshake (the
+    receiver uses a local scratch ivec/num) — the 4-byte over-read of the
+    handshake pass does not desync the live stream (open question closed).
+- tests/transport_live_test.cpp (in run_suite.sh -> "PASS transport_live"):
+  connects to the running server, performs the real client handshake
+  (CAST + DH + TLV + magic), asserts the server logs "handshake ok from",
+  then proves the plaintext dev protocol is untouched (1008 login reply is
+  a valid 1008 frame with no TQServer magic).
+- Makefile: -lcrypto added to the server link (the transport uses the same
+  OpenSSL API the original's libeay32.dll import does).
+- Suite: 43/43 green. NOTE: the first attempt failed across the board
+  because MariaDB was down (seed silently failed) — restart it with
+  `service mariadb start` before the suite (already a HANDOFF gotcha).

@@ -1,5 +1,7 @@
 #include "core/dispatcher.hpp"
 #include "net/net.hpp"
+#include "net/frame.hpp"
+#include "crypto/dh_params.hpp"
 #include "protocol/ids.hpp"
 #include "handlers/default_handlers.cpp"
 #include "core/database.hpp"
@@ -25,6 +27,17 @@ int main() {
     net_init();
     Dispatcher dispatcher;
     register_default_handlers(dispatcher);
+
+    // v59: the game-socket key exchange needs the dh.pem parameters
+    // (FUN_140505380 loads them and leaves DH ready with a key pair).
+    static crypto::DhParams server_dh;
+    if (server_dh.load("dh.pem")) {
+        DH_generate_key(server_dh.dh);
+    } else if (server_dh.load("../conquer_source/Source/dh.pem")) {
+        DH_generate_key(server_dh.dh);
+    } else {
+        std::printf("[transport] dh.pem missing - encrypted handshake off\n");
+    }
     // Database backend: MySQL when CQ_DB_HOST is set and reachable
     // (original: config.ini MySQL test/test, database "cq"), else the
     // in-memory dev database.
@@ -103,7 +116,80 @@ int main() {
             ClientSession session(cs, ip);
             std::printf("[connect] %s\n", ip.c_str());
             std::vector<uint8_t> buf;
+            bool handshake_tried = false;
+            bool have_hdr = false;
+            uint16_t elen = 0, etype = 0;
             while (sock_recv_all(cs, buf)) {
+                // v59: first bytes that are NOT a valid dev frame may be
+                // the encrypted key exchange (client magic "TQClient",
+                // handshake passphrase "C238xs65pjy7HU9Q").
+                if (!session.transport.encrypt_on && !handshake_tried &&
+                    buf.size() >= 4) {
+                    uint16_t dl = 0, dt = 0;
+                    std::memcpy(&dl, buf.data(), 2);
+                    std::memcpy(&dt, buf.data() + 2, 2);
+                    const bool dev_ok = dl >= PACKET_HEADER_SIZE &&
+                                        dl <= MAX_PACKET_SIZE &&
+                                        dt >= 1 && dt <= 20000;
+                    if (!dev_ok) {
+                        if (!server_dh.dh) { handshake_tried = true; }
+                        else if (buf.size() >= 11) {
+                            int used = net::receive_key_exchange(
+                                session.transport, server_dh.dh,
+                                buf.data(), (int)buf.size());
+                            if (used > 0) {
+                                buf.erase(buf.begin(),
+                                          buf.begin() + used);
+                                std::printf("[transport] handshake ok "
+                                            "from %s\n", ip.c_str());
+                                continue;
+                            }
+                            if (used == 0) break;  // need more bytes
+                            handshake_tried = true;
+                        } else {
+                            break;  // wait for the rest
+                        }
+                    }
+                }
+                // encrypted sessions: decrypt, then validate the
+                // trailing plaintext "TQClient" magic (FUN_1404f6c90)
+                if (session.transport.encrypt_on) {
+                    if (!have_hdr) {
+                        if (buf.size() < 4) break;
+                        uint8_t h[4];
+                        session.transport.stream_crypt(buf.data(), h, 4, 0);
+                        std::memcpy(&elen, h, 2);
+                        std::memcpy(&etype, h + 2, 2);
+                        if (elen < net::kFrameMinLen ||
+                            elen > net::kFrameMaxLen) {
+                            std::printf("[transport] bad encrypted len "
+                                        "%u from %s\n", elen, ip.c_str());
+                            sock_close(cs);
+                            return;
+                        }
+                        have_hdr = true;
+                    }
+                    if (buf.size() < (size_t)elen + 8) break;
+                    std::vector<uint8_t> plain(elen);
+                    std::memcpy(plain.data(), buf.data(), 4);
+                    if (elen > 4)
+                        session.transport.stream_crypt(buf.data() + 4,
+                                                       plain.data() + 4,
+                                                       elen - 4, 0);
+                    if (std::memcmp(buf.data() + elen, "TQClient", 8) != 0) {
+                        std::printf("[transport] bad magic from %s\n",
+                                    ip.c_str());
+                        sock_close(cs);
+                        return;
+                    }
+                    PacketReader ereader(plain, PACKET_HEADER_SIZE);
+                    if (!dispatcher.dispatch(etype, session, ereader))
+                        std::printf("[unhandled] enc type=%u len=%u\n",
+                                    etype, elen);
+                    buf.erase(buf.begin(), buf.begin() + elen + 8);
+                    have_hdr = false;
+                    continue;
+                }
                 // Extract every complete packet in the buffer.
                 while (buf.size() >= PACKET_HEADER_SIZE) {
                     uint16_t len, type;

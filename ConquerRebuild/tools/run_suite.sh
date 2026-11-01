@@ -31,3 +31,12 @@ else
   echo "FAIL transport_unit"
   tail -5 /tmp/transport_unit.build /tmp/transport_unit.out 2>/dev/null
 fi
+
+# ---- wave M-C: live transport integration (handshake accepted + dev intact) ----
+if g++ -std=c++17 -O1 -o /tmp/transport_live tests/transport_live_test.cpp -lcrypto 2>/tmp/transport_live.build \
+   && /tmp/transport_live > /tmp/transport_live.out 2>&1; then
+  echo "PASS transport_live"
+else
+  echo "FAIL transport_live"
+  tail -8 /tmp/transport_live.build /tmp/transport_live.out 2>/dev/null
+fi

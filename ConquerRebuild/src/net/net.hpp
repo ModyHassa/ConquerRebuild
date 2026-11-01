@@ -1,4 +1,6 @@
 #pragma once
+
+#include "transport.hpp"
 // Portable sockets (Windows winsock2 + Linux/macOS BSD).
 #include "protocol/packet.hpp"
 #include <cstdint>
@@ -75,8 +77,20 @@ public:
     const std::string& ip() const { return ip_; }
     void send(const Packet& p) {
         auto bytes = p.to_bytes();
+        // v59: once the socket handshake armed the session cipher every
+        // outbound frame is CAST-CFB64 encrypted with "TQServer"
+        // appended (FUN_140500670); plaintext before that.
+        if (transport.encrypt_on) {
+            auto out = net::build_outbound(transport, bytes.data(),
+                                      (int)bytes.size());
+            sock_send_all(sock_, out.data(), out.size());
+            return;
+        }
         sock_send_all(sock_, bytes.data(), bytes.size());
     }
+    // v59: the per-connection security state (the original's socket
+    // security object: session CAST key + CFB64 ivec/num + flags).
+    net::TransportSession transport;
     uint64_t account_id = 0;
     uint32_t player_id   = 0;
     std::string account_name;

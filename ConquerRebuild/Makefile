@@ -6,7 +6,7 @@ BIN      = conquer_server
 
 all: $(BIN)
 $(BIN): $(SRC) $(HDRS)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) -pthread -lmariadb
+	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) -pthread -lmariadb -lcrypto
 clean:
 	rm -f $(BIN)
 .PHONY: all clean
