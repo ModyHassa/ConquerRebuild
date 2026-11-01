@@ -240,3 +240,11 @@ REAL remaining, ranked: 131 (253, needs the client-side meaning of its
 four u2 fields + the different 1004 layout), 542 (113), 2101 (103),
 2007 (54, needs guild), 550 (53), 529 (49), 528 (49), 129 (36),
 332 (30), 717 (28), 519 (27), 144 (24).
+
+## v65 (Nov 1, 2026) — M-H
+DEFERRED_TYPES.md records every remaining REAL type with its decoded
+skeleton + the exact blocker. To resume, the highest-leverage unknowns are
+(a) the FUN_140104140 item-attribute slot enum (unblocks 542 + 528 + 529 =
+211 rows), and (b) the client-side renderer for the 131 1004 variant
+(253 rows). 519 only needs FUN_14033a6a0 identified. Suite 45/45, no code
+changes.

@@ -416,3 +416,19 @@ encrypted reply frames (first = 10014 player spawn).
   2007 (54, needs guild), 550 (53), 529 (49), 528 (49), 129 (36),
   332 (30), 717 (28), 519 (27), 144 (24).
 - No server code touched; suite stays 45/45.
+
+## v65 (Nov 1, 2026) — wave M-H: deferred-type dossiers (evidence, not guesses)
+- DEFERRED_TYPES.md (new): every remaining REAL action type recorded with
+  its decoded skeleton, the exact `case` line in decompiled/MsgServer.c,
+  the helper addresses involved, and the precise BLOCKER that stops the
+  port. Covers 131, 542, 528, 529, 519, 332, 550, 144, 717, 2007, 2101.
+- New evidence this wave: 519 (0x207) decoded end to end structurally
+  (inventory scan via FUN_1403408c0: iterate the item-id vector at
+  player+0xC20..+0xC28, match attribute 1, then FUN_14033a6a0 per hit,
+  returns "any matched") - it stays deferred only because FUN_14033a6a0's
+  effect is unknown. 542's sscanf exposes 15 of 17 pointer slots, so its
+  field->slot map is incomplete; 528/529/542 all wait on the
+  FUN_140104140 item-attribute slot enum.
+- No server code touched this wave (deliberate: the four biggest remaining
+  types need the item-attribute slot enum or the 131 renderer, and coding
+  around them would emit bytes the original never sends). Suite 45/45.
