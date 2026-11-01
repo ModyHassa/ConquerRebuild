@@ -215,3 +215,36 @@ Decode-only wave: nailed how the real v6159 client talks to the game port.
   encrypted channel. Tests: extend test_login_chain with a real-handshake
   simulation (python side implementing the same algorithm from the client
   decompile) before touching the plaintext dev protocol.
+
+## v57 (Nov 1, 2026) — wave M-A: transport crypto foundation, 41/41 green
+- Real-client transport, step 1 of 4. New src/crypto/:
+  - cast128.hpp: thin, literal wrappers over the SAME OpenSSL API the
+    original imports from libeay32.dll (CAST_set_key / CAST_cfb64_encrypt /
+    CAST_encrypt/decrypt). Provenance check: the CAST S-boxes are NOT
+    statically in MsgServer.exe (pattern search on 0x30fb40d4 found nothing)
+    but ARE in libeay32.dll (.rdata @ 0xd7c44, 8192 bytes, S1[0]=0x30fb40d4,
+    S2[0]=0x1f201094 — RFC 2144 identical).
+  - msg_token.hpp: FUN_140503c00 token chain — hex1 = md5_hex(secret),
+    buf = hex1+hex1, hex2 = md5_hex(buf), token = hex1+hex2 (64 chars) =
+    the CAST session key fed to CAST_set_key(ctx, 0x40, token).
+  - dh_params.hpp: FUN_140505380 loader — PEM_read_DHparams("dh.pem")
+    (the exe's own directory has conquer_source/Source/dh.pem, 512 bits) +
+    DH_check; the not-ready flag semantics of DAT_140976588/590.
+- tests/crypto_unit_test.cpp (compiled+run by tools/run_suite.sh, prints
+  PASS crypto_unit): CAST-128 ECB vector 0123456712345678234567893456789A /
+  0123456789ABCDEF -> 238b4fe5847e44b2 (matches openssl `enc -cast5-ecb`
+  with the legacy provider), block decrypt, CFB64 encrypt/decrypt
+  round-trip, md5_hex('test') anchor 098f6bcd..., the token chain
+  (token('test') = 098f6bcd4621d373cade4e832627b4f6
+   b2d303c20b9468bbe90114d3d1874b3), and dh.pem load (512-bit, check 0).
+- Suite 41/41 green (40 live tests + crypto_unit).
+- NEXT WAVES (decoded already, in HANDOFF): M-B the key-exchange receiver
+  FUN_140505bc0 (wire: CAST handshake key "C238xs65pjy7HU9Q", cfb64 of the
+  first 0xb bytes carries the payload length at out[7..10], then the body,
+  trailing "TQClient" at payload+len-0xc, TLV walk -> client pub key hex ->
+  DH_compute_key -> token -> set session key; returns len+7) + the reply
+  builder FUN_140500670 (appends "TQServer" at the end, CAST_cfb64 enc);
+  M-C the per-message encrypted framing (len u2 + type u2 + payload +
+  8-byte trailing magic — FUN_1404f6c90 validates exactly that); M-D wire
+  the account-net login (1002 MsgLogin 0x20 / 1052 MsgConnect 0x1c /
+  1055 CMsgConnectEx) on the encrypted channel.

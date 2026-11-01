@@ -13,3 +13,12 @@ for t in test_spawn_10014 test_walk_10005 test_npc_action test_action_10010 test
   to=60; [ "$t" = test_death ] && to=150
   timeout $to python3 -u tests/$t.py > /tmp/$t.out 2>&1 && echo "PASS $t" || { echo "FAIL $t"; tail -2 /tmp/$t.out; }
 done
+
+# ---- wave M-A: transport crypto unit (CAST/token/dh) ----
+if g++ -std=c++17 -O1 -o /tmp/crypto_unit tests/crypto_unit_test.cpp -lcrypto 2>/tmp/crypto_unit.build \
+   && /tmp/crypto_unit > /tmp/crypto_unit.out 2>&1; then
+  echo "PASS crypto_unit"
+else
+  echo "FAIL crypto_unit"
+  tail -5 /tmp/crypto_unit.build /tmp/crypto_unit.out 2>/dev/null
+fi

@@ -150,7 +150,12 @@ after that every packet is CAST-CFB64 with "TQServer" appended. The
 sibling TQServer-CPP-rebuild clone in this workspace mapped the same
 functions (its M14-M21) — use it as cross-reference, but re-verify every
 function in decompiled/MsgServer.c before porting. Port order: transport
-skeleton -> DH+CAST -> message framing -> account-net login on top. Rules: (a) never widen a DELETE past your band,
+skeleton -> DH+CAST -> message framing -> account-net login on top.
+STATUS (v57): step 0 DONE — src/crypto/{cast128,msg_token,dh_params}.hpp
++ tests/crypto_unit_test.cpp greens inside the suite (41/41). Next = M-B:
+port FUN_140505bc0 (receiver) + FUN_140500670 (reply with "TQServer")
+on top of these wrappers; then per-message framing FUN_1404f6c90 (len u2
++ type u2 + payload + 8-byte trailing magic). Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 
