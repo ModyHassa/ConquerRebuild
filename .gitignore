@@ -9,3 +9,4 @@ conquer_source/Source/map/
 conquer_source/cq.sql
 *.log
 nohup.out
+TQServer-CPP-rebuild/
