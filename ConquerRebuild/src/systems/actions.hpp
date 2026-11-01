@@ -1980,7 +1980,89 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
-                                case 2009: {  // 0x7d9: arm a LIVE monster as an event monster
+                                        case 2006: {  // 0x7d6: RUNTIME MONSTER CREATE (534 rows —
+            // guild-war spawns). Original case body 224163-273:
+            // sscanf "%d %u %u %d %d %u %u %d %s" = (pad1, pad2, MAPID,
+            // X, Y, GEN_ID, MONSTERTYPE, pad3, NAME); needs >= 7
+            // fields else DBERROR + FALSE (id_nextfail).
+            // Row shape (DB-verified, all 534 rows): "0 0 1038 86 78
+            // 1070 3120 0 GuildBeast" — map 1038, (86,78), gen 1070,
+            // monstertype 3120=GuildBeast (token7 == cq_monstertype.id
+            // for GuildBeast/TitanL79/Syren/UltimatePluto, token6 is a
+            // valid cq_generator.id), pads always 0.
+            // Flow: name token (when present) must be <= 0x24 chars
+            // (NameStrCheck + FUN_14008a1d0 deeper pool check are
+            // deferred — no DB row triggers them), then the map record
+            // is resolved (arena guard FUN_14011dbb0 / market head
+            // guard FUN_140119540 -> DBERROR + FALSE; our map model has
+            // no arena/market flags, documented deviation: guards are
+            // false), then a 0x40 create struct is handed to
+            // CNpcManager::Create FUN_14015a110 (vtable slot +0x20 of
+            // the CNpcManager at singleton+0xA0, vtable 0x140713720):
+            // struct [+4]=map [+8]/[+0xC]=pads [+0x10]=gen_id
+            // [+0x14]=x [+0x16]=y [+0x18]=1(set) [+0x1A]=monstertype
+            // [+0x1C]=pad. Create runs CheckBornPoint FUN_14015a010
+            // (map must exist; scans a 4x4 block from (x+3,y) downward
+            // for a walkable cell and rewrites x/y — our maps are flat
+            // with no cell data, so coords are kept as-is, documented),
+            // looks up the monstertype record (unknown -> FALSE), then
+            // FUN_140390070 creates the CMonster and it is registered
+            // into the map monster list (+ broadcast via the normal
+            // entry packets). Name token (when set and not
+            // "ACTIONSTR_NONE") becomes the monster's name.
+            int pad1 = 0, pad3 = 0; unsigned pad2 = 0, mapid = 0,
+                genid = 0, mtype = 0; int sx = 0, sy = 0;
+            char nm[128] = {0};
+            int n = std::sscanf(a->param.c_str(),
+                                "%d %u %u %d %d %u %u %d %127s",
+                                &pad1, &pad2, &mapid, &sx, &sy, &genid,
+                                &mtype, &pad3, nm);
+            bool ok = false;
+            if (n < 7) {
+                std::printf("[action] %u: 2006 DBERROR (param '%s')\n",
+                            p.id, a->param.c_str());
+            } else if (nm[0] && std::strlen(nm) > 0x24) {
+                std::printf("[action] %u: 2006 name > 0x24 chars\n",
+                            p.id);
+            } else {
+                // CheckBornPoint: the map record must exist (the
+                // original logs "can not find map(%u)" and fails)
+                GameMap* mp = nullptr;
+                for (auto& [mid, m] : w.maps())
+                    if (mid == mapid) { mp = &m; break; }
+                if (!mp) {
+                    std::printf("[action] %u: 2006 can not find map(%u)\n",
+                                p.id, mapid);
+                } else {
+                    Monster* mo = mp->monsters().spawn_one(
+                        mtype, (uint16_t)sx, (uint16_t)sy);
+                    if (!mo) {
+                        std::printf("[action] %u: 2006 unknown "
+                                    "monstertype %u\n", p.id, mtype);
+                    } else {
+                        mo->gen_id = genid;
+                        if (nm[0] && strcasecmp(nm,
+                                                     "ACTIONSTR_NONE") != 0)
+                            mo->name = nm;
+                        std::printf("[action] %u: 2006 spawn type %u "
+                                    "id %u '%s' at (%u,%u) map %u "
+                                    "gen %u\n", p.id, mtype, mo->id,
+                                    mo->name.c_str(), mo->x, mo->y,
+                                    mapid, genid);
+                        std::vector<Packet> outs;
+                        mp->monsters().build_spawn_packets(*mo, outs);
+                        for (Player* other : mp->players())
+                            if (other->session)
+                                for (Packet& op : outs)
+                                    other->session->send(op);
+                        ok = true;
+                    }
+                }
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
+                case 2009: {  // 0x7d9: arm a LIVE monster as an event monster
             // sscanf "%u %u %d %s" = (mapid, monstertype id, t3, name).
             // Original (224372-451 + tail 224874-224900): searches the
             // monster system's live list for the first monster with

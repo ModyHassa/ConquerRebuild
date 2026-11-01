@@ -144,3 +144,36 @@
   (vtbl+0x20)(,5) subsystem + (param_2 vtbl+0x10)(,4) getter +0x48
   on player, then a 4-arg virtual call (obj, uVar7, local_428,
   &local_418). Undecoded subsystem — needs CurrentInstance map.
+
+## v55 (Nov 1, 2026) — 2006 runtime monster create, 40/40 green
+- Ported 2006 (0x7d6, 534 rows — the last big guild-war family member):
+  sscanf "%d %u %u %d %d %u %u %d %s" = (pad1, pad2, MAPID, X, Y,
+  GEN_ID, MONSTERTYPE, pad3, NAME); needs >= 7 fields else DBERROR +
+  fail. DB-verified across all 534 rows: token3 = map (1038/1020/4025...),
+  token4/5 = coords, token6 = cq_generator.id (7/8 sampled values are
+  valid generator ids), token7 = cq_monstertype.id (3120 GuildBeast /
+  3136 TitanL79 / 5058 Syren / 5059 UltimatePluto all match), pads 0.
+- Full decode chain: case body 224163-273 -> CNpcManager at singleton
+  +0xA0 (ctor FUN_140159b00, vtable 0x140713720 read straight from
+  .rdata) -> slot +0x20 = FUN_14015a110 (create): CheckBornPoint
+  FUN_14015a010 (map must exist; 4x4 walkable-cell scan from (x+3,y)
+  that rewrites x/y), arena guard FUN_14011dbb0 / market guard
+  FUN_140119540 (DBERROR), monstertype lookup (unknown -> fail), then
+  FUN_140390070 builds the CMonster and it is registered into the map
+  monster list. Struct 0x40: [+4]=map [+0x10]=gen_id [+0x14]=x
+  [+0x16]=y [+0x18]=1 [+0x1A]=monstertype; name token becomes the
+  monster's name ("ACTIONSTR_NONE" = none).
+- Documented engine-level deviations: flat maps have no cell data so
+  CheckBornPoint keeps coords (no 4x4 scan); no arena/market map flags
+  so both guards are false; deeper name-pool check FUN_14008a1d0
+  deferred (no DB row reaches it).
+- Test v55 (band 99000840-69, map 9999 isolated): pre-count 0 -> spawn
+  named V55Ghost (type 1, gen 0) -> count == 1 (proves registration +
+  name override) -> unknown type / missing map 8888 / 3-field param /
+  40-char name all take the fail branch -> exactly one spawn line in
+  the server log. Suite 40/40 green.
+- GOTCHA: an extra live monster on map 1002 poisons test_weaponskill's
+  target selection (it picks the first visible monster; exp after
+  level-up came out 1 instead of 12/13). Fixture spawns must live on an
+  isolated map (9999, created by v54's 2009 chain; v55 clicks that
+  chain first so it is standalone-safe).
