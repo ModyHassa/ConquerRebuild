@@ -281,3 +281,11 @@ assertions). 131 turned out to be a 10010 CMsgAction packet, not a dialog.
 needs a trap object subsystem), 2007 guild (54), 529 (49), 129/130 (60,
 parcel system), 332 (30), 717 (28).
 
+## v70 (Nov 1, 2026) — M-L
+Trap subsystem started: 2101 (103 rows) PORTED with a new src/systems/traps.hpp
+(CMapTrap model + the 1101 MSGMAPITEM trap wire, action byte 10, coordinates
+at +8/+0xC unlike the item layout). Suite 49/49, coverage 97.6% (111/216).
+Next: 542 (113 rows, needs its two helpers), 2007 guild (54) + 717 (28), 529
+(49 consume gate), 129/130 (60, parcel subsystem), 332 (30), and the trap
+trigger path that would unlock 2102.
+

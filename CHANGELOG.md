@@ -513,3 +513,23 @@ encrypted reply frames (first = 10014 player spawn).
   stacks and then falls to id_nextfail. Fixtures 99000920-99000933.
 - Suite: 48/48 green. Coverage 97.6% (110 of 216 types).
 
+## v70 (Nov 1, 2026) — wave M-L: the trap subsystem, 2101 (103 rows)
+- New src/systems/traps.hpp: Trap struct, TrapSystem registry and
+  build_trap_1101, ported from CMapTrap::CreateNew (FUN_1403ab040, line
+  661817) and the 1101 builder FUN_1403a5a30 (line 661690, message 0x44D,
+  size 0x41).
+- 2101 PORTED: field 1 = cq_traptype.id, field 2 carries the lookface ones
+  digit, fields 4/5/6 = map/x/y; the type is validated against cq_traptype
+  (missing -> id_nextfail, the original's DBERROR), the lookface becomes
+  (traptype.look/10)*10 + (param % 10) exactly as the original computes it,
+  and the trap is broadcast as MSGMAPITEM 1101 with action byte 10 and the
+  cq_traptype name.
+- 2102 (12 rows) decoded and deferred: it needs the "player stepped on a
+  trap" object (param_5) and its attribute-0x1400 query, which no ported
+  path produces yet. Evidence in DEFERRED_TYPES.md.
+- tests/test_actions_v70.py (12 live assertions): the 1101 action byte, the
+  allocated id, the coordinates, the lookface math (traptype 51 look=11 with
+  param 11 -> 11), the owner id, the copied name, plus the unknown-type and
+  5-field fail branches. Fixtures 99000940-99000955.
+- Suite: 49/49 green. Coverage 97.6%, 111 of 216 types.
+

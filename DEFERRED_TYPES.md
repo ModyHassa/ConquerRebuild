@@ -179,3 +179,31 @@ acting player only (param_4[2] vtbl+0x350). Live content is 253 rows of
 "x y aux" with x in 195..772 and y in 205..703 (real map bounds), which is
 what pins field 1 = x, field 2 = y. The 4-field form takes one extra value
 that lands in the same two 16-bit slots; the 3-field form leaves them 0.
+
+## 2101 — 103 rows — PORTED in v70 (case 0x835, line 224631)
+ACTION_TRAP_CREATE. `sscanf("%hu %hu %u %u %hu %hu %d %hu %hu")` must yield 7
+or 9 fields. Field 1 = cq_traptype.id, field 2 carries the lookface ONES
+digit, fields 4/5/6 = map / x / y (live content "51 11 0 1036 98 200 0 0 0",
+and one row uses %user_map_id/%user_map_x/%user_map_y). CMapTrap::CreateNew
+(FUN_1403ab040, line 661817) resolves the type through g_setTrapType
+(`(set+0x40)(info->u16[2])`), logs
+"table:cq_traptype, CMapTrap::CreateNew(), cann't find trap_id[%d]" on a miss,
+memcpy's the 0x48-byte info to trap+0x24 and fixes the lookface to
+`(traptype.look/10 - low/10)*10 + low` with `low = info.look % 10`, i.e. the
+TENS come from cq_traptype and the ones digit from the param. The trap is then
+shown with MSGMAPITEM 1101 built by FUN_1403a5a30 (line 661690):
+`*(obj+8) = 0x44d`, `*(obj+0xc) = 0x41` (65-byte payload)
+ +0x00 u4 time, +0x04 u4 trap id, +0x08 u2 x, +0x0C u2 y, +0x0E u2 reserved,
+ +0x10 u2 lookface, +0x12 u1 = 10 (MAPITEM_CAST_TRAP), +0x13 u4 owner id,
+ +0x17 u1 trap kind, +0x18 u4 owner player, +0x1C/+0x21/+0x25 u4 extras,
+ +0x20 u1 extra, +0x31 char[15] cq_traptype.name.
+NOTE the trap layout DIFFERS from the item layout: with action 10 the
+coordinates sit at +8/+0xC (where an item has its u4 itemtype), not at
++0xC/+0xE. kind 0xd instead writes a packed localtime into +0x29.
+
+## 2102 — 12 rows — decoded, needs the trap-trigger path (case 0x836, 224661)
+All 12 rows have an EMPTY param. The body requires param_5 (the usable object
+the player stepped on) and calls `(*(*param_5 + 0x298))(param_5, 0x1400,
+&out)`; only when that attribute query succeeds does it call FUN_1403a7180 to
+destroy the trap. Without the "player stepped on a trap" trigger path there is
+no param_5 to query, so the port would have to invent one.

@@ -31,6 +31,7 @@
 #include "weaponskills.hpp"
 #include "magicskills.hpp"
 #include "magic.hpp"
+#include "traps.hpp"
 #include "../protocol/ids.hpp"
 #include <cstdio>
 #include <cstdlib>
@@ -859,6 +860,65 @@ case 121: {  // random check (ProcessAction case 0x79:
                         p.id, (uint32_t)a->data, count, flags,
                         new_id ? "true" : "false");
             cur = new_id ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 2101: {  // ACTION_TRAP_CREATE (case 0x835, ~224631)
+            // sscanf("%hu %hu %u %u %hu %hu %d %hu %hu") must yield 7 or 9
+            // fields. Field 1 is the cq_traptype id, field 2 carries the
+            // lookface ones digit, fields 4/5/6 are the map and the x/y the
+            // trap is placed at (live content: "51 11 0 1036 98 200 0 0 0",
+            // and one row uses %user_map_id/%user_map_x/%user_map_y).
+            // CMapTrap::CreateNew resolves the type through g_setTrapType and
+            // logs DBERROR when it misses; the lookface becomes
+            // (traptype.look/10)*10 + (field2 % 10).
+            unsigned f1 = 0, f2 = 0, f3 = 0, f4 = 0, f5 = 0, f6 = 0;
+            unsigned f7 = 0, f8 = 0, f9 = 0;
+            int n = std::sscanf(a->param.c_str(),
+                                "%u %u %u %u %u %u %u %u %u",
+                                &f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8, &f9);
+            if (n != 7 && n != 9) {
+                std::printf("[action] %u 2101 needs 7 or 9 fields, got %d\n",
+                            p.id, n);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string look_s, name_s;
+            active_db()->query_string(
+                "SELECT look FROM cq_traptype WHERE id=" +
+                std::to_string(f1) + " LIMIT 1", look_s);
+            if (look_s.empty()) {
+                // original: log_InlineLogDBERROR("table:cq_traptype,
+                // CMapTrap::CreateNew(), cann't find trap_id[%d]")
+                std::printf("[action] %u 2101 unknown trap type %u "
+                            "-> id_nextfail\n", p.id, f1);
+                cur = a->id_nextfail;
+                break;
+            }
+            Trap t;
+            t.id      = TrapSystem::next_id();
+            t.trap_id = f1;
+            t.map_id  = f4;
+            t.x       = (uint16_t)f5;
+            t.y       = (uint16_t)f6;
+            t.owner   = p.id;
+            t.look    = trap_look((uint32_t)std::strtoul(look_s.c_str(), nullptr, 10), f2);
+            active_db()->query_string(
+                "SELECT name FROM cq_traptype WHERE id=" +
+                std::to_string(f1) + " LIMIT 1", name_s);
+            t.name    = name_s;
+            t.born_at = ::time(nullptr);
+            if (t.look >= 10000) t.look = (uint16_t)(t.look % 10000);
+            TrapSystem::instance().add(t);
+            // broadcast: the original calls (mapgroup +0x28)(trap+0x10),
+            // the map-group add that shows the object to everyone in range.
+            Packet tp = build_trap_1101(t);
+            auto& tm = w.get_or_create_map(t.map_id);
+            Position c; c.x = t.x; c.y = t.y;
+            w.broadcast_to_screen(tm, c, tp, nullptr);
+            if (p.session) p.session->send(tp);
+            std::printf("[action] %u 2101 trap %u type=%u at %u(%u,%u) look=%u\n",
+                        p.id, t.id, t.trap_id, t.map_id, t.x, t.y, t.look);
+            cur = a->id_next;
             break;
         }
         case 131: {  // action/animation packet 10010 at (x,y) (case 0x83,
