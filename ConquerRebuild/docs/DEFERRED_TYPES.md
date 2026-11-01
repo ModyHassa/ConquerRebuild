@@ -233,8 +233,17 @@ id up. Live params are the 1001 script-line shape ("money += 1000
 money ops against the resolved object's fund rather than the player's.
 Blocked on the same guild/syndicate object model as 2007.
 
-## 2007 — 54 rows — guild system (case 0x7d7, 224273)
-Builds a 0x6c-byte struct plus two 0xff buffers and a long pointer array
-before touching the guild object. Every branch needs the syndicate/family
-object model (cq_syndicate), which is still unported, so the port would
-have to invent member ranks, funds and the guild packet layout.
+## 2007 — 54 rows — guild DOMAIN operation (case 0x7d7, 224273)
+Not member ranks: the body zeroes a 0x6c struct + two 0xff buffers, then
+sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d ... %s") over 25 fields
+(fewer than 9 -> ERROR 0x324a + DBERROR), memmoves 0xf bytes into a local
+struct and calls FUN_1402c2390(guild manager, map_id, &struct, 0). So the
+action hands one guild a map/domain with gates and coordinates; on a null
+manager it logs 0x3253, and 0x3255 covers the call failure.
+The live params confirm it: 26 of the 54 rows are gate toggles of the form
+"Close left gate 26 21 241 2 %map_owner_id 1038 163 210 20000000 24
+5030100 5030101 0 ...", the rest are "%syn_name 2 1 13460 0
+%iter_var_data4 3028 ..." domain spawn templates.
+BLOCKED on FUN_1402c2390 (the guild domain manager: map ownership, domain
+gates, and the 0x6c request struct layout) which is a subsystem, not a
+single function. Not guessed.
