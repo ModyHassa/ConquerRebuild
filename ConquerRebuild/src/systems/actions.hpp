@@ -862,6 +862,156 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = new_id ? a->id_next : a->id_nextfail;
             break;
         }
+        case 529: {  // weapon consumption gate (case 0x211, ~214669)
+            // sscanf("%d %d") must give exactly 2 NON-ZERO values. The body
+            // walks the player's item container and consumes the first item
+            // that is the SAME TYPE as the worn weapon
+            // ((player vtbl+0x10)(player,4) then (item vtbl+0x48)), whose
+            // attribute 5 (amount_limit) equals field 1, and for which
+            // field2 <= d - attribute13(data), where
+            // d = FUN_140385cf0(player, 1, field1) -> FUN_140385160
+            // (player, 1, field1) = the user variable store keyed (1, field1)
+            // (a std::map at player+0xb0, the same store 1073/1074/1081 use).
+            // Live params are "7 100" / "57 800" / "56 300" with data=750000
+            // (the data column is not read by this case).
+            int f1 = 0, f2 = 0;
+            int n = std::sscanf(a->param.c_str(), "%d %d", &f1, &f2);
+            if (n != 2 || f1 == 0 || f2 == 0) {
+                std::printf("[action] %u 529 needs 2 non-zero fields, got %d\n",
+                            p.id, n);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string wt;
+            if (!active_db()->query_string(
+                    "SELECT type FROM cq_item WHERE player_id=" +
+                    std::to_string(p.id) + " AND position=4 LIMIT 1", wt) ||
+                wt.empty()) {
+                std::printf("[action] %u 529 needs an equipped weapon\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            const uint32_t wtype = (uint32_t)std::strtoul(wt.c_str(), nullptr, 10);
+            const int64_t d = p.vars.get_stc(1u, (uint32_t)f1);
+            bool consumed = false;
+            for (const auto& it : active_db()->load_player_items(p.id)) {
+                if (it.type != wtype) continue;
+                std::string al;
+                // query_string returns the first column of the first row only,
+                // so amount_limit and data are read one at a time
+                active_db()->query_string(
+                    "SELECT amount_limit FROM cq_item WHERE id=" +
+                    std::to_string(it.id) + " LIMIT 1", al);
+                const long long amount_limit = std::strtoll(al.c_str(), nullptr, 10);
+                if (amount_limit != f1) continue;
+                std::string dt2;
+                active_db()->query_string(
+                    "SELECT data FROM cq_item WHERE id=" +
+                    std::to_string(it.id) + " LIMIT 1", dt2);
+                const long long item_data = std::strtoll(dt2.c_str(), nullptr, 10);
+                if ((int64_t)f2 > d - item_data) continue;
+                if (active_db()->delete_item(it.id)) {
+                    consumed = true;
+                    if (p.session)
+                        p.session->send(build_item_status_2077(
+                            it.id, 7, it.position, it.amount, it.amount));
+                }
+                break;   // the original returns on the first erase attempt
+            }
+            std::printf("[action] %u 529 consume type=%u f1=%d f2=%d d=%lld -> %s\n",
+                        p.id, wtype, f1, f2, (long long)d,
+                        consumed ? "ok" : "fail");
+            cur = consumed ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 542: {  // weapon copy with custom attributes (case 0x21e, ~214781)
+            // sscanf("%d %d %d %d %d %d %d %d %u %u %u %u %u %d %d %d %d")
+            // reads up to 17 values (live content uses 14, and 90 of the 113
+            // rows are EMPTY). The itemtype is NOT in the param: it is the
+            // WORN WEAPON's type — (player vtbl+0x10)(player, 4) resolves
+            // equipment slot 4, then (item vtbl+0x48) yields its itemtype, and
+            // FUN_14034a8d0 is CUser::AwardItem(user, itemtype, u16, 1, ...)
+            // which logs "CUser::AwardItem, user(%s,%u) itemtype(%u)" and
+            // returns 0 when the type does not resolve. Attribute writes are
+            // FUN_140104140 = SetInt(item, idx, value) onto the cq_item column
+            // order: f17->4 amount, f16->5 amount_limit, f14->8 gem1,
+            // f13->9 gem2, f12->10 magic1, f11->11 magic2, f10->12 magic3,
+            // f9->14 reduce_dmg, f8->15 add_life, f7->16 anti_monster,
+            // f4->13 data, f6->20 color (initialised to 3 before the sscanf,
+            // so an absent field means color 3), f3->21 Addlevel_exp only
+            // when > 0, f15 -> FUN_140117670(item, f15 != 0, 0), f2 > 0 ->
+            // expiry attr 0x18, f1 == 1 -> FUN_14032daf0 extra notify.
+            int f1 = 0, f2 = 0, f3 = 0, f4 = 0, f5 = 0, f6 = 3, f7 = 0, f8 = 0;
+            int f9 = 0, f10 = 0, f11 = 0, f12 = 0, f13 = 0, f14 = 0;
+            int f15 = 0, f16 = 0, f17 = 0;
+            std::sscanf(a->param.c_str(),
+                        "%d %d %d %d %d %d %d %d %u %u %u %u %u %d %d %d %d",
+                        &f1, &f2, &f3, &f4, &f5, &f6, &f7, &f8,
+                        &f9, (unsigned*)&f10, (unsigned*)&f11,
+                        (unsigned*)&f12, (unsigned*)&f13, &f14,
+                        &f15, &f16, &f17);
+            std::string wt;
+            if (!active_db()->query_string(
+                    "SELECT type FROM cq_item WHERE player_id=" +
+                    std::to_string(p.id) + " AND position=4 LIMIT 1", wt) ||
+                wt.empty()) {
+                // no weapon in slot 4 -> itemtype 0 -> AwardItem fails
+                std::printf("[action] %u 542 needs an equipped weapon "
+                            "-> id_nextfail\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            uint32_t itype = (uint32_t)std::strtoul(wt.c_str(), nullptr, 10);
+            uint32_t amount = (f17 != 0) ? (uint32_t)f17 : 1u;
+            uint32_t nid = active_db()->insert_item(p.id, itype, amount);
+            if (nid == 0) {
+                std::printf("[action] %u 542 award itemtype %u failed\n",
+                            p.id, itype);
+                cur = a->id_nextfail;
+                break;
+            }
+            // cq_item's columns are narrow (tinyint for gem1/gem2/magic2/
+            // magic3/reduce_dmg/add_life/anti_monster/color, smallint for
+            // amount/amount_limit, int for magic1/data/Addlevel_exp), while
+            // the original keeps the whole attribute array at 32 bits, so a
+            // value that does not fit is reported instead of being silently
+            // truncated by MySQL.
+            std::string set;
+            auto add = [&](const char* col, long long v, long long hi) {
+                if (v < 0 || v > hi) {
+                    std::printf("[action] %u 542 attr %s=%lld exceeds the "
+                                "cq_item column range (%lld) - skipped\n",
+                                p.id, col, v, hi);
+                    return;
+                }
+                if (!set.empty()) set += ", ";
+                set += std::string(col) + "=" + std::to_string(v);
+            };
+            if (f16 != 0) add("amount_limit", f16, 65535);
+            if (f14 != 0) add("gem1", f14, 255);
+            if (f13 != 0) add("gem2", f13, 255);
+            if (f12 != 0) add("magic1", f12, 4294967295LL);
+            if (f11 != 0) add("magic2", f11, 255);
+            if (f10 != 0) add("magic3", f10, 255);
+            if (f9  != 0) add("reduce_dmg", f9, 255);
+            if (f8  != 0) add("add_life", f8, 255);
+            if (f7  != 0) add("anti_monster", f7, 255);
+            if (f4  != 0) add("data", f4, 2147483647LL);
+            add("color", f6, 255);                  // always written
+            if (f3 > 0) add("Addlevel_exp", f3, 2147483647LL);
+            active_db()->execute_sql("UPDATE cq_item SET " + set +
+                                     " WHERE id=" + std::to_string(nid));
+            if (p.session) {
+                p.session->send(build_item_info_1008(nid, itype, amount, 0, 1));
+                p.session->send(build_item_status_2077(nid, 8, 0, amount, amount));
+            }
+            std::printf("[action] %u 542 weapon copy type=%u id=%u "
+                        "amount=%u color=%d\n",
+                        p.id, itype, nid, amount, f6);
+            (void)f1; (void)f2; (void)f5; (void)f15;
+            cur = a->id_next;
+            break;
+        }
         case 2101: {  // ACTION_TRAP_CREATE (case 0x835, ~224631)
             // sscanf("%hu %hu %u %u %hu %hu %d %hu %hu") must yield 7 or 9
             // fields. Field 1 is the cq_traptype id, field 2 carries the
@@ -1292,6 +1442,8 @@ case 121: {  // random check (ProcessAction case 0x79:
             char op[16] = {0}; int val = 0;
             if (std::sscanf(a->param.c_str(), "%d %u %15s %d",
                             &vidx, &field, op, &val) != 4) {
+                std::printf("[action] %u 516 bad param '%s'\n",
+                            p.id, a->param.c_str());
                 cur = 0; break;
             }
             if (vidx < 0) vidx = 0; if (vidx > 7) vidx = 7;
@@ -1299,13 +1451,21 @@ case 121: {  // random check (ProcessAction case 0x79:
             IDatabase::PlayerItemRecord* it = nullptr;
             for (auto& r : items)
                 if (r.position == 4) { it = &r; break; }
-            if (!it) { cur = a->id_nextfail; break; }
+            if (!it) {
+                std::printf("[action] %u 516 no slot-4 item (items=%zu)\n",
+                            p.id, items.size());
+                cur = a->id_nextfail; break;
+            }
             int64_t v = p.vars.get_stc(it->id, field);
             bool match = (!std::strcmp(op,"==") && v == val) ||
                          (!std::strcmp(op,">")  && v >  val) ||
                          (!std::strcmp(op,">=") && v >= val) ||
                          (!std::strcmp(op,"<")  && v <  val) ||
                          (!std::strcmp(op,"<=") && v <= val);
+            std::printf("[action] %u 516 probe item=%u field=%u v=%lld "
+                        "op=%s val=%d -> %s\n",
+                        p.id, it->id, field, (long long)v, op, val,
+                        match ? "pass" : "fail");
             if (!match) { cur = a->id_nextfail; break; }
             p.vars.var[vidx] = v;
             cur = a->id_next;

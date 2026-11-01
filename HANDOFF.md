@@ -289,3 +289,13 @@ Next: 542 (113 rows, needs its two helpers), 2007 guild (54) + 717 (28), 529
 (49 consume gate), 129/130 (60, parcel subsystem), 332 (30), and the trap
 trigger path that would unlock 2102.
 
+## v71 (Nov 1, 2026) — M-G
+542 (113 rows) + 529 (49 rows) ported. 542 clones the worn weapon and
+applies its 17-field attribute set onto cq_item (attribute 20 = colour,
+default 3; narrow columns are range-checked rather than truncated). 529 is
+the weapon consumption gate keyed on the user variable (1, field1).
+Suite 50/50, coverage 97.7% (113/216). Fixed a long-standing test-isolation
+hole: 517's persisted field probe made 516 pass only on a fresh DB.
+Next: 2007 guild (54) + 717 (28), 129/130 parcel family (60), 332 (30),
+2102 trap delete (needs the stepped-on-trap object).
+

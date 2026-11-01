@@ -1,15 +1,15 @@
 # Action-type coverage (generated)
 
-- cq_action rows: **193405**
-- rows whose type has a `case` in actions.hpp: **188824** (97.6%)
-- distinct types: **216**, implemented: **111**
+- cq_action rows: **193420**
+- rows whose type has a `case` in actions.hpp: **189001** (97.7%)
+- distinct types: **216**, implemented: **113**
 
 - original ProcessAction cases: **173**
 
 | type | rows | status |
 |---:|---:|:---|
 | 501 | 20960 | OK |
-| 101 | 20571 | OK |
+| 101 | 20581 | OK |
 | 102 | 20230 | OK |
 | 1085 | 13393 | OK |
 | 1010 | 12380 | OK |
@@ -74,7 +74,7 @@
 | 516 | 129 | OK |
 | 3701 | 122 | n/a (no case in the original switch) |
 | 1083 | 121 | n/a (no case in the original switch) |
-| 542 | 113 | TODO (original has the case) |
+| 542 | 115 | OK |
 | 2101 | 106 | OK |
 | 302 | 105 | OK |
 | 2013 | 103 | OK |
@@ -99,8 +99,8 @@
 | 550 | 55 | OK |
 | 2007 | 54 | TODO (original has the case) |
 | 1082 | 52 | n/a (no case in the original switch) |
+| 529 | 52 | OK |
 | 528 | 51 | OK |
-| 529 | 49 | TODO (original has the case) |
 | 2012 | 47 | OK |
 | 1098 | 38 | n/a (no case in the original switch) |
 | 1046 | 37 | n/a (no case in the original switch) |
@@ -227,9 +227,7 @@
 
 ## Real remaining work (original switches on it)
 
-- type **542**: 113 rows
 - type **2007**: 54 rows
-- type **529**: 49 rows
 - type **129**: 36 rows
 - type **332**: 30 rows
 - type **717**: 28 rows

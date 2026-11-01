@@ -702,6 +702,10 @@ INSERT INTO cq_magic (ownerid,type,level,exp,old_level,unlearn) VALUES
   (14,1001,0,0,0,0),
   (14,1005,0,0,0,0);
 
+-- v41: 517 persists its field probe as stc(item_id, field); clear it so the
+-- 516 probe on the same item still reads 0 on every run
+DELETE FROM cq_user_script_var WHERE var='stc:90001:14';
+
 -- ---- v41: item actions 506/511/513/516/517 (ActionSage 9990) ----
 DELETE FROM cq_action WHERE id BETWEEN 99000510 AND 99000539;
 INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
@@ -1111,3 +1115,27 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000948,99000950,99000951,2101,0,'51 11 0 1002 400'),
   (99000950,0,0,101,0,'V70~TRAP3~OK.'),
   (99000951,0,0,101,0,'V70~TRAP3~FAIL.');
+
+-- ============================================================
+-- v71: 542 weapon copy + 529 weapon consumption gate
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000960 AND 99000979;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000960,99000962,99000963,542,0,''),
+  (99000962,0,0,101,0,'V71~COPY~OK.'),
+  (99000963,0,0,101,0,'V71~COPY~FAIL.'),
+  (99000964,99000966,99000967,542,0,'0 0 0 0 0 0 0 6 62 63 184 0 0 4079544'),
+  (99000966,0,0,101,0,'V71~COPY2~OK.'),
+  (99000967,0,0,101,0,'V71~COPY2~FAIL.'),
+  (99000968,99000970,99000971,529,750000,'7 100'),
+  (99000970,0,0,101,0,'V71~GATE~OK.'),
+  (99000971,0,0,101,0,'V71~GATE~FAIL.'),
+  (99000972,99000974,99000975,529,750000,'9 1'),
+  (99000974,0,0,101,0,'V71~GATE2~OK.'),
+  (99000975,0,0,101,0,'V71~GATE2~FAIL.'),
+  (99000976,99000978,99000979,529,750000,'7'),
+  (99000978,0,0,101,0,'V71~GATE3~OK.'),
+  (99000979,0,0,101,0,'V71~GATE3~FAIL.');
+-- the 529 success path needs user var (1,7) > the required amount (100)
+DELETE FROM cq_user_script_var WHERE var='stc:1:7';
+REPLACE INTO cq_user_script_var (player_id, var, val) VALUES (1,'stc:1:7',500);

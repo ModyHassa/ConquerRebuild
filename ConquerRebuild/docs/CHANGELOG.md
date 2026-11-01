@@ -533,3 +533,41 @@ encrypted reply frames (first = 10014 player spawn).
   5-field fail branches. Fixtures 99000940-99000955.
 - Suite: 49/49 green. Coverage 97.6%, 111 of 216 types.
 
+## v71 (Nov 1, 2026) — wave M-G: 542 weapon copy (113 rows) + 529 consume gate (49 rows)
+- 542 PORTED (case 0x21e, ~214781): the 17-field sscanf does NOT carry an
+  itemtype — the new item is a copy of the WORN WEAPON, resolved as
+  (player vtbl+0x10)(player,4) then (item vtbl+0x48), and awarded through
+  FUN_14034a8d0 = CUser::AwardItem. The attribute writes are
+  FUN_140104140 = SetInt(item, idx, value) onto the cq_item column order:
+  f17->amount, f16->amount_limit, f14->gem1, f13->gem2, f12->magic1,
+  f11->magic2, f10->magic3, f9->reduce_dmg, f8->add_life,
+  f7->anti_monster, f4->data, f6->color (initialised to 3 before the
+  sscanf, so an ABSENT field 6 means colour 3), f3->Addlevel_exp only
+  when > 0. 90 of the 113 rows carry an empty param and 23 use the
+  14-field live shape "0 0 0 0 0 0 0 6 62 63 184 0 0 4079544".
+- cq_item's persistent columns are NARROW (gem1/gem2/magic2/magic3/
+  reduce_dmg/add_life/anti_monster/color are tinyint(1), amount_limit is
+  smallint(2)) while the original keeps a 32-bit attribute array, so a
+  value that does not fit is logged and skipped instead of being silently
+  truncated by MySQL (the live 14-field shape feeds 4079544 into
+  attribute 8, which is reported, not stored).
+- 529 PORTED (case 0x211, ~214669): needs exactly 2 non-zero fields, then
+  walks the item container and consumes the first item that is the same
+  type as the worn weapon, whose attribute 5 (amount_limit) equals field 1,
+  and for which field2 <= d - attribute13(data), with
+  d = FUN_140385cf0(player,1,field1) -> FUN_140385160 = the user variable
+  store keyed (1, field1) (the same map 1073/1074/1081 use, so the port
+  reads vars.get_stc(1, field1)).
+- Two real bugs found and fixed while testing:
+  (1) TestKnight's cq_user.id is 1 while its account_id is 100001, so a
+      seed that keyed state on 100001 silently missed the character;
+  (2) test_actions_v41's 516 probe had been passing only on a fresh DB —
+      517 persists its field probe as stc(<item_id>, <field>), so the
+      second run read 1 instead of 0. The seed now clears that key, which
+      makes the whole suite reproducible across runs.
+- tests/test_actions_v71.py: 16 live assertions (weapon-copy type, default
+  amount, colour default/explicit, the four storable attributes, the
+  announced 1008, the consume success removing the row, and the three fail
+  branches). Fixtures 99000960-99000979.
+- Suite: 50/50 green. Coverage 97.7%, 113 of 216 types.
+
