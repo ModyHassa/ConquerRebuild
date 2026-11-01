@@ -369,3 +369,17 @@ encrypted reply frames (first = 10014 player spawn).
   shift the payload — test-side bug worth remembering for fixtures).
 - tools/run_suite.sh now starts a second server on CONQUER_PORT=5817 with
   CQ_TRANSPORT_HELLO=1 for this wave, then kills it; suite = 44.
+
+## v62 (Nov 1, 2026) — wave M-F: 112 notice line COVERED, 45/45 green
+- 112 (case 0x70, 16 real rows) turned out to be ALREADY ported in an
+  earlier wave (send_line(112, 0, data, 0, 0, param) + id_next). Rather
+  than duplicate it, this wave re-derived the case from the binary
+  (FUN_1403a6400: mode byte @wire+0xF, face @+0xE, reply id u16 @+0xC,
+  text via CStringPacker, send TO ACTOR ONLY via vtbl+0x350) and locked
+  the behaviour with tests.
+- tests/test_actions_v62.py (new, 6 assertions, live): exactly one
+  mode-0x70 line per row; reply id carries the DATA column; text is the
+  param string; chain continues to id_next; an EMPTY param still emits
+  the line and still continues. Fixture chains 99000870-99000889 in
+  tools/seed_test_accounts.sql.
+- tools/run_suite.sh: test_actions_v62 registered -> suite = 45.

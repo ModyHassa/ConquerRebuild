@@ -1045,3 +1045,15 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99000864,0,0,101,0,'V55~LONGNAME~OK.'),
   (99000865,0,0,101,0,'V55~LONGNAME~FAIL.');
 UPDATE cq_action SET id_next=99000840 WHERE id=99000820;
+
+-- ============================================================
+-- v62: 112 styled notice line (case 0x70, 16 real rows)
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000870 AND 99000889;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000870,99000872,99000873,112,1,'112~notice~line.'),
+  (99000872,0,0,101,0,'V62~NOTICE~OK.'),
+  (99000873,0,0,101,0,'V62~NOTICE~FAIL.'),
+  (99000874,99000876,99000877,112,1,''),
+  (99000876,0,0,101,0,'V62~EMPTY~OK.'),
+  (99000877,0,0,101,0,'V62~EMPTY~FAIL.');

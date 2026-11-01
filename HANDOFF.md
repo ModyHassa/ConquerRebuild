@@ -165,7 +165,7 @@ M-C DONE (v59): src/net/frame.hpp + the live wiring in src/main.cpp /
 src/net/net.hpp (handshake detection on the first bytes, decrypted
 recv with the trailing "TQClient" check, encrypted send with "TQServer"),
 proven by tests/transport_live_test.cpp against the running server
-(44/44 green). NEXT = M-D: the server must PUBLISH its DH public key to
+(45/45 green). NEXT = M-D: the server must PUBLISH its DH public key to
 the client (the client's element 2 is ITS pub key; the counterpart reply
 that lets the client derive the token is still undecoded — find who calls
 FUN_140505bc0 and what it sends next), then the account-net login. Rules: (a) never widen a DELETE past your band,
@@ -223,3 +223,8 @@ FUN_140505bc0 and what it sends next), then the account-net login. Rules: (a) ne
 - After EVERY completed milestone: `git add -A && git commit -m "vNN: <what was done>" && git push`,
   and update an MD (this HANDOFF.md §4/§5 + a dated entry in CHANGELOG.md). The push exists so the
   project survives credit exhaustion — do not skip it.
+
+## v62 (Nov 1, 2026) — M-F
+112 notice line verified + covered (test_actions_v62.py, 6 assertions).
+Case 0x70 decode confirmed against FUN_1403a6400: mode 0x70, reply id =
+DATA, text = param, actor-only send. Suite 45/45 green, commit follows.
