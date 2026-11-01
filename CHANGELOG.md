@@ -348,3 +348,24 @@ Decode-only wave: nailed how the real v6159 client talks to the game port.
   between runs and run_suite.sh seeds silently — always `service mariadb
   start` before a suite run or nearly every test fails with confusing
   symptoms (missing accounts, "no cq_item rows", polluted UIN).
+
+## v61 (Nov 1, 2026) — wave M-E: ENCRYPTED-SESSION LOGIN WORKS, 44/44 green
+MILESTONE: a client model speaking the real v6159 socket protocol now logs
+in end to end against the live server: server hello -> client DH from the
+hello's own p/g -> CAST token -> handshake -> encrypted 1008 login -> 23
+encrypted reply frames (first = 10014 player spawn).
+- tests/transport_login_test.cpp: full client model (hello parse per
+  FUN_00806995, DH_generate_key + DH_compute_key, build_cast_token,
+  FUN_008064c9 handshake, [len u2][type u2] frame + TQClient tail,
+  iterative TQServer-framed reply reader). Live-verified: server logs
+  "[transport] handshake ok" and "[login] OK: TestKnight".
+- BUGS FOUND AND FIXED by the live test (each desynced the stream):
+  (1) the receiver's second CFB pass consumes 4 bytes PAST the handshake
+  stream (objdump 0x140505d0c reads [rsp+rdi+0x12f]) — the caller must drop
+  them too, else they parse as a bogus frame header ("bad encrypted len");
+  (2) send and receive need SEPARATE CFB64 state (ivec/num vs ivec_tx/
+  num_tx) — sharing one state garbles every packet after the first;
+  (3) the frame header is [len u2][type u2] = 4 bytes (two u32 writes
+  shift the payload — test-side bug worth remembering for fixtures).
+- tools/run_suite.sh now starts a second server on CONQUER_PORT=5817 with
+  CQ_TRANSPORT_HELLO=1 for this wave, then kills it; suite = 44.

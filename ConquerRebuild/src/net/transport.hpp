@@ -47,6 +47,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -63,16 +64,22 @@ inline constexpr const char* kServerMagic = "TQServer";
 // The per-connection security state (the original's socket security
 // object at conn+0x824 with the CAST key context at +0x18).
 struct TransportSession {
+    // send/receive CFB64 stream state is SEPARATE (the original keeps two
+    // cipher contexts: recv decrypts, send encrypts) — sharing one state
+    // desyncs from the second packet onward.
     crypto::CastCipher cast;      // session cipher (set by the handshake)
-    unsigned char ivec[8] = {0};  // the CFB64 feedback state
-    int num = 0;                  // CFB64 byte position
+    unsigned char ivec[8] = {0};     // receive CFB64 feedback state
+    int num = 0;                     // receive byte position
+    unsigned char ivec_tx[8] = {0};  // send CFB64 feedback state
+    int num_tx = 0;                  // send byte position
     bool encrypt_on = false;      // conn+0x1a
     bool handshaken = false;      // conn+0x14 != 0 after the exchange
 
     // Session-side CFB64 over one packet (enc=1 send / enc=0 recv).
     void stream_crypt(const unsigned char* in, unsigned char* out,
                       int len, int enc) {
-        cast.cfb64(in, out, len, ivec, &num, enc);
+        cast.cfb64(in, out, len, enc ? ivec_tx : ivec,
+                   enc ? &num_tx : &num, enc);
     }
 };
 
@@ -190,6 +197,10 @@ inline int receive_key_exchange(TransportSession& s, DH* dh,
     // step 10 — the CAST session key
     std::string token = crypto::build_cast_token(secret.data(),
                                                  (size_t)slen);
+    if (std::getenv("CQ_TRANSPORT_DEBUG")) {
+        std::printf("[transport] secret %d bytes, token %s\n", slen,
+                    token.c_str());
+    }
     if (token.size() == 0x40) {
         s.cast.set_key(token.data(), 0x40);
     } else {

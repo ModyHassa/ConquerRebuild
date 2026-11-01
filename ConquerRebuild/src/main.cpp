@@ -151,8 +151,15 @@ int main() {
                                 session.transport, server_dh.dh,
                                 buf.data(), (int)buf.size());
                             if (used > 0) {
-                                buf.erase(buf.begin(),
-                                          buf.begin() + used);
+                                // the receiver returns len+7 but its second
+                                // CFB pass already consumed 4 bytes past the
+                                // stream (objdump 0x140505d0c reads
+                                // [rsp+rdi+0x12f]) -> drop them too, else
+                                // they are re-parsed as a frame header.
+                                size_t drop = (size_t)used +
+                                    (buf.size() >= (size_t)used + 4 ? 4 : 0);
+                                if (drop > buf.size()) drop = buf.size();
+                                buf.erase(buf.begin(), buf.begin() + drop);
                                 std::printf("[transport] handshake ok "
                                             "from %s\n", ip.c_str());
                                 continue;
@@ -190,8 +197,13 @@ int main() {
                                                        plain.data() + 4,
                                                        elen - 4, 0);
                     if (std::memcmp(buf.data() + elen, "TQClient", 8) != 0) {
-                        std::printf("[transport] bad magic from %s\n",
-                                    ip.c_str());
+                        std::printf("[transport] bad magic from %s "
+                                    "(elen %u elen+8 %u buf %zu) bytes:",
+                                    ip.c_str(), elen, elen + 8,
+                                    buf.size());
+                        for (size_t k = 0; k < buf.size() && k < 24; ++k)
+                            std::printf(" %02x", buf[k]);
+                        std::printf("\n");
                         sock_close(cs);
                         return;
                     }

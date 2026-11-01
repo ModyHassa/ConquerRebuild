@@ -165,7 +165,7 @@ M-C DONE (v59): src/net/frame.hpp + the live wiring in src/main.cpp /
 src/net/net.hpp (handshake detection on the first bytes, decrypted
 recv with the trailing "TQClient" check, encrypted send with "TQServer"),
 proven by tests/transport_live_test.cpp against the running server
-(43/43 green). NEXT = M-D: the server must PUBLISH its DH public key to
+(44/44 green). NEXT = M-D: the server must PUBLISH its DH public key to
 the client (the client's element 2 is ITS pub key; the counterpart reply
 that lets the client derive the token is still undecoded — find who calls
 FUN_140505bc0 and what it sends next), then the account-net login. Rules: (a) never widen a DELETE past your band,

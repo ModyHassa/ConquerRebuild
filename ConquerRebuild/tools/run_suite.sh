@@ -40,3 +40,19 @@ else
   echo "FAIL transport_live"
   tail -8 /tmp/transport_live.build /tmp/transport_live.out 2>/dev/null
 fi
+
+# ---- wave M-E: encrypted-session login (hello-enabled server on 5817) ----
+CQ_DB_HOST=127.0.0.1 CQ_DB_USER=test CQ_DB_PASS=test CQ_DB_NAME=cq \
+  CONQUER_PORT=5817 CQ_TRANSPORT_HELLO=1 ./conquer_server \
+  > /tmp/conquer_transport.log 2>&1 &
+TPID=$!
+sleep 1
+if g++ -std=c++17 -O1 -o /tmp/transport_login tests/transport_login_test.cpp -lcrypto 2>/tmp/transport_login.build \
+   && /tmp/transport_login > /tmp/transport_login.out 2>&1; then
+  echo "PASS transport_login"
+else
+  echo "FAIL transport_login"
+  tail -8 /tmp/transport_login.build /tmp/transport_login.out 2>/dev/null
+fi
+kill $TPID 2>/dev/null
+wait $TPID 2>/dev/null
