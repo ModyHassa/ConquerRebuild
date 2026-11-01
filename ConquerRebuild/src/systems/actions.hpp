@@ -924,6 +924,73 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = consumed ? a->id_next : a->id_nextfail;
             break;
         }
+        case 717: {  // guild fund / title / domain script (case 0x2cd, 216466)
+            // sscanf("%s %s %d %u") must give at least 3 fields, else the
+            // original writes a DBERROR log and falls to the shared fail
+            // path. cmd/op are compared case-insensitively:
+            //   money         +=  -> guild manager +0x270(gid, amount)
+            //   money          <  -> +0x268(gid) < amount, no write
+            //   member_title   =  -> +0x110(gid, (unsigned char)amount)
+            //   has_domain    ==  -> +0x2e8(gid) as a boolean
+            // The guild id is field 4 when it parses; otherwise the acting
+            // object's guild getter (param_4[2]+0x170) is used and a zero
+            // result is logged and failed. This database has no player ->
+            // guild link at all (cq_user has no guild column and there is
+            // no member table), so the fallback always yields 0 here and
+            // the faithful outcome is the fail branch.
+            char cmd[256] = {0}, op[256] = {0};
+            int amount = 0;
+            unsigned gid = 0;
+            const int n = std::sscanf(a->param.c_str(), "%255s %255s %d %u",
+                                      cmd, op, &amount, &gid);
+            if (n < 3) {
+                std::printf("[action] %u 717 DBERROR param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            if (gid == 0) {
+                // (param_4[2]+0x170)() = the acting object's guild id
+                std::printf("[action] %u 717 '%s %s %d' has no guild id "
+                            "and the actor has no guild\n",
+                            p.id, cmd, op, amount);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string exists;
+            if (!active_db()->query_string("SELECT id FROM cq_syndicate WHERE id=" +
+                                           std::to_string(gid) + " LIMIT 1", exists) ||
+                exists.empty()) {
+                std::printf("[action] %u 717 guild %u not found\n", p.id, gid);
+                cur = a->id_nextfail;
+                break;
+            }
+            bool ok = false;
+            if (!strcasecmp(cmd, "money")) {
+                if (!std::strcmp(op, "+=")) {
+                    active_db()->update_syndicate_money(gid, amount);
+                    ok = true;
+                } else if (!std::strcmp(op, "<")) {
+                    ok = active_db()->syndicate_money(gid) < amount;
+                }
+            } else if (!strcasecmp(cmd, "member_title")) {
+                if (!std::strcmp(op, "=")) {
+                    // +0x110(guild, (unsigned char)amount)
+                    active_db()->set_syndicate_member_title(gid,
+                                                            (uint8_t)amount);
+                    ok = true;
+                }
+            } else if (!strcasecmp(cmd, "has_domain")) {
+                if (!std::strcmp(op, "==")) {
+                    // +0x2e8(guild) - cq_syndomain is keyed by the guild id
+                    ok = active_db()->syndicate_has_domain(gid);
+                }
+            }
+            std::printf("[action] %u 717 %s %s %d guild=%u -> %s\n",
+                        p.id, cmd, op, amount, gid, ok ? "ok" : "fail");
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 542: {  // weapon copy with custom attributes (case 0x21e, ~214781)
             // sscanf("%d %d %d %d %d %d %d %d %u %u %u %u %u %d %d %d %d")
             // reads up to 17 values (live content uses 14, and 90 of the 113

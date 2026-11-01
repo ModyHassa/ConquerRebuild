@@ -299,3 +299,15 @@ hole: 517's persisted field probe made 516 pass only on a fresh DB.
 Next: 2007 guild (54) + 717 (28), 129/130 parcel family (60), 332 (30),
 2102 trap delete (needs the stepped-on-trap object).
 
+## v72 (Nov 1, 2026) — 717 + combat stats fix
+717 (28 rows) ported: guild fund/title/domain script, guild id from field 4
+or the actor's guild, four ops. While testing it we found and fixed a real
+combat bug: rings were accumulated into atk_max before the best-weapon
+comparison, so a weapon row arriving after a ring row was silently dropped
+(TestKnight fought with atk 1304-1958 instead of 1825-2596). Suite 51
+tests / 50 green; the only red is the known test_drops RNG flake, green 3/3
+standalone. Coverage 97.7% (114/216).
+Next: 2007 guild members/ranks (54 rows, the remaining guild piece), 129
+pet system (36 rows, 19-field pet template), 2102 trap deletion, 332
+item-vtable bit (documented blocker).
+

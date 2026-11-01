@@ -48,6 +48,10 @@ public:
                                uint32_t amount, const ItemAttrs& at) override;
     bool delete_item(uint32_t item_id) override;
     bool execute_sql(const std::string& sql) override;
+    int64_t syndicate_money(uint32_t gid) override;
+    void update_syndicate_money(uint32_t gid, int64_t delta) override;
+    void set_syndicate_member_title(uint32_t gid, uint8_t title) override;
+    bool syndicate_has_domain(uint32_t gid) override;
     bool query_string(const std::string& sql,
                       std::string& out) override;
     std::vector<DynaNpcRecord> load_dynanpcs() override;

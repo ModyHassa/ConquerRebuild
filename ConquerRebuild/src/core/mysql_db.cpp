@@ -129,6 +129,7 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
 CombatStats MySQLDatabase::load_combat_stats(uint32_t user_id) {
     CombatStats out;
     if (!conn_) return out;
+    uint32_t wmin = 0, wmax = 0;      // best equipped weapon, weapon-only
     std::lock_guard<std::mutex> lk(mtx_);
     // equipped items joined with their itemtype stats. positions in the
     // original layout: 1 helm, 2 necklace, 3 armor, 4 weaponR, 5 weaponL,
@@ -152,9 +153,13 @@ CombatStats MySQLDatabase::load_combat_stats(uint32_t user_id) {
         uint32_t dod  = row[4] ? (uint32_t)std::strtoul(row[4], nullptr, 10) : 0;
         uint32_t itid = row[5] ? (uint32_t)std::strtoul(row[5], nullptr, 10) : 0;
         if (pos == 4 || pos == 5) {
-            // dual wield: the original rolls per weapon; v1 uses the best
-            if (amax > out.atk_max) {
-                out.atk_max = amax; out.atk_min = amin;
+            // dual wield: the original rolls per weapon; v1 uses the best.
+            // The comparison MUST use the weapon-only high water mark: rings
+            // are accumulated into out.atk_* below, so comparing against the
+            // running total silently dropped any weapon that arrived after a
+            // ring row (row order is not guaranteed by the query).
+            if (amax > wmax) {
+                wmax = amax; wmin = amin;
                 // weapon family for the proficiency system
                 // (cq_itemtype.id / 1000, e.g. 613129 -> 613)
                 out.weapon_type = itid / 1000;
@@ -168,6 +173,8 @@ CombatStats MySQLDatabase::load_combat_stats(uint32_t user_id) {
         }
     }
     mysql_free_result(res);
+    out.atk_min += wmin;              // weapon first, rings were added above
+    out.atk_max += wmax;
     out.extra = out.atk_max > out.atk_min ? out.atk_max - out.atk_min : 0;
     return out;
 }
@@ -606,6 +613,36 @@ bool MySQLDatabase::map_exists(uint32_t map_id) {
     bool ok = mysql_fetch_row(res) != nullptr;
     mysql_free_result(res);
     return ok;
+}
+
+int64_t MySQLDatabase::syndicate_money(uint32_t gid) {
+    std::string v;
+    if (!query_string("SELECT money FROM cq_syndicate WHERE id=" +
+                      std::to_string(gid) + " LIMIT 1", v) || v.empty())
+        return 0;
+    return std::strtoll(v.c_str(), nullptr, 10);
+}
+
+void MySQLDatabase::update_syndicate_money(uint32_t gid, int64_t delta) {
+    // manager +0x270 == the += path; money is bigint so a negative delta is
+    // an ordinary subtraction
+    execute_sql("UPDATE cq_syndicate SET money=money+" +
+                std::to_string(delta) + " WHERE id=" + std::to_string(gid));
+}
+
+void MySQLDatabase::set_syndicate_member_title(uint32_t gid, uint8_t title) {
+    // manager +0x110 casts the amount down to one byte -> tinyint column
+    execute_sql("UPDATE cq_syndicate SET member_title=" +
+                std::to_string((int)title) + " WHERE id=" + std::to_string(gid));
+}
+
+bool MySQLDatabase::syndicate_has_domain(uint32_t gid) {
+    // cq_syndomain is keyed by the guild id and carries the domain map
+    std::string v;
+    if (!query_string("SELECT COUNT(*) FROM cq_syndomain WHERE id=" +
+                      std::to_string(gid), v) || v.empty())
+        return false;
+    return std::strtoll(v.c_str(), nullptr, 10) > 0;
 }
 
 std::vector<IDatabase::PlayerItemRecord> MySQLDatabase::load_player_items(uint32_t player_id) {

@@ -571,3 +571,43 @@ encrypted reply frames (first = 10014 player spawn).
   branches). Fixtures 99000960-99000979.
 - Suite: 50/50 green. Coverage 97.7%, 113 of 216 types.
 
+## v72 (Nov 1, 2026) — action 717 (28 rows) + a real combat-stats bug
+- 717 PORTED (case 0x2cd, 216466): sscanf("%s %s %d %u") with fewer than
+  three fields logs DBERROR and falls to the shared fail path. cmd and op
+  are matched case-insensitively:
+    money       +=  -> guild manager +0x270(gid, amount)   (adds funds)
+    money        <  -> +0x268(gid) < amount                (compare only)
+    member_title  =  -> +0x110(gid, (unsigned char)amount)  (tinyint column)
+    has_domain   ==  -> +0x2e8(gid)                        (boolean)
+  The guild id is field 4 when it parses; otherwise the acting object's
+  guild getter (param_4[2]+0x170) is consulted and a zero result is logged
+  and failed. This database stores no player -> guild link at all (cq_user
+  has no guild column and there is no member table), so the fallback always
+  yields 0 and the faithful outcome for a guild-less character is the fail
+  branch. Anything else, including an unknown op, reaches the shared fail
+  path (LAB_14012a62d).
+- New IDatabase guild accessors: syndicate_money, update_syndicate_money
+  (money is bigint, so a negative delta is an ordinary subtraction),
+  set_syndicate_member_title (tinyint, matching the (unsigned char) cast)
+  and syndicate_has_domain (cq_syndomain is keyed by the guild id).
+- REAL COMBAT BUG FIXED in load_combat_stats: the best-weapon comparison
+  used out.atk_max, which rings had already been accumulated into, so any
+  weapon row that arrived after a ring row lost the comparison. Row order
+  is not guaranteed by the query, so the outcome depended on the plan:
+  TestKnight was fighting with a 3-6 weapon plus rings (atk 1304-1958)
+  instead of the equipped ShadowFlyingKnife (atk 1825-2596). The weapon is
+  now tracked on its own high-water mark and added after the loop.
+- Test isolation finished: test_actions_v71 re-equips the seeded knife and
+  gives the 529 gate its own throwaway weapon (type 900999) instead of
+  consuming item 90001; test_combat_1022's expected damage range was
+  recalibrated to the real equipment (the seeded 150003 ring at position 6
+  contributes 1-3 attack).
+- tests/test_actions_v72.py: 13 live assertions against a dedicated test
+  guild (999001, seeded with money 500000) so no real cq_syndicate row is
+  touched. Covers the += write, the < compare (pass and fail), the missing
+  guild id fail, member_title =, an unknown op and the fund being left
+  alone on every failing branch.
+- Suite: 51 tests, 50 green. The only red is test_drops, the known in-suite
+  RNG flake (0 drops in 122 kills that run); it passes 3/3 standalone.
+  Coverage 97.7%, 114 of 216 types.
+

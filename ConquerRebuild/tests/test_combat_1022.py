@@ -79,19 +79,20 @@ try:
     print('B attribs:', pid, pairs)
     assert pid == 2, pid
     # ported ProcAttack pipeline vs real DB stats:
-    #   TestKnight: weapon 613129 (523-643) + ring 150269 (1300-1949)
-    #     -> atk 1823-2592, extra 769; GmDragon armor 112309 -> def 1056.
-    #   dmg = max(rand(769)+1823 - 1056, 0) + max(769 - 0, 0)
-    #       = [767,1536] + 769 = [1536, 2305] (min-damage floor n/a)
+    #   TestKnight: weapon 613129 (523-643) + rings 150269 (1300-1949) and
+    #     150003 (1-3) -> atk 1825-2596, extra 771; GmDragon armor 112309
+    #     -> def 1056. (The ring 150003 is a real seeded row at position 6.)
+    #   dmg = max(rand(771)+1825 - 1056, 0) + max(771 - 0, 0)
+    #       = [769,1540] + 771 = [1540, 2311] (min-damage floor n/a)
     assert pairs[0][0] == 0, pairs
     life1 = pairs[0][1]
-    assert 3000 - 2305 <= life1 <= 3000 - 1536, pairs
+    assert 3000 - 2311 <= life1 <= 3000 - 1540, pairs
     assert pairs[1][0] == 1 and pairs[1][1] == 3000, pairs
     # A also received the HP update for B
     attrs_a = find(pk_a, 10017)
     assert attrs_a, 'attacker saw no 10017'
 
-    # 2) second hit kills B (life left [695,1464] < min dmg 1536), third ignored.
+    # 2) second hit kills B (life left [689,1460] < min dmg 1540), third ignored.
     send_pkt(a, 1022, atk(1, 2))
     pk_b = drain_all(b)
     attrs_b = find(pk_b, 10017)

@@ -286,6 +286,11 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     // string straight through InstanceGet()->ExecuteSQL, case 0x7f)
     virtual bool execute_sql(const std::string& sql) = 0;
     // 1077: run a SELECT, return the first column of the first row
+    // v72: guild fund / title / domain access (action 717)
+    virtual int64_t syndicate_money(uint32_t) { return 0; }
+    virtual void update_syndicate_money(uint32_t, int64_t) {}
+    virtual void set_syndicate_member_title(uint32_t, uint8_t) {}
+    virtual bool syndicate_has_domain(uint32_t) { return false; }
     virtual bool query_string(const std::string& sql, std::string& out) = 0;
     virtual bool add_money(uint32_t user_id, int64_t delta) = 0;
 };

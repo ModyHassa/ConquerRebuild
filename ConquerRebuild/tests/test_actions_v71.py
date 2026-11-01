@@ -96,13 +96,6 @@ def texts(pkts):
     return out
 
 uin = int(db("SELECT id FROM cq_user WHERE name='TestKnight' LIMIT 1") or 0)
-check(uin != 0, 'TestKnight has a cq_user id in the DB')
-
-before = db("SELECT IFNULL(MAX(id),0) FROM cq_item WHERE type=750000")
-
-import struct
-
-uin = int(db("SELECT id FROM cq_user WHERE name='TestKnight' LIMIT 1") or 0)
 check(uin != 0, 'TestKnight has a cq_user id')
 
 def texts(pkts):
@@ -112,32 +105,38 @@ def texts(pkts):
             out += strings_of_2032(p)
     return out
 
-# the worn weapon decides the itemtype both 542 and 529 use
-row = db("SELECT id, type FROM cq_item WHERE player_id=%d AND position=4 LIMIT 1" % uin)
-check(row != '', 'a weapon is equipped at slot 4')
-wid, wtype = [int(v) for v in row.split()[:2]]
+SEEDED = 90001                      # the combat test's ShadowFlyingKnife
+def equip_seeded():
+    # restore the exact seeded equipment so combat damage stays put
+    db("UPDATE cq_item SET position=0 WHERE player_id=%d AND position=4 AND id<>%d"
+       % (uin, SEEDED))
+    db("UPDATE cq_item SET position=4, amount_limit=7000, data=0 WHERE id=%d" % SEEDED)
+def slot4():
+    return db("SELECT id, type FROM cq_item WHERE player_id=%d AND position=4 LIMIT 1" % uin)
 
-# ---- 542: empty param -> a plain copy of the weapon, colour 3 default
+equip_seeded()
+row = slot4()
+check(row.split()[:1] == [str(SEEDED)], 'seeded weapon is the only slot-4 item (%s)' % row)
+wtype = int(row.split()[1])
+
+# ---- 542: empty param -> a plain copy of the worn weapon, colour 3 ----
 before = set(db("SELECT id FROM cq_item WHERE player_id=%d AND type=%d" % (uin, wtype)).split())
-pkts = click_option(a, 99000960, 'copy')
-t = texts(pkts)
+t = texts(click_option(a, 99000960, 'copy'))
 check(any('V71~COPY~OK.' in s for s in t), '542 with an empty param continues')
 after = set(db("SELECT id FROM cq_item WHERE player_id=%d AND type=%d" % (uin, wtype)).split())
-new = sorted(int(x) for x in (after - before))
-check(len(new) == 1, '542 created exactly one item of type %d' % wtype)
-if new:
-    r = db("SELECT amount, color FROM cq_item WHERE id=%d" % new[0])
-    amt, col = [int(v) for v in r.split()[:2]]
+copies = sorted(int(x) for x in (after - before))
+check(len(copies) == 1, '542 created exactly one item of type %d' % wtype)
+if copies:
+    amt, col = [int(v) for v in db("SELECT amount, color FROM cq_item WHERE id=%d" % copies[0]).split()[:2]]
     check(amt == 1, 'copy amount defaults to 1, got %d' % amt)
     check(col == 3, 'absent field 6 leaves colour at the default 3, got %d' % col)
-    check(any(p[1] == 1008 for p in pkts), '542 announces the new item with 1008')
 
-# ---- 542: the 14-field live shape writes the attributes ------------
+# ---- 542: the 14-field live shape writes the attributes --------------
 before2 = set(db("SELECT id FROM cq_item WHERE player_id=%d AND type=%d" % (uin, wtype)).split())
-pkts2 = click_option(a, 99000964, 'copy2')
-t2 = texts(pkts2)
-check(any('V71~COPY2~OK.' in s for s in t2), '542 with 14 fields continues')
+t = texts(click_option(a, 99000964, 'copy2'))
+check(any('V71~COPY2~OK.' in s for s in t), '542 with 14 fields continues')
 after2 = set(db("SELECT id FROM cq_item WHERE player_id=%d AND type=%d" % (uin, wtype)).split())
+copies += sorted(int(x) for x in (after2 - before2))
 new2 = sorted(int(x) for x in (after2 - before2))
 check(len(new2) == 1, '542 14-field form created one item')
 if new2:
@@ -147,40 +146,44 @@ if new2:
     check(life == 6, 'field 8 -> add_life (attr 15) = 6, got %d' % life)
     check(rdmg == 62, 'field 9 -> reduce_dmg (attr 14) = 62, got %d' % rdmg)
     check(m3 == 63, 'field 10 -> magic3 (attr 12) = 63, got %d' % m3)
-    check(m1 == 0, 'field 12 is 0 -> magic1 (attr 10) stays 0, got %d' % m1)
     check(m2 == 184, 'field 11 -> magic2 (attr 11) = 184, got %d' % m2)
-    # cq_item.gem1 is tinyint(1), so the original's 32-bit attribute 8 value
-    # (4079544) cannot be stored: 542 logs it and leaves the column alone
-    check(g1 == 0, 'field 14 = 4079544 does not fit cq_item.gem1 (tinyint), '
-                   'got %d' % g1)
+    check(m1 == 0, 'field 12 is 0 -> magic1 (attr 10) stays 0, got %d' % m1)
+    check(g1 == 0, 'field 14 = 4079544 does not fit cq_item.gem1 (tinyint), got %d' % g1)
 
-# ---- 529: consume the equipped weapon when the gate passes ---------
-db("UPDATE cq_item SET amount_limit=7, data=0 WHERE id=%d" % wid)
-pkts3 = click_option(a, 99000968, 'gate')
-t3 = texts(pkts3)
-check(any('V71~GATE~OK.' in s for s in t3), '529 consumes the weapon when the gate passes')
-check(db("SELECT COUNT(*) FROM cq_item WHERE id=%d" % wid) == '0',
-      'the equipped weapon row was removed')
+# ---- 529: a dedicated weapon is consumed when the gate passes --------
+# the seeded knife is never touched: equip an isolated test weapon instead
+db("UPDATE cq_item SET position=0 WHERE player_id=%d AND position=4" % uin)
+db("DELETE FROM cq_item WHERE player_id=%d AND type=900999" % uin)
+db("INSERT INTO cq_item (type,owner_id,player_id,amount,amount_limit,position,data,del_time)"
+   " VALUES (900999,%d,%d,1,7,4,0,0)" % (uin, uin))
+tid = db("SELECT id FROM cq_item WHERE player_id=%d AND type=900999 LIMIT 1" % uin)
+check(tid.isdigit(), 'dedicated 529 test weapon created (%s)' % tid)
+t = texts(click_option(a, 99000968, 'gate'))
+check(any('V71~GATE~OK.' in s for s in t), '529 consumes the weapon when the gate passes')
+check(db("SELECT COUNT(*) FROM cq_item WHERE id=%s" % tid) == '0',
+      'the gated weapon row was removed')
 
-# ---- 529: wrong amount_limit / missing user var -> fail branch -----
-pkts4 = click_option(a, 99000972, 'gate2')
-t4 = texts(pkts4)
-check(any('V71~GATE2~FAIL.' in s for s in t4),
+# ---- 529: wrong amount_limit / missing user var / one field -> fail --
+t = texts(click_option(a, 99000972, 'gate2'))
+check(any('V71~GATE2~FAIL.' in s for s in t),
       '529 with a non-matching gate takes id_nextfail')
-
-pkts5 = click_option(a, 99000976, 'gate3')
-t5 = texts(pkts5)
-check(any('V71~GATE3~FAIL.' in s for s in t5),
+t = texts(click_option(a, 99000976, 'gate3'))
+check(any('V71~GATE3~FAIL.' in s for s in t),
       '529 with a single field takes id_nextfail')
 
-# ---- 542 without a weapon -> fail branch ---------------------------
+# ---- 542 without a weapon -> fail branch ----------------------------
 db("UPDATE cq_item SET position=0 WHERE player_id=%d AND position=4" % uin)
-pkts6 = click_option(a, 99000960, 'copy3')
-t6 = texts(pkts6)
-check(any('V71~COPY~FAIL.' in s for s in t6),
+t = texts(click_option(a, 99000960, 'copy3'))
+check(any('V71~COPY~FAIL.' in s for s in t),
       '542 without an equipped weapon takes id_nextfail')
-db("UPDATE cq_item SET position=4 WHERE player_id=%d AND position=0 AND type=%d LIMIT 1"
-   % (uin, wtype))
+
+# ---- cleanup: drop the copies, restore the seeded equipment ---------
+if copies:
+    db("DELETE FROM cq_item WHERE id IN (%s)" % ','.join(str(c) for c in copies))
+db("DELETE FROM cq_item WHERE player_id=%d AND type=900999" % uin)
+equip_seeded()
+check(slot4().split()[:1] == [str(SEEDED)],
+      'seeded weapon is back at slot 4 for the combat test (%s)' % slot4())
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

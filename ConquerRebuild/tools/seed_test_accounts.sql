@@ -1139,3 +1139,28 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
 -- the 529 success path needs user var (1,7) > the required amount (100)
 DELETE FROM cq_user_script_var WHERE var='stc:1:7';
 REPLACE INTO cq_user_script_var (player_id, var, val) VALUES (1,'stc:1:7',500);
+
+-- ============================================================
+-- v72: action 717 guild money / member_title / has_domain
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99000980 AND 99000999;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99000980,99000982,99000983,717,0,'money += 1000 999001'),
+  (99000982,0,0,101,0,'V72~ADD~OK.'),
+  (99000983,0,0,101,0,'V72~ADD~FAIL.'),
+  (99000984,99000986,99000987,717,0,'money < 999999999 999001'),
+  (99000986,0,0,101,0,'V72~LT~OK.'),
+  (99000987,0,0,101,0,'V72~LT~FAIL.'),
+  (99000988,99000990,99000991,717,0,'money += -100000'),
+  (99000990,0,0,101,0,'V72~NOGID~OK.'),
+  (99000991,0,0,101,0,'V72~NOGID~FAIL.'),
+  (99000992,99000994,99000995,717,0,'member_title = 3 999001'),
+  (99000994,0,0,101,0,'V72~TITLE~OK.'),
+  (99000995,0,0,101,0,'V72~TITLE~FAIL.'),
+  (99000996,99000998,99000999,717,0,'money == 1 999001'),
+  (99000998,0,0,101,0,'V72~BADOP~OK.'),
+  (99000999,0,0,101,0,'V72~BADOP~FAIL.');
+-- dedicated guild so no real cq_syndicate row is touched
+DELETE FROM cq_syndicate WHERE id=999001;
+INSERT INTO cq_syndicate (id,name,money,member_title,leader_id)
+  VALUES (999001,'TestGuild',500000,0,1);
