@@ -228,3 +228,12 @@ FUN_140505bc0 and what it sends next), then the account-net login. Rules: (a) ne
 112 notice line verified + covered (test_actions_v62.py, 6 assertions).
 Case 0x70 decode confirmed against FUN_1403a6400: mode 0x70, reply id =
 DATA, text = param, actor-only send. Suite 45/45 green, commit follows.
+
+## v63 (Nov 1, 2026) — M-G
+Data-driven coverage map: tools/action_coverage.py -> ACTION_COVERAGE.md.
+MEASURED: 193,375 cq_action rows, 97.4% covered, 106/216 distinct types
+have a `case` in src/systems/actions.hpp. Use it to pick the next waves
+(top remaining: 1040=668, 1086=640, 1554=500, 402=303, 131=253, 532=252).
+131 is intentionally deferred: its builder writes a different 1004
+layout than build_talk_1004 and the client-side meaning of its four u2
+fields is unresolved.

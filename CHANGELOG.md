@@ -383,3 +383,20 @@ encrypted reply frames (first = 10014 player spawn).
   the line and still continues. Fixture chains 99000870-99000889 in
   tools/seed_test_accounts.sql.
 - tools/run_suite.sh: test_actions_v62 registered -> suite = 45.
+
+## v63 (Nov 1, 2026) — wave M-G: data-driven coverage map (no code risk)
+- tools/action_coverage.py (new): cross-references every cq_action type
+  in the live DB against the `case N:` labels in src/systems/actions.hpp
+  and writes ACTION_COVERAGE.md (table + "remaining by weight").
+- MEASURED STATUS: 193,375 action rows; 188,309 covered = **97.4%**;
+  106 of 216 distinct types implemented.
+- Top remaining by row weight (next waves, in order): 1040 (668),
+  1086 (640), 1554 (500), 402 (303), 131 (253), 532 (252), 1095 (245),
+  1071 (182), 3701 (122), 1083 (121).
+- 131 deliberately NOT ported this wave: its builder (FUN_140362620,
+  mapgroup chatkernel family) writes a DIFFERENT 1004 layout than the
+  verified build_talk_1004 (id @+4, style 162 @+8, lookface @+0x10, four
+  u2 fields @+0x14..+0x1E, size 0x26, no string packer) and the client's
+  rendering of those fields is still unidentified — porting it on the
+  existing layout would have been invention.
+- No server code touched this wave; suite stays 45/45.
