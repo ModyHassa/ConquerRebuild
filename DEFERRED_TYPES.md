@@ -6,6 +6,38 @@ file: a type is only ported when its wire output or state change is fully
 determined. Where a helper's semantics are still unknown, it is listed
 here with the exact address so the next wave starts from evidence.
 
+## RESOLVED helper: FUN_140104140 = generic item SetInt (line 192582)
+This is the function every item-generation action calls, and it is now
+decoded:
+
+    FUN_140104140(item, idx, value, flag)
+      if (idx > 99) { log CHECK "idx < ITEMTYPEDATA_OFFSET"
+                      (item.cpp) ; return; }
+      if (idx == 0x13 /*19*/ && item->id != 0) { GM log
+                      "gmlog/EquipmentLockStatus" }      // 19 = LOCK
+      item->attrs[idx]->SetInt(value)      // vtbl+0xB0
+
+So `idx` is simply the index into the item's ITEMTYPEDATA attribute
+array (< 100 slots), NOT a bespoke enum. 19 is confirmed as the
+equipment-LOCK attribute by the GM log it triggers.
+
+Attribute propagation inside the same call:
+  - setting 0, 3, 10, 11, 14, 15 or 16 also recomputes attribute 0x11 (17)
+  - setting 1, 8, 9 or 12 additionally recomputes 3 and 0x11 (17)
+  => 17 is a derived/total value, 3 is derived from the type-ish group.
+
+Consequence for 542 / 528 / 529 (211 rows): the remaining work is no
+longer "find the enum" but "map the ITEMTYPEDATA indices onto our
+ItemInfo fields". Strongly implied by the callers:
+  4  = amount / durability      (528 sets it from the 1st guarded field)
+  5  = max durability           (528 sets it with no explicit value)
+  8,9,10,11,12 = the gem/magic/data group (528 maps sscanf fields here)
+  13 = resolved through FUN_140385cf0(player,1,value) -> a reference id
+  17 = derived total (never set directly by content)
+  20, 21, 24 = set only by 542 (quality/bless/expire family)
+Our server keeps a flat ItemInfo instead of a 100-slot array, so the port
+must translate these indices at write time.
+
 ## 131 — 253 rows — styled/system talk (case 0x83, ~line 223015)
 Builder: `FUN_140362620` (a THIRD 1004 variant, distinct from the verified
 `build_talk_1004`). It writes, into the msg buffer:

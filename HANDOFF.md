@@ -248,3 +248,10 @@ skeleton + the exact blocker. To resume, the highest-leverage unknowns are
 211 rows), and (b) the client-side renderer for the 131 1004 variant
 (253 rows). 519 only needs FUN_14033a6a0 identified. Suite 45/45, no code
 changes.
+
+## v66 (Nov 1, 2026) — M-H2
+FUN_140104140 decoded = generic item SetInt over ITEMTYPEDATA (idx < 100,
+19 = equipment lock, 17 = derived total, 3 derived from the 1/8/9/12 group).
+That was the blocker for 542+528+529 (211 rows); what remains there is only
+mapping the indices onto our flat ItemInfo (4=amount, 5=max_dur,
+8-12=gem/magic, 13=ref id, 20/21/24=quality family). Suite 45/45.

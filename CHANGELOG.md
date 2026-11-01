@@ -432,3 +432,21 @@ encrypted reply frames (first = 10014 player spawn).
 - No server code touched this wave (deliberate: the four biggest remaining
   types need the item-attribute slot enum or the 131 renderer, and coding
   around them would emit bytes the original never sends). Suite 45/45.
+
+## v66 (Nov 1, 2026) — wave M-H2: the item SetInt blocker is decoded
+- FUN_140104140 fully decoded (MsgServer.c line 192582): it is a generic
+  SetInt(item, idx, value) over the item's ITEMTYPEDATA attribute array,
+  guarded by `idx < 100` (CHECK log names item.cpp / ITEMTYPEDATA_OFFSET).
+  idx 0x13 (19) is the EQUIPMENT LOCK attribute - proven by the GM log it
+  emits ("gmlog/EquipmentLockStatus"). Setting 0/3/10/11/14/15/16 also
+  recomputes attribute 0x11 (17); setting 1/8/9/12 additionally recomputes
+  3 and 17. So 17 is derived, and there is no bespoke enum to find.
+- Implication for 542 / 528 / 529 (211 rows): the blocker is now only the
+  mapping of ITEMTYPEDATA indices onto our flat ItemInfo (strongly implied:
+  4 = amount/durability, 5 = max durability, 8-12 = gem/magic/data group,
+  13 = reference id resolved via FUN_140385cf0, 17 = derived total,
+  20/21/24 = quality/bless/expire family used only by 542).
+- Binary string table has no attribute-name list ("idx <
+  ITEMTYPEDATA_OFFSET", "durability", STR_DURABILITY_REPAIR only), so the
+  names above come from call sites, not guesses.
+- DEFERRED_TYPES.md updated with the decode. No server code touched; suite 45/45.
