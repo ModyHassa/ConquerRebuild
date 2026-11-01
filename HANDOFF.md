@@ -138,7 +138,19 @@ v35=chains 340-361, v36=options 400-05+chains 410-37, v37=options 406-09, v38=op
 480-99, v39=63900-63919 (small ids for u2 slot), v41=chains 510-39, v42=540-59, v46=600-45,
 v47=660-99, v48=700-19, v49=720-39, v50=740-59, v51=760-79, v52=780-99, v53=800-19, v54=820-39, v55=840-69
 (menu chain: ...99000800→99000801→99000820→99000840).
-**Next free: 99000870+.** Rules: (a) never widen a DELETE past your band,
+**Next free: 99000870+.**
+
+## REAL-CLIENT TRANSPORT (found Nov 1, 2026 — read CHANGELOG v56 first)
+The game socket is ENCRYPTED from the first byte: client sends magic
+"TQClient" + a blob encrypted with the hardcoded handshake passphrase
+"C238xs65pjy7HU9Q"; server answers with "TQServer" + DH exchange; the
+CAST key comes from the token builder (hex1=md5hex(secret), hex2=md5hex(
+hex1+hex1), token=hex1+hex2 — client FUN_00806399, server FUN_140503c00);
+after that every packet is CAST-CFB64 with "TQServer" appended. The
+sibling TQServer-CPP-rebuild clone in this workspace mapped the same
+functions (its M14-M21) — use it as cross-reference, but re-verify every
+function in decompiled/MsgServer.c before porting. Port order: transport
+skeleton -> DH+CAST -> message framing -> account-net login on top. Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 

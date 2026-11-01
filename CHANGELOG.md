@@ -177,3 +177,41 @@
   level-up came out 1 instead of 12/13). Fixture spawns must live on an
   isolated map (9999, created by v54's 2009 chain; v55 clicks that
   chain first so it is standalone-safe).
+
+## v56 research (Nov 1, 2026) — REAL-CLIENT TRANSPORT DISCOVERED (no code yet)
+Decode-only wave: nailed how the real v6159 client talks to the game port.
+- **Login-leg status:** the SRP account leg is DONE and tested (1542→1213→
+  1214→1055). Client factory (Conquer.c 682225+) confirms: 0x3ea=CMsgLogin,
+  0x41c=CMsgConnect, 0x41f=CMsgConnectEx (=our 1055 reply), 0x4bd=CMsgLoginChallengeS
+  (1213). Server ProcessAccountNetMsg (MsgServer.c ~70680): 0x3ea MsgLogin size
+  0x20 (account u32@+4, key u32@+8, u16@+0xC, ptr@+0xE -> FUN_140056130 logs
+  "Account server login OK/Failed" + FUN_140055740), 0x41c MsgConnect size 0x1c,
+  0x429 MsgConnectFB size 0xb0, 0x4b0 MsgFee 0xc, 0x4b1 MsgQFee 0x14,
+  0x4b2 MsgWebRequest 0x1ec, 0x5fc MsgOfflineCheating 0xc, 0x609 MsgAccountTransfer.
+  These are the ACCOUNT-NET (server-to-server) messages — the original client
+  never speaks them to the game port directly.
+- **THE MISSING PIECE — the game socket is ENCRYPTED from byte one.**
+  Client (Conquer.c): FUN_0080638d returns "TQClient", FUN_00806393 returns
+  "TQServer" (the two handshake magics). FUN_00806399 = the CAST token builder:
+  hex1 = md5hex(secret) (32 chars), buf = hex1+hex1 (64), hex2 = md5hex(buf),
+  token = hex1+hex2 (64 chars) — IDENTICAL to the MsgServer FUN_140503c00
+  token verified in the sibling TQServer-CPP-rebuild project (M14).
+  FUN_008064c9 = the client key-exchange SENDER: builds a random blob (len
+  10..49) + server string (FUN_00866100), appends "TQClient"+u32 len, then
+  encrypts with the hardcoded handshake passphrase **"C238xs65pjy7HU9Q"**
+  (FUN_00864d40/FUN_00864700 — the CFB/CAST layer) and sends. Server side:
+  memcmp "TQClient" at MsgServer.c 884703 (the key-exchange receiver
+  FUN_140505bc0 family).
+- CONSEQUENCE: full real-client compatibility requires porting the encrypted
+  transport (handshake magic "TQClient"/"TQServer", handshake key
+  "C238xs65pjy7HU9Q", DH key exchange, CAST token, per-message CAST-CFB64 with
+  "TQServer" appended after every encrypted message). That is the whole
+  security layer the sibling TQServer-CPP-rebuild repo already mapped against
+  this same binary (its M14-M21 units; local clone at ../TQServer-CPP-rebuild
+  is reference evidence — adapt, and re-verify each function in our decompile).
+- PLAN M-A..: (a) transport skeleton: TQClient receive + handshake decrypt +
+  TQServer reply; (b) DH + CAST token; (c) encrypt/decrypt message framing;
+  (d) then the account-net emulation (MsgLogin/MsgConnect) on top of the
+  encrypted channel. Tests: extend test_login_chain with a real-handshake
+  simulation (python side implementing the same algorithm from the client
+  decompile) before touching the plaintext dev protocol.
