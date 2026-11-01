@@ -272,3 +272,12 @@ consume-item gate (not generation) and left deferred with its evidence.
 Suite 47/47. Next candidates: 529 (needs FUN_140385cf0), 542 (needs it too
 + the two register sscanf pointers), 2101 (103 rows, still undecoded),
 131 (253 rows, needs the third 1004 renderer), 2007 (guild system).
+
+## v69 (Nov 1, 2026) — M-K
+Big batch: 131 (253 rows) + 519 (27 rows) PORTED and live-tested (12 new
+assertions). 131 turned out to be a 10010 CMsgAction packet, not a dialog.
+144/332/717 decoded with their blockers written down. Suite 48/48, coverage
+97.6% (110/216 types). Remaining real work: 542 (113), 2101+2102 traps (115,
+needs a trap object subsystem), 2007 guild (54), 529 (49), 129/130 (60,
+parcel system), 332 (30), 717 (28).
+

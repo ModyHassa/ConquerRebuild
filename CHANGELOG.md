@@ -490,3 +490,26 @@ encrypted reply frames (first = 10014 player spawn).
 - tests/test_actions_v68.py (new, 7 live assertions): "0 20" -> a 20
   stack and id_next; empty param -> count 1. Fixtures 99000910-99000919.
 - Suite: 47/47 green.
+
+## v69 (Nov 1, 2026) — wave M-K: big batch, 280 rows (131 + 519)
+- 131 (case 0x83, 253 rows) PORTED. It is not a 1004 talk dialog: the builder
+  FUN_140362620 stamps message id 0x271A = 10010 (CMsgAction) with the actor
+  id, the literal 0xa2 (162) in the data slot and the two coordinate fields
+  in +0x18/+0x1A, sent to the acting player only. Live content is 253 rows of
+  "x y aux" whose x/y sit inside real map bounds (195..772 / 205..703), which
+  pins field 1 = x and field 2 = y. Our port sends
+  build_action_10010(player, 162, 0, 0, x, y, aux) and takes id_next; fewer
+  than 3 fields takes id_nextfail (the original needs 3 or 4 fields).
+- 519 (case 0x207, 27 rows) PORTED. FUN_1403408c0(player, itemtype) collects
+  EVERY carried item whose type equals the action data and erases each one,
+  returning true iff anything matched -> "take all of this type", unlike 502
+  which takes a single copy.
+- Decoded but not ported, evidence recorded in DEFERRED_TYPES.md: 144 (bit
+  test of the 32-bit flag word at user+0x2AC; our Player has no such field),
+  332 (needs FUN_1401196c0), 717 (family/syn guild block: money +=/<,
+  member_title =, has_domain ==).
+- tests/test_actions_v69.py (new, 12 live assertions) verifies the 10010
+  actor/data/coordinates, the 2-field fail branch, and that 519 removes BOTH
+  stacks and then falls to id_nextfail. Fixtures 99000920-99000933.
+- Suite: 48/48 green. Coverage 97.6% (110 of 216 types).
+

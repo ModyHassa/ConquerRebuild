@@ -141,3 +141,41 @@ the full mapping, and the DB row proves it:
 FUN_140385cf0(player,1,field2) resolution is the last missing piece; we
 insert 0 there and log the field rather than guess a resolved value.
 529 is the 2-field sibling of the same generator and is next.
+
+## 519 — 27 rows — PORTED in v69 (case 0x207, line 214527)
+FUN_1403408c0(player, itemtype) collects every carried item id whose
+attribute 1 (type) equals the action's data column, erases each one via
+FUN_14033a6a0(player, id, 1, 0, flags) and returns true iff the collected
+list was non-empty -> "take ALL of this type", unlike 502 (one copy).
+
+## 144 — 24 rows — decoded, blocked on a player field (case 0x90, line 223241)
+`sscanf("%s")` must equal "=="; then FUN_14008ab60(uin, data) is called.
+FUN_14008ab60 (line 101440) is a bit test: valid for bits 1..31, reading the
+32-bit flag word at user+0x2AC (`word >> (bit-1) & 1`), false when the word
+is <= 0. So 144 = "is player flag <data> set?". BLOCKER: our Player struct
+has no +0x2AC equivalent (no status/flag word) and the flag semantics are
+unknown, so storing bits without a truthful source would be invention.
+
+## 332 — 30 rows — decoded, helper unnamed (case 0x14c, line 220472)
+Returns FUN_1401196c0((param_4[2] vtbl+0x160)()) and `return true` when
+there is no player. Needs the meaning of FUN_1401196c0 and of the
+vtbl+0x160 sub-object before it can be ported.
+
+## 717 — 28 rows — family/syn (guild) block (case 0x2cd, line 216466)
+`sscanf("%s %s %d %u")` -> name, op, value. Requires a target from
+vtbl+0x170 and `(syn manager +0x248)(target)` to succeed. Ops decoded:
+ - money "+=" -> (syn +0x270)(target, value) -> true
+ - money "<"  -> (syn +0x268)(target) < value -> bool
+ - member_title "=" -> (syn +0x110)(target, value) -> true
+ - has_domain "=="  -> (syn +0x2e8)(target) -> bool
+Belongs to the guild/syn subsystem (with 2007); deferred with that system.
+
+## 131 — 253 rows — PORTED in v69 (case 0x83, line 223015)
+Not a 1004 dialog: FUN_140362620 (line 612269) stamps message id 0x271A =
+10010 (CMsgAction). Payload: +0 ts, +4 actor, +8 = literal 0xa2 (162),
++0x10 = the sender's map id, +0x14/+0x16 = two 16-bit fields, +0x18/+0x1A =
+the two coordinate fields from the param, total 0x26 bytes; sent to the
+acting player only (param_4[2] vtbl+0x350). Live content is 253 rows of
+"x y aux" with x in 195..772 and y in 205..703 (real map bounds), which is
+what pins field 1 = x, field 2 = y. The 4-field form takes one extra value
+that lands in the same two 16-bit slots; the 3-field form leaves them 0.
