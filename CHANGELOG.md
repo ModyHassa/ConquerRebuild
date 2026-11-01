@@ -400,3 +400,19 @@ encrypted reply frames (first = 10014 player spawn).
   rendering of those fields is still unidentified — porting it on the
   existing layout would have been invention.
 - No server code touched this wave; suite stays 45/45.
+
+## v64 (Nov 1, 2026) — wave M-G2: coverage map now separates REAL work
+- tools/action_coverage.py gained a second dimension: it scans every
+  `case 0xNNN:` label inside the decompiled ProcessAction switch
+  (MsgServer.c 190000-280000) and classifies each DB type as
+  OK / "TODO (original has the case)" / "n/a (no case in the original
+  switch)". Types the original never switches on are task-engine steps
+  or no-ops — porting them would have been invention.
+- FINDING: the 216 DB types are only 173 cases in the original switch;
+  110 of the DB types are NOT action cases at all (e.g. 1040's 668 rows,
+  1086's 640, 1554's 500 — all task-engine territory). The earlier
+  "top remaining" list was therefore misleading.
+- REAL remaining work, ranked: 131 (253), 542 (113), 2101 (103),
+  2007 (54, needs guild), 550 (53), 529 (49), 528 (49), 129 (36),
+  332 (30), 717 (28), 519 (27), 144 (24).
+- No server code touched; suite stays 45/45.
