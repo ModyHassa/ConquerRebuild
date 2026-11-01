@@ -152,10 +152,15 @@ functions (its M14-M21) — use it as cross-reference, but re-verify every
 function in decompiled/MsgServer.c before porting. Port order: transport
 skeleton -> DH+CAST -> message framing -> account-net login on top.
 STATUS (v57): step 0 DONE — src/crypto/{cast128,msg_token,dh_params}.hpp
-+ tests/crypto_unit_test.cpp greens inside the suite (41/41). Next = M-B:
-port FUN_140505bc0 (receiver) + FUN_140500670 (reply with "TQServer")
-on top of these wrappers; then per-message framing FUN_1404f6c90 (len u2
-+ type u2 + payload + 8-byte trailing magic). Rules: (a) never widen a DELETE past your band,
++ tests/crypto_unit_test.cpp greens inside the suite (41/41).
+M-B DONE (v58): src/net/transport.hpp ports FUN_140505bc0 (receiver,
+byte-proven with objdump) + FUN_140500670 (encrypted send with the
+"TQServer" magic) and tests/transport_unit_test.cpp proves the shared
+CAST token end-to-end (42/42 green). NEXT = M-C: wire the transport into
+the live socket layer (first-packet detection, 4-spare-byte recv buffer,
+per-message framing FUN_1404f6c90: len u2 + type u2 + payload + 8-byte
+trailing magic), then M-D account-net login (1002 MsgLogin 0x20 / 1052
+MsgConnect 0x1c / 1055 CMsgConnectEx) on the encrypted channel. Rules: (a) never widen a DELETE past your band,
 (b) UPDATE the previous band's last option `id_next` to chain into your new band,
 (c) seed blocks run in order — a mid-file clobber bug ate v29 once.
 

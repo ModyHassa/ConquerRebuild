@@ -22,3 +22,12 @@ else
   echo "FAIL crypto_unit"
   tail -5 /tmp/crypto_unit.build /tmp/crypto_unit.out 2>/dev/null
 fi
+
+# ---- wave M-B: transport handshake unit (FUN_140505bc0 / FUN_140500670) ----
+if g++ -std=c++17 -O1 -o /tmp/transport_unit tests/transport_unit_test.cpp -lcrypto 2>/tmp/transport_unit.build \
+   && /tmp/transport_unit > /tmp/transport_unit.out 2>&1; then
+  echo "PASS transport_unit"
+else
+  echo "FAIL transport_unit"
+  tail -5 /tmp/transport_unit.build /tmp/transport_unit.out 2>/dev/null
+fi

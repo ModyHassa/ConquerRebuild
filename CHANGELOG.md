@@ -248,3 +248,40 @@ Decode-only wave: nailed how the real v6159 client talks to the game port.
   8-byte trailing magic — FUN_1404f6c90 validates exactly that); M-D wire
   the account-net login (1002 MsgLogin 0x20 / 1052 MsgConnect 0x1c /
   1055 CMsgConnectEx) on the encrypted channel.
+
+## v58 (Nov 1, 2026) — wave M-B: encrypted handshake ported, 42/42 green
+- src/net/transport.hpp: literal port of the game-socket key exchange.
+  WIRE PROVEN WITH OBJDUMP (0x140505bc0) + the client decompile:
+  client -> [7-byte random prefix][u32 total][u32 L1][blob L1][u32 L2]
+  [pubkey HEX L2]["TQClient" 8], total = 4+(4+L1)+(4+L2)+8, the whole
+  stream CAST-CFB64 encrypted with the hardcoded handshake passphrase
+  "C238xs65pjy7HU9Q" (0x14079ae58), ivec=0, num=0.
+  Receiver steps (FUN_140505bc0): guards -> CAST_set_key -> cfb64 11
+  bytes (out @ rsp+0x130) -> len = u32 at out[7..10] (disasm:
+  movsxd rdi,[rsp+0x137]) -> 0xb < len < 0x401 and wire >= len+7 ->
+  cfb64 from wire+0xb (disasm: lea rcx,[rsi+0xb]) into rsp+0x13b ->
+  magic compare *(u64*)(payload+len-0xC) vs 0x14079ae38 (disasm:
+  mov rax,[rsp+rdi+0x12f]) -> single TLV step (L1 then L2) ->
+  BN_hex2bn -> DH_compute_key -> FUN_140503c00 token (0x40 chars) ->
+  CAST_set_key(session) -> return len+7. NOTE the receiver's second
+  cfb64 pass deliberately starts 4 bytes into the payload (the u32
+  total was already consumed by the first pass) — that is why the TLV
+  cursor starts at 4 and the magic sits at len-0xC.
+- Send path FUN_140500670: conn+0x1a = encryption enabled; when on the
+  packet is CFB64-encrypted with the session key and "TQServer"
+  (0x14079ae40) is appended; plaintext through conn+0x14 == 1;
+  states >1 log "socket:%lu" and close.
+- tests/transport_unit_test.cpp (in run_suite.sh -> "PASS
+  transport_unit"): simulates the client EXACTLY (DH key pair from
+  dh.pem params, hex pub key, FUN_008062a8-style TLV payload, the
+  handshake encryption), asserts the receiver consumes len+7, both
+  sides derive the SAME 64-char CAST token (key agreement proven), the
+  client decrypts a server packet carrying the TQServer magic with its
+  own token, and the negative paths (corrupted magic -> -1, short
+  packet -> 0, missing DH -> -1).
+- OPEN QUESTION for the real-client hookup (documented): the receiver
+  consumes 11+len CFB bytes while the client emits 7+len, i.e. 4 extra
+  bytes — the original's socket buffer absorbs them; when wiring the
+  live server the recv buffer must provide >= 4 spare bytes and the
+  follow-up packet's CFB position needs checking against the client.
+- Suite: 42/42 green (40 live + crypto_unit + transport_unit).
