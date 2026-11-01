@@ -207,3 +207,34 @@ the player stepped on) and calls `(*(*param_5 + 0x298))(param_5, 0x1400,
 &out)`; only when that attribute query succeeds does it call FUN_1403a7180 to
 destroy the trap. Without the "player stepped on a trap" trigger path there is
 no param_5 to query, so the port would have to invent one.
+
+## 332 — 30 rows — BLOCKED on one item-getter bit (case 0x14c, 220472)
+The whole case is a one-line delegation:
+`if (param_4 == 0) return true; obj = (param_4[2]+0x160)(param_4+2);
+return FUN_1401196c0(obj);`
+and FUN_1401196c0 (207430) is:
+`p = *(obj+0x58) -> +8 -> (p->vtbl+0x10)(p, 4)   // equipment slot 4 = weapon
+ val = (p->vtbl+0x58)(p); return (val >> 8) & 1;`
+FUN_1401196f0 (the sibling) is the same with `(val >> 0xd) & 1`.
+The only unknown is what vtable slot +0x58 returns for an item. It is NOT
+the itemtype (+0x48 is, used everywhere); a census of every `+0x58` call
+site in MsgServer.c shows the slot is a bool/int getter shared by unrelated
+classes (AVCThreadBase, AVCGooglePaymentsThread, AVCLogThread,
+AVCSocketThread), so the slot number alone proves nothing about bit 8.
+Porting this needs the CItemInfo vtable itself (slot index 11), which is
+not statically referenced anywhere in the decompile. Not guessed.
+
+## 717 — 28 rows — guild/family fund script (case 0x2cd, 216466)
+`sscanf("%s %s %d %u")` with `iVar7 < 3` -> DBERROR + fail. The second
+operand is resolved as `local_348` or, when empty, through
+`(param_4[2]+0x170)()`, then `FUN_140087ed0()` (manager) `+0x248` looks the
+id up. Live params are the 1001 script-line shape ("money += 1000
+%npc_ownerid", "money < 100000", "money += -100000"), i.e. the action runs
+money ops against the resolved object's fund rather than the player's.
+Blocked on the same guild/syndicate object model as 2007.
+
+## 2007 — 54 rows — guild system (case 0x7d7, 224273)
+Builds a 0x6c-byte struct plus two 0xff buffers and a long pointer array
+before touching the guild object. Every branch needs the syndicate/family
+object model (cq_syndicate), which is still unported, so the port would
+have to invent member ranks, funds and the guild packet layout.
