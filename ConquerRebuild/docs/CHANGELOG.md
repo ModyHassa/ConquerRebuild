@@ -763,3 +763,33 @@ encrypted reply frames (first = 10014 player spawn).
 - Suite: 55 tests, 55 green, with no known flaky test. Coverage 97.8%,
   118 of 216 types.
 
+## v79 (Nov 2, 2026) — actions 332 / 721 / 722 (39 rows) + drop-test hardening
+- 332 PORTED (case 0x14c): the guard is a null actor or a null map, then the
+  running action's GetAttr(4) is read through the map's script context and
+  FUN_1401196c0 reduces to `(value >> 8) & 1` (its sibling FUN_1401196f0
+  tests bit 13). The map suspicion from the earlier deferral was resolved
+  by the call sites: (*(param_4[2] + 0x160)) is the ACTOR'S MAP (it is
+  passed to FUN_1402c3cc0/FUN_1402c8370 cell queries), so a live player in a
+  map always reaches the bit test. All 30 live rows carry data=0, which is
+  the same fail branch the default routing already produced, so the port is
+  behaviour-preserving for today's content and correct for any row that sets
+  bit 8.
+- 721 PORTED (case 0x2d1): param_7 is a guild name shorter than 0x10 (the
+  15-char cq_syndicate.name limit), resolved through the manager slot +0x250
+  into the actor's +0x14d field (Player.script_guild_id); a found id passes,
+  an unknown name, an empty name or a 16+ char name fails.
+- 722 PORTED (case 0x2d2): the actor's guild id (+0x170) must be non-zero
+  before the guild is resolved through FUN_140087650's slot +0xb8. This
+  database has no player->guild link (cq_syndicate only, no member table),
+  so a character is always guild-less and the faithful outcome is the fail
+  branch.
+- tests/test_actions_v79.py: 11 live assertions (bit set/clear, known guild,
+  unknown guild, over-long name, guild-less actor). Fixtures 99001400-99001429.
+- Drop-test hardening: broadcast_to_screen now has an opt-in diagnostic
+  (CQ_DEBUG_BCAST=1) that reports how many players were served for each
+  1101 and why the others were skipped (null session / out of range). It is
+  what proved the drop pipeline itself is sound mid-suite; the earlier red
+  run was timing, and the summon-based hunt plus the multi-drain harvest
+  keep the item phase deterministic and short.
+- Suite: 56 tests, 56 green. Coverage 97.9%, 121 of 216 types.
+

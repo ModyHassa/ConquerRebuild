@@ -330,6 +330,21 @@ void World::remove_by_session(ClientSession* s) {
 
 void World::broadcast_to_screen(GameMap& m, const Position& center,
                                  const Packet& pkt, ClientSession* except) {
+    static const bool dbg_bcast = ::getenv("CQ_DEBUG_BCAST") != nullptr;
+    if (dbg_bcast && pkt.type == 1101) {
+        int nulls = 0, far = 0, sent = 0;
+        for (Player* other : m.players()) {
+            if (!other->session) { ++nulls; continue; }
+            float dx = std::abs((int)other->pos.x - (int)center.x);
+            float dy = std::abs((int)other->pos.y - (int)center.y);
+            if (dx > SCREEN_RANGE || dy > SCREEN_RANGE) { ++far; continue; }
+            if (other->session == except) continue;
+            ++sent;
+        }
+        std::printf("[bcast] 1101 at (%u,%u): %zu players, sent=%d null_session=%d "
+                    "far=%d -> %s\n", center.x, center.y, m.players().size(),
+                    sent, nulls, far, sent ? "ok" : "NOBODY");
+    }
     for (Player* other : m.players()) {
         if (!other->session || other->session == except) continue;
         float dx = std::abs((int)other->pos.x - (int)center.x);

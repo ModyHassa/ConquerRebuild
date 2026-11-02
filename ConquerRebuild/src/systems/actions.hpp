@@ -2442,6 +2442,64 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = cond ? a->id_next : a->id_nextfail;
             break;
         }
+        case 332: {  // 0x14c: bit 8 of the running action's data
+            // The original guards on a null actor or a null map (neither can
+            // happen here), then reads GetAttr(4) of the running action
+            // through the map's script context and returns
+            // FUN_1401196c0 = (value >> 8) & 1; the sibling FUN_1401196f0
+            // tests bit 13. Every live row carries data=0, so they take the
+            // fail branch exactly like the previous default routing did.
+            const bool pass = (((uint32_t)a->data) >> 8) & 1;
+            if (!pass) {
+                std::printf("[action] %u 332 data=%d bit8 clear -> id_nextfail\n",
+                            p.id, a->data);
+                cur = a->id_nextfail;
+                break;
+            }
+            cur = a->id_next;
+            break;
+        }
+        case 721: {  // 0x2d1: resolve a guild id by name into the actor
+            // param_7 (a string shorter than 0x10 = the 15-char guild name
+            // limit) is handed to the manager slot +0x250, the returned id is
+            // stored at actor+0x14d and the step passes when it is non-zero.
+            std::string gn = a->param;
+            if (gn.empty() || gn.size() >= 0x10) {
+                std::printf("[action] %u 721 bad guild name '%s'\n",
+                            p.id, gn.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            char esc[64];
+            active_db()->execute_sql("SELECT 1");   // keep the conn clean
+            std::string gid;
+            std::string sql = "SELECT id FROM cq_syndicate WHERE name='" +
+                              gn + "' LIMIT 1";
+            if (active_db()->query_string(sql, gid) && !gid.empty()) {
+                p.script_guild_id = (uint32_t)std::strtoul(gid.c_str(), nullptr, 10);
+                std::printf("[action] %u 721 guild '%s' -> id %u\n",
+                            p.id, gn.c_str(), p.script_guild_id);
+                cur = a->id_next;
+                break;
+            }
+            std::printf("[action] %u 721 guild '%s' not found -> id_nextfail\n",
+                        p.id, gn.c_str());
+            (void)esc;
+            cur = a->id_nextfail;
+            break;
+        }
+        case 722: {  // 0x2d2: the actor's guild must exist
+            // The original takes the actor's guild id (+0x170); when it is 0
+            // the step fails, otherwise the guild is resolved through
+            // FUN_140087650's slot +0xb8 and the result decides. This build
+            // has no player->guild link at all (cq_syndicate only, no member
+            // table), so a character is always guild-less and the faithful
+            // outcome is the fail branch.
+            std::printf("[action] %u 722 actor has no guild -> id_nextfail\n",
+                        p.id);
+            cur = a->id_nextfail;
+            break;
+        }
         case 2007: {  // 0x7d7: generator / runtime NPC create (54 rows)
             // sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d %d %d %d %d
             //         %d %d %d %d %d %d %d %s") over 25 fields; fewer than 9

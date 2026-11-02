@@ -378,3 +378,13 @@ nobody. Suite 55/55 green, coverage 97.8% (118/216).
 Next: the guild/syndicate object model (715/720/721/722 + the manager slots),
 332's bit-8 decision, and the 183 Lua scripts.
 
+## v79 (Nov 2, 2026) — 332/721/722, suite 56/56
+332 is a data bit-8 test (the +0x160 getter turned out to be the actor's
+map, so the guard always passes for a live player); 721 resolves a guild id
+by name into Player.script_guild_id; 722 needs a guild link this database
+does not have, so it faithfully fails. broadcast_to_screen has an opt-in
+CQ_DEBUG_BCAST diagnostic. Suite 56/56 green, coverage 97.9% (121/216).
+Next: 144 (world flag set only by an inbound message), 715/720 (guild
+manager slots needing the member model), 223/224 (home templates), 2201/2205,
+then the big systems (guild/team/trade, 183 Lua).
+
