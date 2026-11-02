@@ -24,6 +24,9 @@ struct PetDescriptor {
     uint32_t id = 0;
     bool     in_use = false;   // the +0x90 flag
     std::vector<PetCond> conds;
+    // action 130's 21-field template, applied through FUN_140380620 and kept
+    // verbatim in the order the sscanf fills it (field 3 defaults to 600)
+    std::vector<int32_t> values;
 };
 
 class PetRegistry {

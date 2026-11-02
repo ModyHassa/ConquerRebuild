@@ -663,3 +663,26 @@ encrypted reply frames (first = 10014 player spawn).
   now 53 tests, 53 green, no known flaky test.
 - Coverage 97.8%, 116 of 216 types.
 
+## v75 (Nov 2, 2026) — action 130 (pet object update) + a triage of what is left
+- 130 PORTED (case 0x82, 222961): sscanf("%u %d %d %d %d %d %d %d %d %d
+  %d %d %d %d %d %d %d %u %u %u %d") must fill MORE than 0x14 (21) fields.
+  Field 3 is forced to 600 when it parses as 0, the object is looked up by
+  the first field, and a hit applies the template through FUN_140380620 and
+  commits with FUN_1403816d0 -> pass; a miss, or a short param, takes
+  id_nextfail. The 21 values are kept verbatim on the descriptor (parse
+  order) because the object's fields are only ever consumed inside the
+  original's own update path.
+- tests/test_actions_v75.py: 10 live assertions (update of a missing
+  object, 129 define then 130 update, a second update, a 4-field param, and
+  the duplicate-define guard) . Fixtures 99001200-99001219.
+- Remaining unported types triaged from the coverage report (12 types, 161
+  rows): 2007 (54) guild domain; 332 (30) data bit 8, ambiguous because all
+  30 rows carry data=0; 144 (24) reads a world flag word at +0x2ac that is
+  only ever set by an inbound message (FUN_14008aae0 stores GetAttr(2) of a
+  0x15f92 message), so with no such peer the bit test is always false and
+  porting it would add no observable behaviour; 715/720/721/722 (14, empty
+  params) are guild-manager slots (+0x260 / +0x250 by name / +0xb8 by id and
+  the actor's guild); 223/224 (11) are %user_home_id template rows; 2201 and
+  2205 (4) are target_bonus/hunter_bonus arena roles.
+- Suite: 54 tests, 54 green. Coverage 97.8%, 117 of 216 types.
+

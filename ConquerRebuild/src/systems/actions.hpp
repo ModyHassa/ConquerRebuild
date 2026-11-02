@@ -925,6 +925,45 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = consumed ? a->id_next : a->id_nextfail;
             break;
         }
+        case 130: {  // pet object update (case 0x82, 222961)
+            // sscanf("%u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d
+            //         %u %u %u %d") must fill MORE than 0x14 (21) fields;
+            // field 3 is forced to 600 when it parses as 0, then the object
+            // is looked up by the first field: a hit applies the template
+            // through FUN_140380620 and commits with FUN_1403816d0 and the
+            // step passes, a miss fails. The 21 values are kept verbatim on
+            // the descriptor, in parse order.
+            int v[21] = {0};
+            unsigned pid = 0;
+            int n = std::sscanf(a->param.c_str(),
+                "%u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d "
+                "%u %u %u %d",
+                &pid, &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6],
+                &v[7], &v[8], &v[9], &v[10], &v[11], &v[12], &v[13],
+                &v[14], &v[15],
+                (unsigned*)&v[16], (unsigned*)&v[17], (unsigned*)&v[18],
+                &v[19]);
+            if (n <= 0x14) {
+                std::printf("[action] %u 130 needs 21 fields, got %d\n",
+                            p.id, n);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (v[2] == 0) v[2] = 600;      // local_193c default
+            PetDescriptor* d = PetRegistry::instance().find(pid);
+            if (!d) {
+                std::printf("[action] %u 130 update %u: no object "
+                            "-> id_nextfail\n", p.id, pid);
+                cur = a->id_nextfail;
+                break;
+            }
+            d->values.assign(v, v + 20);
+            std::printf("[action] %u 130 updated object %u "
+                        "(first value %d, field3 %d)\n",
+                        p.id, pid, v[0], v[2]);
+            cur = a->id_next;
+            break;
+        }
         case 129: {  // pet condition descriptor (case 0x81, 222882)
             // The branch selector is the row's own data field: the executor
             // reads GetAttr(4) (index 3 is the action type, see the iVar8

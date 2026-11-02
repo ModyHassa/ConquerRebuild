@@ -337,3 +337,14 @@ Next: the coverage report now shows ~50 unported types with 1-2 rows each
 2007 (54 rows, guild domain manager) - triage those first, then 332 once the
 item-vtable bit can be proven.
 
+## v75 (Nov 2, 2026) — 130 pet object update, suite 54/54
+130 ported: a 21-field template is applied to an existing pet object (field
+3 defaults to 600), a miss or short param fails. Suite 54/54 green,
+coverage 97.8% (117/216).
+TRIAGE of the last 12 unported types (161 rows): everything except 2007
+(54, guild domain manager FUN_1402c2390) and 332 (30, data bit 8 with all
+rows data=0) is either guild-manager slots (715/720/721/722), home template
+rows (223/224), arena bonus roles (2201/2205) or 144's world flag word that
+only an inbound message ever sets. So the only meaningful next batch is the
+guild/syndicate object model, which unlocks 2007 + 715/720/721/722 (68 rows).
+
