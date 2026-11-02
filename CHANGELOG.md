@@ -686,3 +686,33 @@ encrypted reply frames (first = 10014 player spawn).
   2205 (4) are target_bonus/hunter_bonus arena roles.
 - Suite: 54 tests, 54 green. Coverage 97.8%, 117 of 216 types.
 
+## v76 (Nov 2, 2026) — action 2007 (generator / runtime NPC create, 54 rows)
+- 2007 PORTED as far as the evidence goes (case 0x7d7, 224273). The exact
+  arg order was recovered from the call site instead of guessing:
+  sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d %d %d %d %d %d %d %d %d
+  %d %d %d %s") builds its 25 destinations as r8 = the name buffer
+  (rsp+0x2e0), r9 = rsp+0x184, then 23 stack slots rsp+0x20..0xd0 holding
+  0x1d8, 0x188, 0x174, 0x170, 0x178, 0x17c, 0x180, 0x1d0, 0x1d4, 0x1cc,
+  0x18c, 0x190, 0x194, 0x198, 0x19c, 0x1a0, 0x1a4, 0x1a8, 0x1ac, 0x1b0,
+  0x1b4, 0x1b8, 0x1e0.
+- FUN_1402c2390 is then called with param_3 = rsp+0x170 (so the struct IS
+  the parsed area) and param_5 = the name buffer, which pins the fields the
+  action really uses: **map = field 7, x = field 8, y = field 9, name =
+  field 1**, matching the live row "Close~left~gate 26 21 241 2
+  %map_owner_id 1038 163 210 20000000 24 5030100 5030101 0 ..." -> map
+  1038, x 163, y 210.
+- Port scope: >= 9 fields (else ERROR 0x324a + DBERROR -> fail), then the
+  map must exist, otherwise the original logs "CNpc::Create(), Create
+  Npc(Type:%u, Name:%s) can't find map(%u)" and fails. Which CGameData
+  field carries the NPC type/lookface is still unresolved, so no
+  cq_generator row is written and no spawn is broadcast; that gap is
+  documented in DEFERRED_TYPES.md rather than guessed (cq_generator's
+  columns are id, mapid, bound_x, bound_y, bound_cx, bound_cy, maxnpc,
+  rest_secs, max_per_gen, npctype, timer_begin, timer_end, born_x, born_y,
+  mask, path, return_mode, cluster_type, attribute - 19, while the object
+  sets fields up to 0x1c).
+- tests/test_actions_v76.py: 7 live assertions (valid map, unknown map,
+  short param). Fixtures 99001300-99001319.
+- Suite: 55 tests, 55 green. Coverage 97.8%, 118 of 216 types. 332 (30
+  rows) is now the only large unported type.
+

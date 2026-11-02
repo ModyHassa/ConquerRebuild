@@ -348,3 +348,13 @@ rows (223/224), arena bonus roles (2201/2205) or 144's world flag word that
 only an inbound message ever sets. So the only meaningful next batch is the
 guild/syndicate object model, which unlocks 2007 + 715/720/721/722 (68 rows).
 
+## v76 (Nov 2, 2026) — 2007 generator create, suite 55/55
+2007's arg order was recovered from the call site (r8/r9 + 23 stack slots),
+which proves map = field 7, x = field 8, y = field 9, name = field 1. The
+port reproduces the control flow exactly (>= 9 fields, map must exist) but
+does not yet write a cq_generator row or broadcast a spawn, because the
+CGameData field that carries the NPC type/lookface is still unidentified.
+Suite 55/55 green, coverage 97.8% (118/216).
+Next: finish 2007's spawn (identify the type/lookface field in
+FUN_1402bc390/FUN_1402c18f0), then 332 (30 rows, needs proof for bit 8).
+

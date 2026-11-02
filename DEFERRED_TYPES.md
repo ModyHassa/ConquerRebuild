@@ -242,7 +242,13 @@ id up. Live params are the 1001 script-line shape ("money += 1000
 money ops against the resolved object's fund rather than the player's.
 Blocked on the same guild/syndicate object model as 2007.
 
-## 2007 — 54 rows — guild DOMAIN operation (case 0x7d7, 224273)
+## 2007 — 54 rows — CONTROL FLOW PORTED in v76; spawn still open
+Status: parse + guards ported (>= 9 fields, map must exist -> else the
+CNpc::Create fail). Open: which CGameData field carries the NPC
+type/lookface, needed to write the cq_generator row and broadcast the
+spawn. Live rows put map in field 7 (1038), x in 8 (163), y in 9 (210).
+
+### (superseded) earlier note describing it as a guild DOMAIN operation
 Not member ranks: the body zeroes a 0x6c struct + two 0xff buffers, then
 sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d ... %s") over 25 fields
 (fewer than 9 -> ERROR 0x324a + DBERROR), memmoves 0xf bytes into a local

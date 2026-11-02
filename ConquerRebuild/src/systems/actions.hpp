@@ -2442,6 +2442,59 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = cond ? a->id_next : a->id_nextfail;
             break;
         }
+        case 2007: {  // 0x7d7: generator / runtime NPC create (54 rows)
+            // sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d %d %d %d %d
+            //         %d %d %d %d %d %d %d %s") over 25 fields; fewer than 9
+            // -> ERROR 0x324a + DBERROR and the fail branch.
+            // The struct handed to FUN_1402c2390 sits at rsp+0x170 and its
+            // parsed slots map to the format by offset:
+            //   map = field 7, x = field 8, y = field 9, name = field 1
+            // (FUN_1402c2390 does the map lookup with the 3rd struct dword,
+            // and the CNpc is placed on the map with x/y from the 4th/5th,
+            // while param_5 carries the name buffer). Live row:
+            //   "Close~left~gate 26 21 241 2 %map_owner_id 1038 163 210
+            //    20000000 24 5030100 5030101 0 ..."  -> map 1038, x 163,
+            //   y 210.
+            // The remaining CGameData fields are still unresolved (which one
+            // is the NPC type/lookface), so no generator row is written and
+            // no spawn is broadcast yet; the control flow matches the
+            // original: the map must exist, otherwise the original logs
+            // "CNpc::Create(), Create Npc(Type:%u, Name:%s) can't find
+            // map(%u)" and fails.
+            char name[256] = {0}, extra[256] = {0};
+            int f2 = 0, f3 = 0, f4 = 0, f5 = 0, f8 = 0, f9 = 0, f10 = 0;
+            int f13 = 0, f14 = 0, f15 = 0, f16 = 0, f17 = 0, f18 = 0;
+            int f19 = 0, f20 = 0, f21 = 0, f22 = 0, f23 = 0, f24 = 0;
+            unsigned f6 = 0, f7 = 0, f11 = 0, f12 = 0;
+            int n = std::sscanf(a->param.c_str(),
+                "%255s %d %d %d %d %u %u %d %d %d %u %u %d %d %d %d %d %d "
+                "%d %d %d %d %d %d %255s",
+                name, &f2, &f3, &f4, &f5, &f6, &f7, &f8, &f9, &f10,
+                &f11, &f12, &f13, &f14, &f15, &f16, &f17, &f18,
+                &f19, &f20, &f21, &f22, &f23, &f24, extra);
+            if (n < 9) {
+                std::printf("[action] %u 2007 DBERROR param '%s' (n=%d)\n",
+                            p.id, a->param.c_str(), n);
+                cur = a->id_nextfail;
+                break;
+            }
+            const unsigned gmap = f7, gx = (unsigned)f8, gy = (unsigned)f9;
+            if (!active_db()->map_exists(gmap)) {
+                std::printf("[action] %u 2007 CNpc::Create() can't find "
+                            "map(%u) for '%s' -> id_nextfail\n",
+                            p.id, gmap, name);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::printf("[action] %u 2007 generator '%s' map=%u (%u,%u) "
+                        "owner=%u\n", p.id, name, gmap, gx, gy, f6);
+            (void)f2; (void)f3; (void)f4; (void)f5; (void)f10; (void)f11;
+            (void)f12; (void)f13; (void)f14; (void)f15; (void)f16; (void)f17;
+            (void)f18; (void)f19; (void)f20; (void)f21; (void)f22; (void)f23;
+            (void)f24;
+            cur = a->id_next;
+            break;
+        }
         case 2008: {  // 0x7d8: named-entity count check (guild-war
             // family). sscanf "%u %s %s %s %d" — (mapid, mode, name,
             // op, n). mode "name": alive monsters named X on the map;
