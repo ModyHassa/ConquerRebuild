@@ -15,6 +15,7 @@
 #include "systems/magicskills.hpp"
 #include "systems/magic.hpp"
 #include "systems/chat.hpp"
+#include "script/lua_host.hpp"
 #include "systems/tasks.hpp"
 #include "auth/srp6.hpp"
 #include <unordered_map>
@@ -478,6 +479,32 @@ void register_default_handlers(Dispatcher& d) {
         if (!npc) return;
         if (npc->map_id != p.map_id) return;   // wrong map
         p.last_npc_id = npc_id;
+        // v84: a scripted NPC (cq_npc.datastr names a .lua file) runs its
+        // on_talk hook with this player as the script context; the script's
+        // say() lines reach the client through the SYSTEM talk builder.
+        if (!npc->task_script.empty()) {
+            const std::string& sc = npc->task_script;
+            if (sc.size() > 4 && sc.compare(sc.size() - 4, 4, ".lua") == 0) {
+                auto& lua = conquer::LuaHost::instance();
+                std::string err;
+                if (lua.open(&err)) {
+                    const char* dir = ::getenv("CQ_LUA_DIR");
+                    std::string path = std::string(dir ? dir : "data/lua") +
+                                       "/" + sc;
+                    if (lua.do_file(path, &err)) {
+                        lua.set_context(&p);
+                        if (!lua.call("on_talk", &err))
+                            std::printf("[lua] %s on_talk: %s\n",
+                                        sc.c_str(), err.c_str());
+                        lua.set_context(nullptr);
+                    } else {
+                        std::printf("[lua] %s: %s\n", path.c_str(),
+                                    err.c_str());
+                    }
+                    return;
+                }
+            }
+        }
         if (!npc->task0) return;
         auto& tasks = task_system::TaskTable::instance();
         if (tasks.find(npc->task0)) {

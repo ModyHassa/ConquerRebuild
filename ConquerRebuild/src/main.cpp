@@ -74,7 +74,8 @@ int main() {
         for (const auto& n : dbp->load_npcs())
             npcs.register_npc({n.id, n.name, n.map_id, n.x, n.y,
                                n.task0, n.task1, n.task2, n.task3,
-                               n.task4, n.task5, n.task6, n.task7, ""});
+                               n.task4, n.task5, n.task6, n.task7,
+                               n.script});
         // v33: dyna npc records from cq_dynanpc
         conquer::DynaNpcSystem::instance().load(*dbp);
         std::printf("[npc] %zu NPCs loaded from cq_npc\n",
@@ -103,6 +104,7 @@ int main() {
         std::string lerr;
         auto& lua = conquer::LuaHost::instance();
         if (lua.open(&lerr)) {
+            conquer::lua_api_init();
             if (const char* dir = ::getenv("CQ_LUA_DIR")) {
                 std::vector<std::string> bad;
                 const size_t ok = lua.check_tree(dir, &bad);

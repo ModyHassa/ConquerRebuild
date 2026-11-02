@@ -1326,3 +1326,10 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99001608,99001610,99001611,717,0,'money += 250'),
   (99001610,0,0,101,0,'V82~ADD~OK.'),
   (99001611,0,0,101,0,'V82~ADD~FAIL.');
+
+-- ============================================================
+-- v84: a Lua-scripted NPC (cq_npc.datastr names the script file)
+-- ============================================================
+DELETE FROM cq_npc WHERE id=99001850;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001850,'LuaProbe',0,5000,1002,400,301,0,'v84_probe.lua');

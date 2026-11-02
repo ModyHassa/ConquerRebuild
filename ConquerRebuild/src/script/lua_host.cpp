@@ -223,6 +223,33 @@ size_t LuaHost::check_tree(const std::string& root,
     return ok;
 }
 
+void LuaHost::register_fn(const char* name, int (*fn)(lua_State*)) {
+    if (!L_ || !name || !fn) return;
+    A.pushcclosure(L_, fn, 0);
+    A.setfield(L_, GLOBALS_SLOT, name);
+}
+
+long long lua_arg_int(lua_State* L, int idx) {
+    int isnum = 0;
+    const lua_Integer v = A.tointegerx ? A.tointegerx(L, idx, &isnum) : 0;
+    return isnum ? (long long)v : 0;
+}
+
+std::string lua_arg_str(lua_State* L, int idx) {
+    if (!A.tolstring) return {};
+    size_t n = 0;
+    const char* s = A.tolstring(L, idx, &n);
+    return s ? std::string(s, n) : std::string();
+}
+
+void lua_push_int(lua_State* L, long long v) {
+    if (A.pushinteger) A.pushinteger(L, (lua_Integer)v);
+}
+
+void lua_push_str(lua_State* L, const std::string& v) {
+    if (A.pushlstring) A.pushlstring(L, v.data(), v.size());
+}
+
 int LuaHost::host_log(lua_State* L) {
     const char* s = A.tolstring ? A.tolstring(L, 1, nullptr) : nullptr;
     std::printf("[lua] %s\n", s ? s : "(nil)");

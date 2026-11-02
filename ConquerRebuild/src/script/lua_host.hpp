@@ -41,6 +41,15 @@ public:
     // Call a global Lua function with no arguments (scripted NPC hooks).
     bool call(const std::string& fn, std::string* err = nullptr);
 
+    // Register a host function under an absolute globals name.
+    void register_fn(const char* name, int (*fn)(lua_State*));
+
+    // The player a script is running for (opaque so this header stays free of
+    // the gameplay includes; lua_api.cpp casts it back to Player*).
+    void set_context(void* ctx) { ctx_ = ctx; }
+    void* context() const { return ctx_; }
+    void* ctx_ = nullptr;
+
     // ---- host functions the scripts can call -------------------------
     // (registered as host_log / host_int; gameplay hooks plug in here)
     static int host_log(lua_State* L);
@@ -55,5 +64,14 @@ private:
     lua_State* L_ = nullptr;
     void* lib_ = nullptr;   // dlopen handle
 };
+
+// Registers the gameplay API (say, get_*, add_money, ...) on the open state.
+void lua_api_init();
+
+// ---- value helpers for host functions (Lua 5.2, resolved at runtime) ----
+long long lua_arg_int(lua_State* L, int idx);
+std::string lua_arg_str(lua_State* L, int idx);
+void lua_push_int(lua_State* L, long long v);
+void lua_push_str(lua_State* L, const std::string& v);
 
 } // namespace conquer

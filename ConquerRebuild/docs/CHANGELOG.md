@@ -890,3 +890,29 @@ encrypted reply frames (first = 10014 player spawn).
   unlike HDRS which uses find) and -ldl added.
 - Suite: 60 tests, 60 green. Coverage 97.8%, 122 of 216 types.
 
+## v84 (Nov 2, 2026) — Lua-driven NPC dialogs work end to end
+- The scripted-content API in the original: the binary registers ~50 names
+  against numeric keys (GetUserInt(uid, key) with the guard `key-0x3e9 < 0x3e6`
+  i.e. keys 1001..1998, plus GetUserStr/SetUserInt/AddUserInt/ChgMap/Effect/
+  RecordPoint/AddPropStatus/...). The attribute getter FUN_1404e02d0 switches
+  on those keys and resolves each through the user object's vtable, so the
+  full key table is still a decode job. This wave implements the read/write
+  surface a dialog script actually needs, in our own documented mapping.
+- src/script/lua_api.cpp: say(text) sends the SYSTEM 1004 talk line to the
+  acting player (same builder the action chains use), get_level/get_money/
+  get_exp/get_hp/get_mp/get_map/get_x/get_y/get_name read the live Player,
+  and add_money(n) is the classic reward path (clamped at zero).
+- lua_host gained register_fn(name, fn), a per-call script context
+  (set_context/context, opaque so the header stays gameplay-free) and value
+  helpers lua_arg_int/lua_arg_str/lua_push_int/lua_push_str.
+- NEW binding: cq_npc.datastr names the NPC's script. load_npcs selects it,
+  NpcRecord carries it, and the 2031 click handler loads the file (from
+  CQ_LUA_DIR or data/lua), sets the clicking player as the context and calls
+  on_talk(); the script's say() lines reach the client.
+- data/lua/v84_probe.lua + seed NPC 99001850 "LuaProbe" on map 1002 (datastr
+  v84_probe.lua). tests/test_actions_v84.py: the NPC exists with its script
+  name, clicking it produces "V84 Lua NPC speaks.", the script reads the real
+  level (130) and live money, add_money(7) runs, and the script sees its own
+  write ("after reward money=7").
+- Suite: 61 tests, 61 green. Coverage 97.8%, 122 of 216 types.
+

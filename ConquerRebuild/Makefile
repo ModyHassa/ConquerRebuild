@@ -1,6 +1,6 @@
 CXX      ?= g++
 CXXFLAGS = -std=c++17 -O2 -g -Wall -Wextra -Isrc
-SRC      = src/script/lua_host.cpp src/main.cpp src/systems/login.cpp src/systems/world.cpp src/systems/movement.cpp src/systems/npc.cpp src/core/mysql_db.cpp
+SRC      = src/script/lua_host.cpp src/script/lua_api.cpp src/main.cpp src/systems/login.cpp src/systems/world.cpp src/systems/movement.cpp src/systems/npc.cpp src/core/mysql_db.cpp
 HDRS    := $(shell find src -name '*.hpp' -o -name '*.cpp' | sort)
 BIN      = conquer_server
 

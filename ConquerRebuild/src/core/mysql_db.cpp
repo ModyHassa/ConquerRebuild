@@ -719,7 +719,7 @@ std::vector<NpcRecord> MySQLDatabase::load_npcs() {
     std::vector<NpcRecord> out;
     std::string q =
         "SELECT id, name, mapid, cellx, celly, task0, task1, task2, task3,"
-        " task4, task5, task6, task7 FROM cq_npc";
+        " task4, task5, task6, task7, datastr FROM cq_npc";
     if (mysql_query(conn_, q.c_str())) { std::printf("[db] load_npcs: %s\n", mysql_error(conn_)); return out; }
     MYSQL_RES* res = mysql_store_result(conn_);
     if (!res) return out;
@@ -740,6 +740,7 @@ std::vector<NpcRecord> MySQLDatabase::load_npcs() {
         n.task5   = row[10] ? strtoul(row[10], nullptr, 10) : 0;
         n.task6   = row[11] ? strtoul(row[11], nullptr, 10) : 0;
         n.task7   = row[12] ? strtoul(row[12], nullptr, 10) : 0;
+        if (row[13]) n.script = row[13];   // v84: cq_npc.datastr
         out.push_back(std::move(n));
     }
     mysql_free_result(res);

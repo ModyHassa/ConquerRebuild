@@ -432,3 +432,14 @@ NEXT for scripting: expose the gameplay API the scripts expect (Say/dialog,
 Get/Set player attributes, stc(), item/money ops), bind cq_npc/cq_task script
 names to chunks, and drive on_talk/on_task from the NPC path.
 
+## v84 (Nov 2, 2026) — Lua-driven NPC dialogs, suite 61/61
+say()/get_*()/add_money() are live on the Lua host (src/script/lua_api.cpp),
+and cq_npc.datastr binds an NPC to a script file: the 2031 handler loads it,
+sets the clicking player as context and runs on_talk. data/lua/v84_probe.lua
++ NPC 99001850 prove the whole path (talk text, live level/money, reward).
+Suite 61/61 green.
+NEXT for scripting: map the numeric key space (1001..1998) of
+FUN_1404e02d0 onto our Player fields, add stc(), the Set* writers, ChgMap,
+Effect, and the GetSyna*/GetTeam* family, then bind the event-driven
+ActiveScripts (EventType registration).
+

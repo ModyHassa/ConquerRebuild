@@ -147,6 +147,7 @@ struct NpcRecord {
     uint32_t task0 = 0;     // cq_npc.task0..task7: task list (original
     uint32_t task1 = 0, task2 = 0, task3 = 0, task4 = 0;  // loads all 8;
     uint32_t task5 = 0, task6 = 0, task7 = 0;            // FUN_140470df0)
+    std::string script;     // cq_npc.datastr: the Lua script for this NPC
 };
 
 // v29: cq_task row (task menu / accept qualification engine)
