@@ -421,3 +421,14 @@ Next: 715/720 on top of the member model (their manager slots +0x118/+0x260
 still need identifying), 223/224 (home templates, CMapGroup slot 0xa8),
 2201/2205, then team/trade and the 183 Lua scripts.
 
+## v83 (Nov 2, 2026) — Lua 5.2 host live, all 183 shipped scripts compile
+src/script/lua_host.{hpp,cpp} loads liblua5.2.so.0 through dlopen (no headers
+in the sandbox), declares the API subset by hand, parks _G at a fixed stack
+slot so no registry pseudo-index is needed, and resolves lua_pcallk (5.2's
+pacall macro target). Host functions host_log/host_int are the hook point.
+main.cpp opens the engine at boot; CQ_LUA_DIR makes it compile-check the tree
+(183/183 ok). tests/lua_unit_test.cpp is part of the suite. Suite 60/60.
+NEXT for scripting: expose the gameplay API the scripts expect (Say/dialog,
+Get/Set player attributes, stc(), item/money ops), bind cq_npc/cq_task script
+names to chunks, and drive on_talk/on_task from the NPC path.
+

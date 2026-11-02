@@ -59,3 +59,12 @@ else
 fi
 kill $TPID 2>/dev/null
 wait $TPID 2>/dev/null
+
+# ---- wave v83: Lua host unit (dlopen Lua 5.2 + the shipped content) ----
+if g++ -std=c++17 -O1 -Isrc -o /tmp/lua_unit tests/lua_unit_test.cpp src/script/lua_host.cpp -ldl 2>/tmp/lua_unit.build \
+   && /tmp/lua_unit > /tmp/lua_unit.out 2>&1; then
+  echo "PASS lua_unit"
+else
+  echo "FAIL lua_unit"
+  tail -5 /tmp/lua_unit.out 2>/dev/null
+fi

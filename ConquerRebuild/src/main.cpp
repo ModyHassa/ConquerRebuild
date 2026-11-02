@@ -10,6 +10,7 @@
 #include "systems/actions.hpp"
 #include "systems/dynanpc.hpp"
 #include "systems/tasks.hpp"
+#include "script/lua_host.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <thread>
@@ -97,6 +98,23 @@ int main() {
     }
     if (::listen(listener, 64) != 0) { std::perror("listen"); return 1; }
     std::printf("Listening. Ctrl+C to stop.\n");
+    // ---- Lua scripting host (the shipped content is Lua 5.2) ----------
+    {
+        std::string lerr;
+        auto& lua = conquer::LuaHost::instance();
+        if (lua.open(&lerr)) {
+            if (const char* dir = ::getenv("CQ_LUA_DIR")) {
+                std::vector<std::string> bad;
+                const size_t ok = lua.check_tree(dir, &bad);
+                std::printf("[lua] %zu scripts compiled from %s", ok, dir);
+                if (!bad.empty()) std::printf(", %zu failed", bad.size());
+                std::printf("\n");
+            }
+        } else {
+            std::printf("[lua] engine unavailable: %s\n", lerr.c_str());
+        }
+    }
+
 
     // world tick: monster respawns (original: the map group timer pass;
     // cq_generator.rest_secs drives each point's respawn delay)

@@ -862,3 +862,31 @@ encrypted reply frames (first = 10014 player spawn).
   no-guild-id chain now passes and spends 100000 (fund 501000 -> 401000).
 - Suite: 59 tests, 59 green. Coverage 97.8%, 122 of 216 types.
 
+## v83 (Nov 2, 2026) — a working Lua 5.2 scripting host (all 183 scripts compile)
+- NEW src/script/lua_host.{hpp,cpp}: the original runs its NPC/task content
+  through the lua/V100 scripts, and this sandbox has the Lua 5.2 *runtime*
+  (liblua5.2.so.0) but no headers, so the needed API subset is declared by
+  hand and resolved with dlopen at startup. Missing library = engine reports
+  unavailable and every call is a no-op, so the server still builds anywhere.
+- Two ABI traps found and solved:
+  * lua_getglobal/lua_setglobal are macros, not exports, and Lua 5.2's
+    LUA_RIDX_GLOBALS needs lua_rawgeti plus a version-specific
+    LUA_REGISTRYINDEX. Rather than encode that, open() runs "return _G" and
+    parks the globals table at a fixed absolute stack slot (index 1); all
+    getfield/setfield calls use that slot and stack resets go back to it
+    (a plain settop(0) would have dropped the table).
+  * lua_pcall is a macro for lua_pcallk in 5.2, so the export that must be
+    resolved is lua_pcallk.
+- Host API registered: host_log(msg) and host_int(n) -> n + 1 (the hook point
+  where gameplay functions will be added).
+- main.cpp opens the engine at boot and, when CQ_LUA_DIR is set,
+  compile-checks the whole tree and logs the count: the server now reports
+  "183 scripts compiled from ../conquer_source/Source/lua/V100".
+- tests/lua_unit_test.cpp (wired into run_suite as lua_unit): proves the
+  engine opens, a script calls back into the host (host_int(41) == 42),
+  Lua errors surface to the caller, and **every one of the 183 shipped
+  scripts compiles** (0 failures).
+- Makefile: src/script/lua_host.cpp added to SRC (the source list is explicit,
+  unlike HDRS which uses find) and -ldl added.
+- Suite: 60 tests, 60 green. Coverage 97.8%, 122 of 216 types.
+
