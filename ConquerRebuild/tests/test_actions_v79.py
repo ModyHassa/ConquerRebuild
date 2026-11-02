@@ -133,10 +133,13 @@ t = run(99001416, 'longname721')
 check(saw(t, 'V79~LONG~FAIL.'),
       'a name of 16+ chars fails before the lookup (the original < 0x10)')
 
-# ---- 722: no guild link exists in this database --------------------
+# ---- 722: the seed puts TestKnight in guild 1 (cq_synattr) ---------
+# cq_synattr is the member model (id = user id, syn_id, rank), and load_user
+# fills Player.guild_id from it, so a member resolves the guild.
 t = run(99001420, 'syn722')
-check(saw(t, 'V79~SYN~FAIL.'), '722 fails for a guild-less character')
-check(not saw(t, 'V79~SYN~OK.'), 'a guild-less character never passes 722')
+check(saw(t, 'V79~SYN~OK.'),
+      '722 passes for a character with a cq_synattr row')
+check(not saw(t, 'V79~SYN~FAIL.'), 'a member does not take the fail branch')
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

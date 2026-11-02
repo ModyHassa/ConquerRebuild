@@ -399,3 +399,15 @@ a member model), 223/224 (%user_home_id templates; 224 is CMapGroup slot
 name is still open), 2201/2205 (team/booth talk with TalkStrCheck). Then the
 big systems: guild/team/trade and the 183 Lua scripts.
 
+## v81 (Nov 2, 2026) — guild membership, suite 58/58
+cq_synattr is the member model (id = user id, syn_id, rank); load_user and
+the login path now carry it into Player.guild_id/guild_rank, so 722 is real
+(member + existing guild row passes, guild-less fails). GuildProbe
+(account 100099 / cq_user 99) exists purely so the membership test can
+re-login without poisoning another character's broadcasts. Suite 58/58
+green, coverage 97.8% (122/216).
+Next: make 717 fall back to Player.guild_id (and rework its fixtures so no
+test writes into a real guild's money), then 715/720 on top of the member
+model, then 223/224 (home templates, CMapGroup slot 0xa8), 2201/2205, and
+the big systems (team/trade, 183 Lua).
+

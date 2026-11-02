@@ -811,3 +811,32 @@ encrypted reply frames (first = 10014 player spawn).
   non-"==" operator (fails). Fixtures 99001500-99001519.
 - Suite: 57 tests, 57 green. Coverage 97.9%, 122 of 216 types.
 
+## v81 (Nov 2, 2026) — the guild member model (cq_synattr) + a real 722
+- Found the member model in the real schema: **cq_synattr** (id = the user
+  id, syn_id, rank, join_date, proffer_*...). cq_syndicate only holds the
+  guild itself (leader_id, money, enemy/ally slots, resources), so this is
+  where membership lives.
+- UserRecord gained syn_id/syn_rank, load_user adds two subqueries
+  (SELECT syn_id/rank FROM cq_synattr WHERE id=u.id LIMIT 1) and the login
+  path fills Player.guild_id/guild_rank (the original's +0x170 getter),
+  logging the membership.
+- 722 is now REAL instead of a hardcoded fail: a guild-less character takes
+  id_nextfail exactly like the original's zero check, and a member passes
+  when the cq_syndicate row resolves.
+- tests: v79's 722 case now asserts the pass path (the seed puts TestKnight
+  into guild 1), and the new tests/test_actions_v81.py covers both sides
+  with a DEDICATED probe character (account 100099 / cq_user 99,
+  "GuildProbe") because the test re-logs in. That detail matters: a first
+  attempt reused ChatB and broke SEVEN later tests (test_chat, v30, v33,
+  v34, v35, v36, v38 all lost their broadcasts) - a re-login leaves the
+  map's player object stale, so broadcast_to_screen reaches nobody. The
+  probe character isolates the damage.
+- Fixtures 99001420 (722 chain), seed adds the probe account/character and
+  the cq_synattr row for TestKnight; reset_positions restores the probe's
+  position.
+- Known gap, documented: 717's "no guild id in the param" branch still
+  treats the actor as guild-less instead of falling back to
+  Player.guild_id. Closing it needs the temp-guild fixtures revisited so a
+  test cannot write into a real guild's money.
+- Suite: 58 tests, 58 green. Coverage 97.8%, 122 of 216 types.
+

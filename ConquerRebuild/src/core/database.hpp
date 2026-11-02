@@ -34,6 +34,8 @@ struct UserRecord {
     uint64_t uin          = 0;  // session/user instance id
     uint32_t gm_flags     = 0;  // stored in cq_config (type-based) in original
     uint32_t profession   = 0;  // cq_user.profession (task qualification)
+    uint32_t syn_id       = 0;  // cq_synattr.syn_id  (guild membership)
+    uint32_t syn_rank     = 0;  // cq_synattr.rank    (guild rank code)
     int32_t  pk           = 0;  // cq_user.pk
     uint32_t lookface     = 0;  // cq_user.lookface (hairdresser 1005)
 };

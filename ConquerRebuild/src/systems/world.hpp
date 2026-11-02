@@ -41,6 +41,9 @@ struct Player {
     uint32_t last_dyna_id = 0;            // v33: last dyna npc created via 301
     uint32_t script_guild_id = 0;         // v79: 721 stores the guild id here
                                           // (the original's actor +0x14d)
+    uint32_t guild_id = 0;                // v81: cq_synattr.syn_id (the
+                                          // original's actor +0x170 getter)
+    uint32_t guild_rank = 0;              // v81: cq_synattr.rank
     // v42: dialog menu-task list (original CUser obj+0x13a vector, cap
     // 20): 102/103/104/120 dialogs put the array INDEX in the 2032
     // u2 reply-id slot; the client echoes it back and we map it to the

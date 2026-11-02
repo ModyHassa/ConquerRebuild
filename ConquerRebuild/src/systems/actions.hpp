@@ -2523,15 +2523,30 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
-        case 722: {  // 0x2d2: the actor's guild must exist
-            // The original takes the actor's guild id (+0x170); when it is 0
-            // the step fails, otherwise the guild is resolved through
-            // FUN_140087650's slot +0xb8 and the result decides. This build
-            // has no player->guild link at all (cq_syndicate only, no member
-            // table), so a character is always guild-less and the faithful
-            // outcome is the fail branch.
-            std::printf("[action] %u 722 actor has no guild -> id_nextfail\n",
-                        p.id);
+        case 722: {  // 0x2d2: the actor's guild must resolve
+            // The original takes the actor's guild id (the +0x170 getter),
+            // fails when it is 0, and otherwise resolves the guild through
+            // FUN_140087650's slot +0xb8, whose result decides.
+            // Our membership comes from cq_synattr (load_user fills
+            // Player.guild_id), so a guild-less character fails exactly like
+            // the original and a member passes when the guild row exists.
+            if (!p.guild_id) {
+                std::printf("[action] %u 722 actor has no guild -> id_nextfail\n",
+                            p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string gid;
+            std::string gsql = "SELECT id FROM cq_syndicate WHERE id=" +
+                               std::to_string(p.guild_id) + " LIMIT 1";
+            if (active_db()->query_string(gsql, gid) && !gid.empty()) {
+                std::printf("[action] %u 722 guild %u resolved (rank %u)\n",
+                            p.id, p.guild_id, p.guild_rank);
+                cur = a->id_next;
+                break;
+            }
+            std::printf("[action] %u 722 guild %u missing -> id_nextfail\n",
+                        p.id, p.guild_id);
             cur = a->id_nextfail;
             break;
         }

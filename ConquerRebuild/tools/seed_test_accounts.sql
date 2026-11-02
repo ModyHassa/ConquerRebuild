@@ -10,6 +10,17 @@ INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
   (1,100001,'TestKnight',100003,15,2000,1500,1002,400,300,130,10),
   (2,100002,'GmDragon',100004,30,3000,2000,1002,405,300,140,10)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+-- v81: a dedicated probe character for the guild-membership tests. It must
+-- be one nobody else logs in as, because the membership test re-logs in and
+-- a re-login leaves the map holding the previous player object (broadcasts
+-- then go to the stale session - see the test_drops notes).
+INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
+  (100099,'GuildProbe','test123',0,0,0)
+ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (99,100099,'GuildProbe',100003,15,2000,1500,1002,404,302,130,10)
+ON DUPLICATE KEY UPDATE recordmap_id=1002,recordx=404,recordy=302;
 
 -- Equipment for the combat test: TestKnight wields the real itemtype
 -- 613129 ShadowFlyingKnife (attack 523-643) + CrimsonRing 150269
@@ -1283,3 +1294,11 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99001512,99001514,99001515,144,8,'!='),
   (99001514,0,0,101,0,'V80~OP~OK.'),
   (99001515,0,0,101,0,'V80~OP~FAIL.');
+
+-- ============================================================
+-- v81: guild membership via cq_synattr (the member model)
+--   TestKnight (cq_user 1) joins guild 1 "Test" at rank 1000;
+--   ChatB (cq_user 12) stays guild-less so 722 can be checked both ways.
+-- ============================================================
+DELETE FROM cq_synattr WHERE id IN (1, 12);
+INSERT INTO cq_synattr (id, syn_id, rank, join_date) VALUES (1, 1, 1000, 20261102);

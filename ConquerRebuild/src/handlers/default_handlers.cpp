@@ -628,6 +628,11 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
             p.session = &s; p.id = rec.id; p.name = rec.name; p.level = rec.level; p.exp = rec.exp;
             p.money = rec.money;
             p.profession = rec.profession;   // v29 task qualification
+            p.guild_id   = rec.syn_id;       // v81: cq_synattr membership
+            p.guild_rank = rec.syn_rank;
+            if (p.guild_id)
+                std::printf("[login] %s is in guild %u (rank %u)\n",
+                            p.name.c_str(), p.guild_id, p.guild_rank);
             p.pk = rec.pk;
             p.alive = true;
             p.lookface = rec.lookface ? rec.lookface : p.lookface;
