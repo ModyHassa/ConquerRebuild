@@ -22,6 +22,7 @@
 #include "chat.hpp"
 #include "usereffect.hpp"
 #include <sstream>\n#include <cstring>
+#include <strings.h>
 #include "npc.hpp"
 #include "action.hpp"
 #include "combat.hpp"
@@ -2440,6 +2441,40 @@ case 121: {  // random check (ProcessAction case 0x79:
                                             npc_id, npc_x, npc_y);
             bool cond = eval_substituted_expr(s);
             cur = cond ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 144: {  // 0x90: world event-flag bit test
+            // sscanf("%s") is compared case-insensitively with "==" (the
+            // original's _strnicmp against 0x100), then GetAttr(4) = data is
+            // handed to FUN_14008ab60(flagword, data):
+            //   data-1 < 0x1f && flagword > 0 -> bit (data-1) of the flagword
+            //   otherwise                     -> ((data-1) >> 8) << 8 as bool
+            // so data 1..31 with no flags set is false, while data 0 or any
+            // data >= 257 is true. The flagword is only written from an
+            // inbound 0x15f92 message (FUN_14008aae0), which this build never
+            // receives, so it stays 0.
+            char op[64] = {0};
+            if (std::sscanf(a->param.c_str(), "%63s", op) < 1) {
+                std::printf("[action] %u 144 DBERROR empty param\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (::strncasecmp(op, "==", 0x100) == 0) {   // _strnicmp twin
+                const uint32_t bits = World::instance().script_flags;
+                const uint32_t idx = (uint32_t)a->data;
+                bool pass;
+                if (idx - 1u < 0x1f && (int32_t)bits > 0) {
+                    pass = ((bits >> ((idx - 1u) & 0x1f)) & 1u) != 0;
+                } else {
+                    pass = (((idx - 1u) >> 8) << 8) != 0;
+                }
+                std::printf("[action] %u 144 flag %u (bits=0x%x) -> %s\n",
+                            p.id, idx, bits, pass ? "id_next" : "id_nextfail");
+                cur = pass ? a->id_next : a->id_nextfail;
+                break;
+            }
+            std::printf("[action] %u 144 unknown op '%s'\n", p.id, op);
+            cur = a->id_nextfail;
             break;
         }
         case 332: {  // 0x14c: bit 8 of the running action's data

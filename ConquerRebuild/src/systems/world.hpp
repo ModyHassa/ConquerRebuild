@@ -138,6 +138,11 @@ public:
     // record position, adds to the map user list, then the spawn packets go
     // to everyone in screen range.
     void spawn_player(Player& p, uint32_t map_id, Position pos);
+    // v80: the world "event flag" word the original keeps at +0x2ac. It is
+    // only ever written by FUN_14008aae0 from an inbound 0x15f92 message
+    // (GetAttr(2)), so this build starts at 0 and nothing sets it yet.
+    uint32_t script_flags = 0;
+
     void remove_player(Player& p);
     // Remove any world player owned by a dead session (called on socket
     // disconnect; the original drops the CUser from the map user list in

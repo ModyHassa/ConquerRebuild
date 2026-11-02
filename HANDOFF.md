@@ -388,3 +388,14 @@ Next: 144 (world flag set only by an inbound message), 715/720 (guild
 manager slots needing the member model), 223/224 (home templates), 2201/2205,
 then the big systems (guild/team/trade, 183 Lua).
 
+## v80 (Nov 2, 2026) — 144 world flag, suite 57/57
+144 is a bit test on the world event-flag word (World::script_flags, only
+ever set by an inbound 0x15f92 message, so 0 here): data 1..31 is false,
+data 0 or >= 257 is true, anything but the "==" operator fails. Suite 57/57
+green, coverage 97.9% (122/216).
+Remaining unported (24 rows): 715/720 (guild-manager slots 0x118/0x260 need
+a member model), 223/224 (%user_home_id templates; 224 is CMapGroup slot
+0xa8, identified as CMapGroup from the FUN_1400875f0 call sites but the slot
+name is still open), 2201/2205 (team/booth talk with TalkStrCheck). Then the
+big systems: guild/team/trade and the 183 Lua scripts.
+

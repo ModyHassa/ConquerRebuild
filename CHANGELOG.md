@@ -793,3 +793,21 @@ encrypted reply frames (first = 10014 player spawn).
   keep the item phase deterministic and short.
 - Suite: 56 tests, 56 green. Coverage 97.9%, 121 of 216 types.
 
+## v80 (Nov 2, 2026) — action 144 (world event-flag bit test, 24 rows)
+- 144 PORTED (case 0x90): sscanf("%s") is compared case-insensitively with
+  "==" (the original's _strnicmp against 0x100), then the row's data is
+  handed to FUN_14008ab60(flagword, data), which is:
+    data-1 < 0x1f && flagword > 0 -> bit (data-1) of the flagword
+    otherwise                     -> ((data-1) >> 8) << 8 read as a boolean
+  so data 1..31 with a zero flag word is FALSE, while data 0 or any data
+  >= 257 is TRUE (0xFFFFFF00 is non-zero). All 24 live rows carry data 4..16
+  with param "==", so the port is behaviour-preserving today and correct for
+  the edge cases.
+- The flag word itself (the original's +0x2ac) lives on World as
+  `script_flags`; FUN_14008aae0 only ever writes it from an inbound 0x15f92
+  message (GetAttr(2)), which this build never receives, so it starts at 0.
+- tests/test_actions_v80.py: 7 live assertions covering data=14 (fail),
+  data=0 (the else branch passes), data=300 (out-of-range passes) and a
+  non-"==" operator (fails). Fixtures 99001500-99001519.
+- Suite: 57 tests, 57 green. Coverage 97.9%, 122 of 216 types.
+
