@@ -1093,7 +1093,11 @@ case 121: {  // random check (ProcessAction case 0x79:
                 break;
             }
             if (gid == 0) {
-                // (param_4[2]+0x170)() = the acting object's guild id
+                // (param_4[2]+0x170)() = the acting object's guild id; the
+                // membership now comes from cq_synattr (Player.guild_id).
+                gid = p.guild_id;
+            }
+            if (gid == 0) {
                 std::printf("[action] %u 717 '%s %s %d' has no guild id "
                             "and the actor has no guild\n",
                             p.id, cmd, op, amount);

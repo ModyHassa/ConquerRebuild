@@ -411,3 +411,13 @@ test writes into a real guild's money), then 715/720 on top of the member
 model, then 223/224 (home templates, CMapGroup slot 0xa8), 2201/2205, and
 the big systems (team/trade, 183 Lua).
 
+## v82 (Nov 2, 2026) — 717 actor-guild fallback, suite 59/59
+717 now resolves the actor's guild when the param has no id, and the seed
+puts TestKnight into the dedicated TestGuild 999001 so tests never write a
+real guild's money. GuildProbe (99) and GuildProbe2 (98) exist so the guild
+tests can log in/re-login without poisoning another character's broadcasts.
+Suite 59/59 green, coverage 97.8% (122/216).
+Next: 715/720 on top of the member model (their manager slots +0x118/+0x260
+still need identifying), 223/224 (home templates, CMapGroup slot 0xa8),
+2201/2205, then team/trade and the 183 Lua scripts.
+

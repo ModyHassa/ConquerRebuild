@@ -17,10 +17,15 @@ ON DUPLICATE KEY UPDATE name=VALUES(name);
 INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
   (100099,'GuildProbe','test123',0,0,0)
 ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
+  (100098,'GuildProbe2','test123',0,0,0)
+ON DUPLICATE KEY UPDATE password=VALUES(password);
 INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
                      recordx,recordy,level,profession) VALUES
-  (99,100099,'GuildProbe',100003,15,2000,1500,1002,404,302,130,10)
-ON DUPLICATE KEY UPDATE recordmap_id=1002,recordx=404,recordy=302;
+  (99,100099,'GuildProbe',100003,15,2000,1500,1002,404,302,130,10),
+  (98,100098,'GuildProbe2',100003,15,2000,1500,1002,403,301,130,10)
+ON DUPLICATE KEY UPDATE recordmap_id=1002,recordx=VALUES(recordx),
+                      recordy=VALUES(recordy);
 
 -- Equipment for the combat test: TestKnight wields the real itemtype
 -- 613129 ShadowFlyingKnife (attack 523-643) + CrimsonRing 150269
@@ -1301,4 +1306,23 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
 --   ChatB (cq_user 12) stays guild-less so 722 can be checked both ways.
 -- ============================================================
 DELETE FROM cq_synattr WHERE id IN (1, 12);
-INSERT INTO cq_synattr (id, syn_id, rank, join_date) VALUES (1, 1, 1000, 20261102);
+-- 999001 is the dedicated TestGuild: 717's actor-guild fallback resolves
+-- here, so no real guild's money is ever written by a test.
+INSERT INTO cq_synattr (id, syn_id, rank, join_date) VALUES (1, 999001, 1000, 20261102);
+
+
+-- ============================================================
+-- v82: 717 uses the actor's guild when the param carries no id
+--   (TestKnight is in 999001 via cq_synattr, so these chains hit TestGuild)
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99001600 AND 99001619;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99001600,99001602,99001603,717,0,'money < 1000000'),
+  (99001602,0,0,101,0,'V82~FALLBACK~OK.'),
+  (99001603,0,0,101,0,'V82~FALLBACK~FAIL.'),
+  (99001604,99001606,99001607,717,0,'member_title = 9'),
+  (99001606,0,0,101,0,'V82~TITLE~OK.'),
+  (99001607,0,0,101,0,'V82~TITLE~FAIL.'),
+  (99001608,99001610,99001611,717,0,'money += 250'),
+  (99001610,0,0,101,0,'V82~ADD~OK.'),
+  (99001611,0,0,101,0,'V82~ADD~FAIL.');

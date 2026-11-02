@@ -840,3 +840,25 @@ encrypted reply frames (first = 10014 player spawn).
   test cannot write into a real guild's money.
 - Suite: 58 tests, 58 green. Coverage 97.8%, 122 of 216 types.
 
+## v82 (Nov 2, 2026) — 717 uses the actor's guild + isolated test characters
+- 717 now falls back to the actor's guild when the param carries no guild
+  id, which is what the original does with the +0x170 getter. Player.guild_id
+  comes from cq_synattr (v81), so a member's `money +=` / `money <` /
+  `member_title =` chains hit their own guild, and a guild-less character
+  still takes id_nextfail.
+- The seed puts TestKnight into the dedicated **TestGuild (999001)** rather
+  than a real guild, so a 717 write can never touch live guild money; the
+  temp guild is re-created by the seed on every run.
+- New tests/test_actions_v82.py: the no-id chain resolves the actor guild
+  (money 500000 < 1000000 passes), `money += 250` moves TestGuild to 500250,
+  `member_title = 9` writes the tinyint, and a guild-less actor fails.
+- Session-isolation lesson applied twice: v82 checks the guild-less case
+  with **GuildProbe2** (account 100098 / cq_user 98) instead of re-logging
+  TestKnight, because a re-login leaves the map holding the previous player
+  object and every later broadcast to that character is lost. The seed now
+  carries GuildProbe (99) and GuildProbe2 (98) and reset_positions restores
+  both positions.
+- tests/test_actions_v72.py updated to the new fallback behaviour: its
+  no-guild-id chain now passes and spends 100000 (fund 501000 -> 401000).
+- Suite: 59 tests, 59 green. Coverage 97.8%, 122 of 216 types.
+

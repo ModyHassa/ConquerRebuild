@@ -123,11 +123,14 @@ t = texts(click_option(a, 99000984, 'guildlt'))
 check(any('V72~LT~OK.' in s for s in t), '717 money < 999999999 passes')
 check(money() == 501000, '717 money < does not change the fund, got %d' % money())
 
-# ---- missing guild id and guild-less actor -> fail ------------------
+# ---- no guild id in the param -> the actor's guild ------------------
+# cq_synattr puts TestKnight into TestGuild (the seed does), so
+# `money += -100000` now lands on the fund instead of failing; v82 covers
+# the guild-less actor, which still takes id_nextfail.
 t = texts(click_option(a, 99000988, 'guildnogid'))
-check(any('V72~NOGID~FAIL.' in s for s in t),
-      '717 without a guild id falls back to the actor guild (0 here) and fails')
-check(money() == 501000, 'the failed 717 left the fund alone, got %d' % money())
+check(any('V72~NOGID~OK.' in s for s in t),
+      '717 without a guild id resolves the actor guild and continues')
+check(money() == 401000, 'the fallback 717 spent 100000, got %d' % money())
 
 # ---- member_title = (unsigned char)amount --------------------------
 t = texts(click_option(a, 99000992, 'guildtitle'))
@@ -137,7 +140,7 @@ check(title() == 3, '717 member_title = 3 wrote the tinyint column, got %d' % ti
 # ---- unknown money op -> fail --------------------------------------
 t = texts(click_option(a, 99000996, 'guildbadop'))
 check(any('V72~BADOP~FAIL.' in s for s in t), '717 money == is not an op and fails')
-check(money() == 501000, 'the rejected 717 left the fund alone, got %d' % money())
+check(money() == 401000, 'the rejected 717 left the fund alone, got %d' % money())
 
 # ---- ambiguous: 501000 is NOT < 100000, so a real gate must fail ----
 db("UPDATE cq_syndicate SET money=50000 WHERE id=%d" % GID)
