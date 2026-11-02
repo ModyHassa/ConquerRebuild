@@ -716,3 +716,26 @@ encrypted reply frames (first = 10014 player spawn).
 - Suite: 55 tests, 55 green. Coverage 97.8%, 118 of 216 types. 332 (30
   rows) is now the only large unported type.
 
+## v77 (Nov 2, 2026) — 2007 now really creates and spawns the runtime NPC
+- The tail of FUN_1402c2390 named the CGameData fields: the failure log
+  prints "CNpc::Create() idProcess=%u, itemType=%u, name=%s, map%u(%d,%d),
+  idOwner=%u, NPCID=%u, nType=%u", and its setters pin them to the parsed
+  struct (field 1 = arr[0] = spec 6 = idOwner, field 3 = name, field 4 =
+  arr[5] = spec 2 = nType, field 5 = arr[6] = spec 4 = itemType, fields
+  7/8/9 = map/x/y). The special-case `if (field 4 == 10)` also confirms
+  field 4 is the NPC kind.
+- 2007 therefore now: parses, checks >= 9 fields, requires the map, builds a
+  cq_dynanpc record with ownerid = spec 6, name = spec 1, lookface =
+  spec 4 (itemType), mapid = spec 7, cellx = 8, celly = 9, inserts it
+  through DynaNpcSystem::create (which also registers the clickable record)
+  and broadcasts the 10014 spawn with the monster-style layout, sending it
+  to the actor as well.
+- tests/test_actions_v76.py grew to 11 assertions: the DB row carries map
+  1002, (400,300), lookface 241 and owner 1, and the 10014 spawn carries
+  the new id with lookface 241 at (400,300). The test deletes its row again.
+- Still not carried: the nType (field 4) and the task data (the table has
+  `type`/`itemid`/`task0..7` but DynaNpcRecord only models the latter), so
+  the created NPC is visible but not clickable. Documented in
+  DEFERRED_TYPES.md.
+- Suite: 55 tests, 55 green. Coverage 97.8%, 118 of 216 types.
+

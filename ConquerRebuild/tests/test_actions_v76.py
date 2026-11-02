@@ -111,10 +111,39 @@ def run(aid, tag):
 def saw(t, s):
     return any(s in x for x in t)
 
-# ---- a generator row on a real map passes ---------------------------
-t = run(99001300, 'gen2007')
+# ---- a generator row on a real map passes and creates the NPC -------
+db("DELETE FROM cq_dynanpc WHERE name='V76~gate'")
+pk = click_option(a, 99001300, 'gen2007')
+t = texts(pk)
 check(saw(t, 'V76~GEN~OK.'), '2007 continues on a map that exists')
 check(not saw(t, 'V76~GEN~FAIL.'), 'no fail branch for a valid map')
+
+row = db("SELECT id, mapid, cellx, celly, lookface, ownerid FROM cq_dynanpc"
+         " WHERE name='V76~gate' LIMIT 1")
+check(bool(row.strip()), '2007 wrote the cq_dynanpc row (%r)' % row)
+if row.strip():
+    nid, rmap, rx, ry, rlook, rowner = [int(v) for v in row.split()[:6]]
+    check(rmap == 1002, 'field 7 is the map, got %d' % rmap)
+    check((rx, ry) == (400, 300), 'fields 8/9 are x/y, got (%d,%d)' % (rx, ry))
+    check(rlook == 241, 'field 5 is the itemType/lookface, got %d' % rlook)
+    check(rowner == 1, 'field 1 is the idOwner, got %d' % rowner)
+    # 10014 monster-style layout: id at +0x0C, look at +0x67,
+    # x at +0x6F, y at +0x71 (same offsets the drop test uses)
+    hits = []
+    for pkt in pk:
+        if pkt[1] != 10014 or len(pkt[2]) < 0x120:
+            continue
+        body = pkt[2]
+        sid = struct.unpack_from('<I', body, 0x0C)[0]
+        slook = struct.unpack_from('<I', body, 0x67)[0]
+        sx = struct.unpack_from('<H', body, 0x6F)[0]
+        sy = struct.unpack_from('<H', body, 0x71)[0]
+        if sid == nid:
+            hits.append((slook, sx, sy))
+    check(bool(hits), 'the spawn broadcast carries the new id %d' % nid)
+    if hits:
+        check(hits[0] == (241, 400, 300),
+              'the spawn carries lookface 241 at (400,300), got %r' % (hits[0],))
 
 # ---- an unknown map takes the CNpc::Create fail path ---------------
 t = run(99001304, 'gen2007bad')
@@ -126,6 +155,8 @@ check(not saw(t, 'V76~MAP~OK.'), 'an unknown map never passes')
 t = run(99001308, 'gen2007short')
 check(saw(t, 'V76~SHORT~FAIL.'), '2007 with 3 fields takes id_nextfail')
 check(not saw(t, 'V76~SHORT~OK.'), 'a short 2007 never passes')
+
+db("DELETE FROM cq_dynanpc WHERE name='V76~gate'")
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

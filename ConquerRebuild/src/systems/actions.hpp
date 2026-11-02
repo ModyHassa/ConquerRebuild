@@ -2486,8 +2486,42 @@ case 121: {  // random check (ProcessAction case 0x79:
                 cur = a->id_nextfail;
                 break;
             }
-            std::printf("[action] %u 2007 generator '%s' map=%u (%u,%u) "
-                        "owner=%u\n", p.id, name, gmap, gx, gy, f6);
+            // Build the runtime NPC from the fields the original labels:
+            // field 1 = idOwner, field 3 = name, field 5 = itemType (used as
+            // the lookface), fields 7/8/9 = map/x/y. DynaNpcSystem::create
+            // inserts the cq_dynanpc row and registers the clickable record,
+            // then the spawn is broadcast with the monster-style layout the
+            // dyna loader uses.
+            IDatabase::DynaNpcRecord rec;
+            rec.ownerid  = f6;
+            rec.name     = name;
+            rec.lookface = (uint32_t)f4;
+            rec.mapid    = gmap;
+            rec.cellx    = (uint16_t)gx;
+            rec.celly    = (uint16_t)gy;
+            const uint32_t nid =
+                DynaNpcSystem::instance().create(*active_db(), rec);
+            if (!nid) {
+                std::printf("[action] %u 2007 generator '%s': dyna insert "
+                            "failed -> id_nextfail\n", p.id, name);
+                cur = a->id_nextfail;
+                break;
+            }
+            SpawnInfo nsi;
+            nsi.id = nid; nsi.name = rec.name;
+            nsi.lookface = rec.lookface;
+            nsi.x = rec.cellx; nsi.y = rec.celly;
+            nsi.is_monster = true;      // dyna NPCs use the monster packer
+            {
+                auto& gm = w.get_or_create_map(gmap);
+                Position gp; gp.x = rec.cellx; gp.y = rec.celly;
+                Packet spn = build_spawn_10014(nsi);
+                w.broadcast_to_screen(gm, gp, spn, nullptr);
+                if (p.session) p.session->send(spn);
+            }
+            std::printf("[action] %u 2007 generator '%s' id=%u map=%u "
+                        "(%u,%u) owner=%u lookface=%u\n",
+                        p.id, name, nid, gmap, gx, gy, f6, rec.lookface);
             (void)f2; (void)f3; (void)f4; (void)f5; (void)f10; (void)f11;
             (void)f12; (void)f13; (void)f14; (void)f15; (void)f16; (void)f17;
             (void)f18; (void)f19; (void)f20; (void)f21; (void)f22; (void)f23;

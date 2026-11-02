@@ -358,3 +358,13 @@ Suite 55/55 green, coverage 97.8% (118/216).
 Next: finish 2007's spawn (identify the type/lookface field in
 FUN_1402bc390/FUN_1402c18f0), then 332 (30 rows, needs proof for bit 8).
 
+## v77 (Nov 2, 2026) — 2007 spawn complete (55/55)
+FUN_1402c2390's failure log named its CGameData fields, which pinned the
+mapping: field 1 = idOwner, 3 = name, 4 = nType, 5 = itemType, 7/8/9 =
+map/x/y. 2007 now writes the cq_dynanpc row (owner, name, lookface from
+itemType, map, x, y) through DynaNpcSystem::create and broadcasts the 10014
+spawn. Still missing: nType (field 4) and task data, so the NPC is visible
+but not clickable.
+Next: extend DynaNpcRecord with type/itemid so the generator identity is
+persisted; then the guild/syndicate model (715/720/721/722), and 332.
+
