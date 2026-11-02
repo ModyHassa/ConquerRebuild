@@ -216,7 +216,16 @@ and FUN_1401196c0 (207430) is:
 `p = *(obj+0x58) -> +8 -> (p->vtbl+0x10)(p, 4)   // equipment slot 4 = weapon
  val = (p->vtbl+0x58)(p); return (val >> 8) & 1;`
 FUN_1401196f0 (the sibling) is the same with `(val >> 0xd) & 1`.
-The only unknown is what vtable slot +0x58 returns for an item. It is NOT
+UPDATE (Nov 2): the case is `if (param_4 == 0) return true; obj =
+(param_4[2]+0x160)(param_4+2); if (obj == 0) return true; return
+FUN_1401196c0(obj);` and FUN_1401196c0 reduces to
+`((item GetAttr(4)) >> 8) & 1` - i.e. BIT 8 OF THE ROW'S `data`, with the
+sibling FUN_1401196f0 testing bit 13. All 30 live rows carry data=0, so the
+bit test and the null-actor short-circuit are indistinguishable from the
+content (either every chain fails those steps or every chain passes them),
+which is why it stays deferred: picking one without proof would flip 30
+chains.
+The remaining unknown is what vtable slot +0x58 returns for an item. It is NOT
 the itemtype (+0x48 is, used everywhere); a census of every `+0x58` call
 site in MsgServer.c shows the slot is a bool/int getter shared by unrelated
 classes (AVCThreadBase, AVCGooglePaymentsThread, AVCLogThread,

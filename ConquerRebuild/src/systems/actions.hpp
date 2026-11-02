@@ -30,6 +30,7 @@
 #include "dynanpc.hpp"
 #include "weaponskills.hpp"
 #include "magicskills.hpp"
+#include "pet.hpp"
 #include "magic.hpp"
 #include "traps.hpp"
 #include "../protocol/ids.hpp"
@@ -922,6 +923,76 @@ case 121: {  // random check (ProcessAction case 0x79:
                         p.id, wtype, f1, f2, (long long)d,
                         consumed ? "ok" : "fail");
             cur = consumed ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 129: {  // pet condition descriptor (case 0x81, 222882)
+            // The branch selector is the row's own data field: the executor
+            // reads GetAttr(4) (index 3 is the action type, see the iVar8
+            // range checks at the call site) and compares it with 1.
+            //   data != 1: sscanf("%u" + six (field, op, value) triples);
+            //              the id must NOT already exist, then the descriptor
+            //              is inserted -> pass, otherwise fail.
+            //   data == 1: sscanf("%u") is an id that must exist; when its
+            //              in-use flag is clear the descriptor is released
+            //              from the container -> pass, otherwise fail.
+            auto& pr = PetRegistry::instance();
+            unsigned pid = 0;
+            if (a->data == 1) {
+                if (std::sscanf(a->param.c_str(), "%u", &pid) <= 0) {
+                    std::printf("[action] %u 129 release needs an id\n", p.id);
+                    cur = a->id_nextfail;
+                    break;
+                }
+                PetDescriptor* d = pr.find(pid);
+                if (!d) {
+                    std::printf("[action] %u 129 release %u: no descriptor "
+                                "-> id_nextfail\n", p.id, pid);
+                    cur = a->id_nextfail;
+                    break;
+                }
+                if (d->in_use) {   // FUN_140380900: pet+0x90 != 0 -> false
+                    std::printf("[action] %u 129 release %u: in use "
+                                "-> id_nextfail\n", p.id, pid);
+                    cur = a->id_nextfail;
+                    break;
+                }
+                pr.remove(pid);
+                std::printf("[action] %u 129 released descriptor %u\n",
+                            p.id, pid);
+                cur = a->id_next;
+                break;
+            }
+            char fld[6][32] = {{0}}, op[6][8] = {{0}};
+            int  val[6] = {0};
+            int n = std::sscanf(a->param.c_str(),
+                "%u %31s %7s %d %31s %7s %d %31s %7s %d %31s %7s %d "
+                "%31s %7s %d %31s %7s %d",
+                &pid,
+                fld[0], op[0], &val[0], fld[1], op[1], &val[1],
+                fld[2], op[2], &val[2], fld[3], op[3], &val[3],
+                fld[4], op[4], &val[4], fld[5], op[5], &val[5]);
+            if (n <= 0) {
+                std::printf("[action] %u 129 define: empty param\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (pr.find(pid)) {
+                std::printf("[action] %u 129 define %u: id exists "
+                            "-> id_nextfail\n", p.id, pid);
+                cur = a->id_nextfail;
+                break;
+            }
+            PetDescriptor d;
+            d.id = pid;
+            for (int i = 0; i < 6; ++i) {
+                if (!fld[i][0]) break;
+                PetCond c; c.field = fld[i]; c.op = op[i]; c.value = val[i];
+                d.conds.push_back(c);
+            }
+            pr.add(d);
+            std::printf("[action] %u 129 defined descriptor %u with %zu "
+                        "condition(s)\n", p.id, pid, d.conds.size());
+            cur = a->id_next;
             break;
         }
         case 2102: {  // ACTION_TRAP_DELETE (case 0x836, 224661)

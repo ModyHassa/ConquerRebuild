@@ -636,3 +636,30 @@ encrypted reply frames (first = 10014 player spawn).
   types. The only remaining TODO rows are 2007 (54, guild domain manager)
   and 129 (36, pet condition/create).
 
+## v74 (Nov 2, 2026) — action 129 (pet condition descriptors) + suite fully green
+- 129 PORTED (case 0x81, 222882): the branch selector is the row's own
+  `data` — the executor reads GetAttr(4), and index 3 is the action type
+  (see the iVar8 range checks at the call site), so 4 is the data column.
+  The live content splits exactly 18 rows with data=0 and 18 with data=1:
+  * data != 1: sscanf("%u" + six (field, op, value) triples). The id must
+    NOT already exist, then the descriptor is inserted (FUN_1403814c0
+    allocates, FUN_140381a40 fills it with {6, id}, FUN_14021c1d0 inserts,
+    a failed insert frees it) -> pass, otherwise the fail branch.
+  * data == 1: sscanf("%u") is an id that must exist; FUN_140380900 is just
+    `*(int *)(pet + 0x90) != 0` (the in-use flag), so while the flag is
+    clear the descriptor is released from the container through
+    FUN_14021bd20 -> pass, otherwise fail.
+  New src/systems/pet.hpp holds the registry (id, in-use flag, up to six
+  conditions) and PetRegistry is process-wide, mirroring the original's
+  per-world container. cq_pet stays empty in this build: these objects only
+  live in the registry, exactly like the original.
+- tests/test_actions_v74.py: 11 live assertions (define, duplicate define,
+  multi-triple define, release, release-after-release, and that a released
+  id can be defined again). Fixtures 99001100-99001119.
+- test_drops made suite-safe: the item hunt now waits for a respawn instead
+  of burning its attempt budget while every nearby monster is dead (which
+  is what happens after the tests that run before it), and run_suite gives
+  it a 220s budget because 3%/kill means an occasional long hunt. Suite is
+  now 53 tests, 53 green, no known flaky test.
+- Coverage 97.8%, 116 of 216 types.
+

@@ -325,3 +325,15 @@ the msg dword at +4 is 1, releases an existing one via FUN_14021bd20, while
 the live params look like conditions ("1 level >= 1"). Resolve the msg dword
 source before porting either branch.
 
+## v74 (Nov 2, 2026) — 129 pet descriptors, suite 53/53
+129 ported as a data-driven switch: data=0 defines a pet condition
+descriptor (id + up to six field/op/value triples, refuses a duplicate id),
+data=1 releases an existing one when its in-use flag is clear. Registry in
+src/systems/pet.hpp. test_drops now waits for respawns and has a 220s suite
+budget, so the suite is 53/53 green with no known flakes. Coverage 97.8%
+(116/216).
+Next: the coverage report now shows ~50 unported types with 1-2 rows each
+(715/721/2201/2205/...), which is a bigger batch opportunity than chasing
+2007 (54 rows, guild domain manager) - triage those first, then 332 once the
+item-vtable bit can be proven.
+

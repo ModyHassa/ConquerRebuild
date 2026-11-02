@@ -178,26 +178,34 @@ try:
 
     # ---- 4) item pickup: pill pile -> CMsgItemInfo 1008 + 2077 ------
     hunt = 0
-    # item drops are 3%/kill in the original roll, so a fixed 80-kill window
-    # left an ~9% chance of seeing none at all and flaked the suite. Keep
-    # hunting until one appears (0.97**200 = 0.2% residual).
-    while not pills and hunt < 200:
+    # Item drops are a 3%/kill roll, and in a full-suite run the tests that
+    # ran before this one have usually killed everything nearby: there can be
+    # a stretch with no live monster at all, which used to burn the kill
+    # counter without attacking anything. Wait for a respawn instead, and
+    # bound the phase by wall clock rather than by attempts.
+    deadline = time.time() + 130
+    idle_rounds = 0
+    while not pills and time.time() < deadline:
         spawns = monster_ids_from_spawns(drain_all(sock, 0.2))
         for m in spawns: seen[m] = spawns[m]
         alive = [m for m in seen if m not in dead]
-        if alive:
-            tid = alive[0]
-            send_pkt(sock, 1022, atk(tid))
-            pkts = drain_all(sock, 0.35)
-            for p in find(pkts, 10010):
-                if struct.unpack_from('<H', p[2], 0x18)[0] == 135:
-                    dead.add(tid)
-            for ln, tp, raw in find(pkts, 1101):
-                g2, it2, x2, y2, a2 = parse_1101(raw)
-                if a2 == 1 and not is_money_tier(it2):
-                    pills.append((g2, it2, x2, y2))
+        if not alive:
+            idle_rounds += 1
+            time.sleep(0.6)          # nothing to kill yet: wait for a spawn
+            continue
+        tid = alive[0]
+        send_pkt(sock, 1022, atk(tid))
+        pkts = drain_all(sock, 0.35)
+        for p in find(pkts, 10010):
+            if struct.unpack_from('<H', p[2], 0x18)[0] == 135:
+                dead.add(tid)
+        for ln, tp, raw in find(pkts, 1101):
+            g2, it2, x2, y2, a2 = parse_1101(raw)
+            if a2 == 1 and not is_money_tier(it2):
+                pills.append((g2, it2, x2, y2))
         hunt += 1
         time.sleep(0.05)
+    print('hunt: %d kills, %d idle rounds' % (hunt, idle_rounds))
     assert pills, f'no item drop after {kills+hunt} kills (3%%/kill expected)'
     igid, iitp, ix, iy = pills[-1]
     print('item pile: id=%d type=%d at (%d,%d) after %d extra kills'
