@@ -1231,3 +1231,13 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99001308,99001310,99001311,2007,0,'V76~short 26 21'),
   (99001310,0,0,101,0,'V76~SHORT~OK.'),
   (99001311,0,0,101,0,'V76~SHORT~FAIL.');
+
+-- ============================================================
+-- v78: a self-service monster for test_drops' item hunt
+--   (ported 2006 runtime-monster-create chain; pheasant type 1)
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99001320 AND 99001329;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99001320,99001322,99001323,2006,0,'0 0 1002 410 311 0 1 0 HuntBird'),
+  (99001322,0,0,101,0,'V78~SPAWN~OK.'),
+  (99001323,0,0,101,0,'V78~SPAWN~FAIL.');

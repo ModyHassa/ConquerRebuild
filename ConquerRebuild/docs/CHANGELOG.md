@@ -739,3 +739,27 @@ encrypted reply frames (first = 10014 player spawn).
   DEFERRED_TYPES.md.
 - Suite: 55 tests, 55 green. Coverage 97.8%, 118 of 216 types.
 
+## v78 (Nov 2, 2026) — 2007 columns persisted + a deterministic drop test
+- DynaNpcRecord now models cq_dynanpc's `type` and `itemid` (load, insert
+  and update SQL all carry them), and 2007 fills them from the fields it
+  proved earlier: type = spec 2 (nType), itemid = spec 4 (itemType, which
+  also serves as the lookface). The v76 test asserts both columns, so the
+  generator identity survives a restart instead of only the spawn.
+- tests/test_drops.py is now fully deterministic. The item hunt no longer
+  waits for the map's own respawns (mid-suite every monster nearby is dead
+  and the respawn packets never reach the screen, which produced runs of
+  160+ idle rounds). It summons its own Pheasant through the ported 2006
+  runtime-create chain (fixture 99001320, killed on map 1002 at 410,311)
+  and kills it, so the 3%/kill roll gets a steady supply of kills.
+- Three findings while stabilising it:
+  * the 1101 drop broadcast often lands in the NEXT drain window, so the
+    harvest now scans every batch it receives, not just the attack window;
+  * a mid-test re-login breaks the drop broadcast: the map keeps the stale
+    player object, so broadcast_to_screen reaches nobody while the login
+    path itself still works (that is what made 165 summoned kills produce
+    zero visible drops even though the server logged 5 item drops);
+  * with the summon path in place the hunt finishes in ~10 kills, so the
+    suite no longer needs test_drops' long window.
+- Suite: 55 tests, 55 green, with no known flaky test. Coverage 97.8%,
+  118 of 216 types.
+

@@ -223,6 +223,8 @@ public:
         uint32_t id = 0;
         uint32_t ownerid = 0, ownertype = 0;
         std::string name;
+        uint32_t type = 0;        // action 2007 CGameData field 4 (nType)
+        uint32_t itemid = 0;      // action 2007 CGameData field 5 (itemType)
         uint32_t lookface = 0;
         uint32_t mapid = 0;
         uint16_t cellx = 0, celly = 0;

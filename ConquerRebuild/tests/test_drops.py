@@ -177,35 +177,44 @@ try:
     print('cq_user.money persisted:', dbmoney)
 
     # ---- 4) item pickup: pill pile -> CMsgItemInfo 1008 + 2077 ------
-    hunt = 0
-    # Item drops are a 3%/kill roll, and in a full-suite run the tests that
-    # ran before this one have usually killed everything nearby: there can be
-    # a stretch with no live monster at all, which used to burn the kill
-    # counter without attacking anything. Wait for a respawn instead, and
-    # bound the phase by wall clock rather than by attempts.
-    deadline = time.time() + 130
-    idle_rounds = 0
-    while not pills and time.time() < deadline:
-        spawns = monster_ids_from_spawns(drain_all(sock, 0.2))
-        for m in spawns: seen[m] = spawns[m]
-        alive = [m for m in seen if m not in dead]
-        if not alive:
-            idle_rounds += 1
-            time.sleep(0.6)          # nothing to kill yet: wait for a spawn
-            continue
-        tid = alive[0]
-        send_pkt(sock, 1022, atk(tid))
-        pkts = drain_all(sock, 0.35)
-        for p in find(pkts, 10010):
-            if struct.unpack_from('<H', p[2], 0x18)[0] == 135:
-                dead.add(tid)
+    # The item roll is 3%/kill, and waiting for the map's own respawns is not
+    # reliable mid-suite, so summon the monster ourselves through the ported
+    # 2006 runtime-create chain and kill it. Fully deterministic source.
+    def harvest(pkts, out):
+        # drop broadcasts can land in any drain (the 1101 for a kill often
+        # arrives after the attack window and shows up in the next dialog
+        # drain), so scan every batch we receive
         for ln, tp, raw in find(pkts, 1101):
             g2, it2, x2, y2, a2 = parse_1101(raw)
             if a2 == 1 and not is_money_tier(it2):
-                pills.append((g2, it2, x2, y2))
+                out.append((g2, it2, x2, y2))
+
+    def summon_and_kill():
+        got = []
+        send_pkt(sock, 2031, struct.pack('<IIIHH', 0, 9990, 0, 0, 0))
+        harvest(drain_all(sock, 0.25), got)
+        body = struct.pack('<HHIHBB', 0, 0, 99001320, 0, 0, 0x66)
+        body += bytes([1, 6]) + b'spawn!'
+        send_pkt(sock, 2032, body)
+        pk = drain_all(sock, 0.4)
+        harvest(pk, got)
+        new = monster_ids_from_spawns(pk)
+        if not new:
+            return got
+        tid = sorted(new)[-1]
+        send_pkt(sock, 1022, atk(tid))
+        harvest(drain_all(sock, 0.5), got)
+        return got
+
+    hunt = 0
+    deadline = time.time() + 150
+    while not pills and time.time() < deadline:
+        got = summon_and_kill()
         hunt += 1
-        time.sleep(0.05)
-    print('hunt: %d kills, %d idle rounds' % (hunt, idle_rounds))
+        pills.extend(got)
+    if not pills:
+        harvest(drain_all(sock, 1.0), pills)
+    print('hunt: %d summoned kills' % hunt)
     assert pills, f'no item drop after {kills+hunt} kills (3%%/kill expected)'
     igid, iitp, ix, iy = pills[-1]
     print('item pile: id=%d type=%d at (%d,%d) after %d extra kills'

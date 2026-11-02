@@ -502,7 +502,8 @@ std::vector<IDatabase::DynaNpcRecord> MySQLDatabase::load_dynanpcs() {
     const char* q =
         "SELECT id,ownerid,ownertype,name,lookface,mapid,cellx,celly,"
         "task0,task1,task2,task3,task4,task5,task6,task7,"
-        "data0,data1,data2,data3,datastr,life,maxlife,sort FROM cq_dynanpc";
+        "data0,data1,data2,data3,datastr,life,maxlife,sort,type,itemid "
+        "FROM cq_dynanpc";
     if (mysql_query(conn_, q)) { std::printf("[db] load_dynanpcs: %s\n", mysql_error(conn_)); return out; }
     MYSQL_RES* res = mysql_store_result(conn_);
     if (!res) return out;
@@ -519,6 +520,7 @@ std::vector<IDatabase::DynaNpcRecord> MySQLDatabase::load_dynanpcs() {
         r.data0=i32(16);r.data1=i32(17);r.data2=i32(18);r.data3=i32(19);
         r.datastr=row[20]?row[20]:"";
         r.life=u32(21); r.maxlife=u32(22); r.sort=u32(23);
+        r.type=u32(24); r.itemid=u32(25);
         out.push_back(std::move(r));
     }
     mysql_free_result(res);
@@ -535,11 +537,12 @@ uint32_t MySQLDatabase::insert_dynanpc(const DynaNpcRecord& r) {
     std::snprintf(sql, sizeof(sql),
         "INSERT INTO cq_dynanpc (ownerid,ownertype,name,lookface,mapid,cellx,"
         "celly,task0,task1,task2,task3,task4,task5,task6,task7,data0,data1,"
-        "data2,data3,datastr,life,maxlife,sort) VALUES "
-        "(%u,%u,'%s',%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%d,%d,%d,'%s',%u,%u,%u)",
+        "data2,data3,datastr,life,maxlife,sort,type,itemid) VALUES "
+        "(%u,%u,'%s',%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%d,%d,%d,'%s',%u,%u,%u,%u,%u)",
         r.ownerid, r.ownertype, name_esc, r.lookface, r.mapid, r.cellx, r.celly,
         r.task0,r.task1,r.task2,r.task3,r.task4,r.task5,r.task6,r.task7,
-        r.data0,r.data1,r.data2,r.data3, datastr_esc, r.life, r.maxlife, r.sort);
+        r.data0,r.data1,r.data2,r.data3, datastr_esc, r.life, r.maxlife, r.sort,
+        r.type, r.itemid);
     if (!exec(sql)) { std::printf("[db] insert_dynanpc: %s\n", mysql_error(conn_)); return 0; }
     return (uint32_t)mysql_insert_id(conn_);
 }
@@ -553,10 +556,10 @@ void MySQLDatabase::update_dynanpc(const DynaNpcRecord& r) {
     std::snprintf(sql, sizeof(sql),
         "UPDATE cq_dynanpc SET ownerid=%u,ownertype=%u,mapid=%u,cellx=%u,"
         "celly=%u,data0=%d,data1=%d,data2=%d,data3=%d,datastr='%s',"
-        "life=%u,maxlife=%u WHERE id=%u LIMIT 1",
+        "life=%u,maxlife=%u,type=%u,itemid=%u WHERE id=%u LIMIT 1",
         r.ownerid, r.ownertype, r.mapid, r.cellx, r.celly,
         r.data0, r.data1, r.data2, r.data3, datastr_esc,
-        r.life, r.maxlife, r.id);
+        r.life, r.maxlife, r.type, r.itemid, r.id);
     if (!exec(sql)) std::printf("[db] update_dynanpc: %s\n", mysql_error(conn_));
 }
 

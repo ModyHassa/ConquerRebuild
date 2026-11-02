@@ -2493,9 +2493,11 @@ case 121: {  // random check (ProcessAction case 0x79:
             // then the spawn is broadcast with the monster-style layout the
             // dyna loader uses.
             IDatabase::DynaNpcRecord rec;
-            rec.ownerid  = f6;
-            rec.name     = name;
-            rec.lookface = (uint32_t)f4;
+            rec.ownerid  = f6;              // field 1 (idOwner)
+            rec.type     = (uint32_t)f2;    // field 4 (nType)
+            rec.itemid   = (uint32_t)f4;    // field 5 (itemType)
+            rec.name     = name;            // field 3
+            rec.lookface = (uint32_t)f4;    // itemType doubles as the look
             rec.mapid    = gmap;
             rec.cellx    = (uint16_t)gx;
             rec.celly    = (uint16_t)gy;

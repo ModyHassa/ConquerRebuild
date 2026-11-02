@@ -118,8 +118,8 @@ t = texts(pk)
 check(saw(t, 'V76~GEN~OK.'), '2007 continues on a map that exists')
 check(not saw(t, 'V76~GEN~FAIL.'), 'no fail branch for a valid map')
 
-row = db("SELECT id, mapid, cellx, celly, lookface, ownerid FROM cq_dynanpc"
-         " WHERE name='V76~gate' LIMIT 1")
+row = db("SELECT id, mapid, cellx, celly, lookface, ownerid, type, itemid"
+         " FROM cq_dynanpc WHERE name='V76~gate' LIMIT 1")
 check(bool(row.strip()), '2007 wrote the cq_dynanpc row (%r)' % row)
 if row.strip():
     nid, rmap, rx, ry, rlook, rowner = [int(v) for v in row.split()[:6]]
@@ -127,6 +127,11 @@ if row.strip():
     check((rx, ry) == (400, 300), 'fields 8/9 are x/y, got (%d,%d)' % (rx, ry))
     check(rlook == 241, 'field 5 is the itemType/lookface, got %d' % rlook)
     check(rowner == 1, 'field 1 is the idOwner, got %d' % rowner)
+    vals = [int(v) for v in row.split()[:8]]
+    check(vals[6] == 26, 'field 4 is persisted as cq_dynanpc.type, got %d'
+          % vals[6])
+    check(vals[7] == 241, 'field 5 is persisted as cq_dynanpc.itemid, got %d'
+          % vals[7])
     # 10014 monster-style layout: id at +0x0C, look at +0x67,
     # x at +0x6F, y at +0x71 (same offsets the drop test uses)
     hits = []

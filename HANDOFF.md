@@ -368,3 +368,13 @@ but not clickable.
 Next: extend DynaNpcRecord with type/itemid so the generator identity is
 persisted; then the guild/syndicate model (715/720/721/722), and 332.
 
+## v78 (Nov 2, 2026) — 2007 columns + deterministic drops
+cq_dynanpc's type/itemid are modelled and filled by 2007 (nType and
+itemType), so the created NPC's identity persists. test_drops now summons
+its own monster through the 2006 chain instead of relying on respawns, and
+harvests 1101 from every drain; a mid-test re-login must be avoided because
+the map holds a stale player object and broadcast_to_screen then reaches
+nobody. Suite 55/55 green, coverage 97.8% (118/216).
+Next: the guild/syndicate object model (715/720/721/722 + the manager slots),
+332's bit-8 decision, and the 183 Lua scripts.
+
