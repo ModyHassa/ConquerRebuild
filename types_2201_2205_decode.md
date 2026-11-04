@@ -42,3 +42,32 @@ The known-common prefix in the brief (`FUN_140008520 -> FUN_140087650 -> vtable+
 tq::TalkStrCheck -> STR_INVALID_CHARACTER -> FUN_14015b1f0 -> FUN_14010b370`) is the
 **chat** path and must NOT be implemented for action types 2201/2205. Porting it would post
 the action param as a public chat message.
+
+## 2. What 2201 actually is (verified by the coordinator, MsgServer.c:221583-221780)
+
+`FUN_140141c80` = `CGameAction::ProcessActionPkBonus()` (log literal at
+MsgServer.c:221620). It reads the action type from cq_action column 3
+(221629-221630) and dispatches on the param:
+
+- param `target_bonus == V`  -> `SELECT count(*) FROM cq_pk_bonus WHERE target=%d AND bonus=%d`
+- param `target_bonus >  V`  -> `SELECT count(*) FROM cq_pk_bonus WHERE target=%d AND bonus>%d`
+- param `hunter_bonus == V`  -> `SELECT count(*) FROM cq_pk_bonus WHERE hunter=%d AND bonus=%d`
+- param `hunter_bonus >  V`  -> `SELECT count(*) FROM cq_pk_bonus WHERE hunter=%d AND bonus>%d`
+- the `%d` substituted for target/hunter is the ACTOR id (`param_4->vtable+8` = GetID)
+- any other var or operator -> DBERROR + false (221626-221628, 221720-221726)
+
+### BLOCKER: the shipped schema does not have that column
+`SHOW COLUMNS FROM cq_pk_bonus` on our imported dump returns
+id, Target, Target_name, Hunter, Hunter_name, B_type — there is **no `bonus`
+column**, and the binary's SQL strings (grep `cq_pk_bonus` in the decompile)
+confirm the binary expects one (`... AND bonus=%d`, `... AND bonus>%d`,
+`... AND bonus=0`). The dump is a later 2026 build than the binary
+(f:\version\cqserver-78.0.11-1204). So porting 2201 as written would make every
+row take the fail branch on our data: NOT ported, and the schema drift is
+recorded here rather than papered over.
+
+## 3. 2205 (target / hunter) — still BLOCKED
+`_stricmp(param_3,"target")` (221847) and `_stricmp(param_3,"hunter")` (221858)
+both resolve registry module **0x13** and call its vtable **+0x18(actor id)** for
+a boolean (221850-221857, 221861-221866). Which DLL registry index 0x13 is, and
+what that slot tests, is not proven yet -> BLOCKED, no guessing.
