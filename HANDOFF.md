@@ -577,3 +577,12 @@ proven to the instruction level. 402 is decoded except for what the four
 CRoleManager counts mean; that is the next single read. The worker's
 401/402/403/532/542-544 report is saved in docs/decode_401_family.md.
 
+## v103b (Nov 4, 2026) — 1071 decoded, 402 gate closed, suite 74/74
+1071's notification half is proven (10010 CMsgAction, action 159, wire +0x0C =
+field1, +0x14 = field3) but stays unported until the 10010 size-field question is
+settled: the original writes size 0x26 (38 bytes wire) while our builder emits 40.
+402 needs only the meaning of the four CRoleManager counts. NOTE for the coverage
+numbers: `case 542` and `case 543` DO exist in src/systems/actions.hpp, so
+tools/coverage.py is under-reporting by at least two types; fix that before using
+its totals as a target.
+
