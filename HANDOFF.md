@@ -571,3 +571,9 @@ the ONE missing helper/field that blocks it. Next wave = read those helpers
 (they are small, listed by name) and port the families in bulk. Workers are
 decoding 401/402/403/532/542-544 and 1554/1095/1651 in parallel.
 
+## v103 (Nov 4, 2026) — 401 ported, 402 decoded, suite 74/74
+First port out of the old-engine 401-family: 401 (94 rows) is live and tested,
+proven to the instruction level. 402 is decoded except for what the four
+CRoleManager counts mean; that is the next single read. The worker's
+401/402/403/532/542-544 report is saved in docs/decode_401_family.md.
+

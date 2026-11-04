@@ -39,6 +39,8 @@ struct Player {
     bool alive = true;                   // death state (10010 action 94 flow)
     uint32_t last_npc_id = 0;            // npc of the open dialog (2032 ctx)
     uint32_t last_dyna_id = 0;            // v33: last dyna npc created via 301
+    uint32_t next_task_id = 0;            // v103: 401 stores its 1st field at the
+                                          // original's user+0xa34
     uint32_t script_guild_id = 0;         // v79: 721 stores the guild id here
                                           // (the original's actor +0x14d)
     uint32_t guild_id = 0;                // v81: cq_synattr.syn_id (the

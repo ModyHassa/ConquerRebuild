@@ -1452,3 +1452,17 @@ DELETE FROM cq_npc WHERE id BETWEEN 99001880 AND 99001889;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001880,'TeamProbe',0,5000,1002,406,313,0,'v98_probe.lua');
 
+
+-- v103: action type 401 (EVENT_LAYNPC push, old-engine case 0x191)
+DELETE FROM cq_action WHERE id BETWEEN 99001060 AND 99001069;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99001060,401,'99010001 7 3 9 11',99001061,99001062),
+  (99001061,101,'v103ok401',0,0),
+  (99001062,101,'v103fail401',0,0),
+  (99001063,401,'0 7 3 9 11',99001064,99001065),
+  (99001064,101,'v103ok401b',0,0),
+  (99001065,101,'v103fail401b',0,0);
+DELETE FROM cq_npc WHERE id BETWEEN 99001890 AND 99001899;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99001890,'Npc401',0,5000,1002,407,313,99001060,''),
+  (99001891,'Npc401Zero',0,5000,1002,408,313,99001063,'');

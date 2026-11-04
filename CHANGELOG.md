@@ -1323,3 +1323,24 @@ guessed:
 - No action type was ported in this wave ON PURPOSE: every candidate body needs
   one named helper or field that is still UNKNOWN, and inventing it is forbidden.
   Suite: 73 tests, 73 green.
+
+## v103 (Nov 4, 2026) — action type 401 PORTED (94 rows), 402 gate decoded
+- **401 ported** end to end. Old-engine case 0x191 (MsgServer.c ~207682) was
+  proven down to the instruction by disassembling 0x14011a5ff..0x14011a7a5:
+  `sscanf "%u %d %d %d %d"` with `cmp eax,4` (>= 4 tokens); field 1 must be
+  non-zero (CHECKF "idNextTask != ID_NONE") and is stored at the user's +0xa34;
+  the task name is then cleared and a 2031 CMsgNpc is sent TO SELF through
+  FUN_14037d520(msg,5,v5,v2,v4) = wire `+0x04 tick, +0x08 v5, +0x0C v4,
+  +0x10 5, +0x12 v2`, len 0x14. The 3rd field is parsed and never read.
+  This CLOSES the "missing fifth byte" blocker recorded in v102.
+- `Player.next_task_id` added (the original's `user+0xa34`).
+- **402** (303 rows) decoded completely at the source level: the subject
+  keyword picks one of four CRoleManager counts (`all`/`furniture`/`name`/
+  `type` -> slots +0x90/+0x98/+0xA0/+0xA8 keyed by the user's map id), then
+  the gate is `op=="<" && count < value` or `op=="==" && count == value`.
+  Still NOT ported: what each CRoleManager count actually counts is unproven.
+- The 401/402/403/532/542-544 worker findings (worker died before writing) are
+  now durably recorded in `docs/decode_401_family.md`.
+- Tests: `tests/test_actions_v103.py` (fixture 99001060-65, npcs 99001890/91)
+  asserts the exact 2031 bytes, both branches and that the zero-id path emits
+  no push. Suite: **74 tests, 74 green**.

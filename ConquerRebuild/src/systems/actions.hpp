@@ -1,4 +1,5 @@
 #pragma once
+#include <ctime>
 // v23: REAL cq_action chain engine (the classic Conquer NPC dialog
 // system). 192,895 rows drive every NPC talk in the original database.
 //
@@ -1573,6 +1574,42 @@ case 121: {  // random check (ProcessAction case 0x79:
                         (!std::strcmp(op,"<=") && v <= (uint32_t)val) ||
                         (!std::strcmp(op,">=") && v >= (uint32_t)val);
             cur = cond ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 401: {  // EVENT_LAYNPC push (case 0x191, MsgServer.c ~207682).
+            // VERIFIED to the instruction level (disasm 0x14011a5ff):
+            // sscanf "%u %d %d %d %d" and `cmp eax,4` -> needs >= 4 tokens.
+            // v1 (1st) is the next task id, must be non-zero (CHECKF
+            // "idNextTask != ID_NONE", epilogue 0x1064) and lands at
+            // user+0xa34. The original then clears the user's task name
+            // (FUN_140117b50(user, "")) and sends a 2031 CMsgNpc to SELF
+            // through FUN_14037d520(msg, 5, v5, v2, v4), whose body writes
+            //   +0x04 tick, +0x08 v5, +0x0C v4, +0x10 5, +0x12 v2
+            // (size field 0x10 -> wire len 0x14). The 3rd field is parsed
+            // but never read by the original.
+            unsigned int v1 = 0; int v2 = 0, v3 = 0, v4 = 0, v5 = 0;
+            int n = std::sscanf(a->param.c_str(), "%u %d %d %d %d",
+                                &v1, &v2, &v3, &v4, &v5);
+            (void)v3;
+            if (n < 4) {
+                std::printf("[action] %u: 401 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+            } else if (v1 == 0) {
+                std::printf("[action] %u: 401 idNextTask == ID_NONE\n", p.id);
+                cur = a->id_nextfail;
+            } else {
+                p.next_task_id = v1;
+                Packet npc(MSG_NPC_INFO_2031);
+                npc.write<uint32_t>((uint32_t)(std::time(nullptr) * 1000ULL));
+                npc.write<uint32_t>((uint32_t)v5);     // +0x08
+                npc.write<uint32_t>((uint32_t)v4);     // +0x0C
+                npc.write<uint16_t>(5);                // +0x10 constant
+                npc.write<uint16_t>((uint16_t)v2);     // +0x12
+                npc.finalize();
+                if (p.session) p.session->send(npc);
+                cur = a->id_next;
+            }
             break;
         }
         case 506: {  // take N item copies (case 0x1fa ~213915):
