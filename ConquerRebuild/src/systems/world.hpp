@@ -41,6 +41,11 @@ struct Player {
     uint32_t last_dyna_id = 0;            // v33: last dyna npc created via 301
     uint32_t next_task_id = 0;            // v103: 401 stores its 1st field at the
                                           // original's user+0xa34
+    // v104: 1071 pushes {id, now, num, str} into the original's user+0x330
+    // container (FUN_1401a9b00 -> FUN_1401a4740 vector push).
+    struct ActionRecord { uint32_t id = 0; uint32_t timestamp = 0;
+                          int32_t num = 0; std::string str; };
+    std::vector<ActionRecord> action_records;
     uint32_t script_guild_id = 0;         // v79: 721 stores the guild id here
                                           // (the original's actor +0x14d)
     uint32_t guild_id = 0;                // v81: cq_synattr.syn_id (the

@@ -586,3 +586,11 @@ numbers: `case 542` and `case 543` DO exist in src/systems/actions.hpp, so
 tools/coverage.py is under-reporting by at least two types; fix that before using
 its totals as a target.
 
+## v104 (Nov 4, 2026) — 10010 size solved, 1071 ported, suite 75/75
+The 0x26-vs-0x28 question is settled: every original CMsgAction builder writes a
+0x26 payload (wire 0x2A) and leaves the tail zero, so our builder now pads to 42
+bytes and takes an optional slot14 for call sites that set payload+0x10.
+1071 is live and tested. Next: 402's four CRoleManager counters (call-site
+analysis on FUN_1400875f0's object, since the vtable route failed), then the
+1554/1095 decodes and 1086's levexp curve tail.
+

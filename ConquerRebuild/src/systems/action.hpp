@@ -58,19 +58,28 @@ inline ActionMsg parse_action_10010(const uint8_t* payload, size_t len) {
 inline Packet build_action_10010(uint32_t actor_id, uint32_t data,
                                 uint16_t action, uint16_t dir,
                                 uint16_t x, uint16_t y, uint32_t ext = 0,
-                                int32_t target2 = -1) {
+                                int32_t target2 = -1,
+                                int64_t slot14 = -1) {
     Packet p(MSG_ACTION_10010);
     p.write<uint32_t>(static_cast<uint32_t>(::time(nullptr))); // wire+0x04 ts
     p.write<uint32_t>(actor_id);   // wire+0x08
     p.write<uint32_t>(data);       // wire+0x0C
     p.write<uint32_t>(0);          // wire+0x10 (server-side time slot)
-    p.write<uint32_t>(static_cast<uint32_t>(::time(nullptr))); // wire+0x14 ts2
+    // v104: the original's CMsgAction builders (FUN_140362620 / FUN_140362810)
+    // write param_8 into this slot; pass slot14 to match a specific call site,
+    // otherwise the historical timestamp behaviour is kept.
+    p.write<uint32_t>(slot14 >= 0
+                          ? static_cast<uint32_t>(slot14)
+                          : static_cast<uint32_t>(::time(nullptr))); // wire+0x14
     p.write<uint16_t>(action);     // wire+0x18
     p.write<uint16_t>(dir);        // wire+0x1A
     p.write<uint16_t>(x);          // wire+0x1C
     p.write<uint16_t>(y);          // wire+0x1E
     p.write<uint32_t>(ext);        // wire+0x20
     p.write<int32_t>(target2);     // wire+0x24
+    // v104: canonical CMsgAction size is 0x26 payload = 0x2A on the wire; the
+    // original builders stop writing at +0x1A and leave these bytes zero.
+    p.write<uint16_t>(0);          // wire+0x28 reserved
     p.finalize();
     return p;
 }

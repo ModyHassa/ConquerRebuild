@@ -1361,3 +1361,24 @@ guessed:
   (its log string sits in FUN_1405d4590) found no vtable pointer to that address
   in .rdata/.data, so the slot identity needs a different route (call-site
   analysis) next wave.
+
+## v104 (Nov 4, 2026) — 10010 size convention SOLVED, 1071 PORTED (182 rows)
+- The 1071 blocker is closed. Every CMsgAction builder in the original writes the
+  payload size at obj+0xc and stops writing fields at payload+0x1A, leaving the
+  tail zero: `FUN_140362620` and `FUN_140362810` both write **0x26 payload**
+  (wire **0x2A = 42**), and the string variant computes `GetSize() + 0x25`.
+  Our builder emitted 0x28 (40), i.e. two bytes short - it now writes the
+  canonical `wire+0x28` reserved u16, so every 10010 we send is 42 bytes.
+- `build_action_10010` also gained an optional `slot14` argument: the original's
+  builders put `param_8` at payload+0x10 (wire+0x14), so call sites that need it
+  can now be wire-exact without changing existing behaviour.
+- **1071 ported** (182 rows, new-engine case 0x3D): sscanf "%u %u %hu" with all
+  three tokens required; `FUN_1401a9b00` semantics implemented as
+  `Player::ActionRecord{id, timestamp, num, str}` pushed into
+  `Player.action_records` (only when num != 0); when the third field is non-zero
+  a 10010 CMsgAction goes to SELF with action 0x9F, `+0x0C = field1` and
+  `+0x14 = field3`. The container's consumer in the original is still UNKNOWN and
+  is documented as such: the list is stored and never read.
+- Tests: `tests/test_actions_v104.py` asserts the 42-byte length, wire+0x0C/+0x14/
+  +0x18 contents, the sender id, both branch outcomes and that field3 == 0 emits
+  no packet. Suite: **75 tests, 75 green**.

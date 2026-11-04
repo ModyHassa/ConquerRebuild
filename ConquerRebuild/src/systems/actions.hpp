@@ -1612,6 +1612,38 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1071: {  // record push + optional CMsgAction 159 (case 0x3D, ~15416).
+            // VERIFIED: sscanf "%u %u %hu" needs all three tokens.
+            // FUN_1401a9b00(user,v1,v2,NULL) pushes {id=v1, time=TimeGet()/1000,
+            // num=v2, str=""} into the container at user+0x330, and only when
+            // num != 0 (the helper's own guard). When v3 != 0 the case builds
+            // FUN_140362620(msg, uid, 0, 0) - a 10010 CMsgAction whose payload is
+            // +0 tick, +4 uid, +8 v1, +0x10 v3, +0x14 0x9F, +0x16/18/1A zero,
+            // size 0x26 - and sends it to SELF. The container's consumer in the
+            // original is still UNKNOWN, so it is stored and never read.
+            unsigned int v1 = 0, v2 = 0; unsigned short v3 = 0;
+            int n = std::sscanf(a->param.c_str(), "%u %u %hu", &v1, &v2, &v3);
+            if (n == 3) {
+                if (v2 != 0) {
+                    Player::ActionRecord r;
+                    r.id = v1;
+                    r.timestamp = (uint32_t)std::time(nullptr);
+                    r.num = (int32_t)v2;
+                    p.action_records.push_back(r);
+                }
+                if (v3 != 0) {
+                    Packet act = build_action_10010(p.id, v1, 0x9F, 0, 0, 0,
+                                                    0, 0, (int64_t)v3);
+                    if (p.session) p.session->send(act);
+                }
+                cur = a->id_next;
+            } else {
+                std::printf("[action] %u: 1071 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+            }
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the
