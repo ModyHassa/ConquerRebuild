@@ -581,10 +581,10 @@ CRoleManager counts mean; that is the next single read. The worker's
 1071's notification half is proven (10010 CMsgAction, action 159, wire +0x0C =
 field1, +0x14 = field3) but stays unported until the 10010 size-field question is
 settled: the original writes size 0x26 (38 bytes wire) while our builder emits 40.
-402 needs only the meaning of the four CRoleManager counts. NOTE for the coverage
-numbers: `case 542` and `case 543` DO exist in src/systems/actions.hpp, so
-tools/coverage.py is under-reporting by at least two types; fix that before using
-its totals as a target.
+402 needs only the meaning of the four CRoleManager counts. CORRECTION (v106): the earlier
+warning that coverage.py under-reports 542/543 was WRONG - its `case (\d+):`
+regex does pick both up, they simply never appeared in the top-unported list.
+Current truth: 135 of 216 types have a case label, 98.17% of rows covered.
 
 ## v104 (Nov 4, 2026) — 10010 size solved, 1071 ported, suite 75/75
 The 0x26-vs-0x28 question is settled: every original CMsgAction builder writes a
@@ -602,4 +602,15 @@ cq_dynanpc on the actor's map and apply the proven `<`/`==` gate; `all` and
 struct), 532 (item-attribute driven, not an action case), 543/544 (helper
 definitions). Next big new-engine targets: 1040 rebirth (requirement table) and
 1086 (levexp curve) once their helpers are read.
+
+## v106 (Nov 4, 2026) — coverage truth + 3 decode workers running
+tools/coverage.py is accurate: 135/216 types carry a case label and 98.17% of the
+193,584 cq_action rows are covered (401, 402 and 1071 landed today). The v103b
+note claiming it under-reported 542/543 was wrong and is corrected above.
+Top unported by row count: 1040 (668), 1086 (640), 1554 (500), 532 (252),
+1095 (245), 3701 (122), 1083 (121), 1084 (99), 1651 (95), 403 (93).
+Three decode workers are working NOW with incremental writes into
+docs/worker_1040_1086.md, docs/worker_403_532.md and docs/worker_small_types.md
+(112/124/126/218/219/2002/2005). Read those files first next wave - implement
+straight from their PORT RECIPE sections.
 

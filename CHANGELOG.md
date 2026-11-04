@@ -1401,3 +1401,17 @@ guessed:
 - Tests: `tests/test_actions_v105.py` (fixtures 99001080-92, npcs 99001894-99)
   covers name `==`, name `<` (count 2 vs 2 -> fail), type `==`, and the furniture
   UNKNOWN path. Suite: **76 tests, 76 green**.
+
+## v106 (Nov 4, 2026) — coverage accounting corrected, decode batch launched
+- No code change. `tools/coverage.py` verified accurate: **135 of 216 types** carry
+  a case label and **98.17% of the 193,584 cq_action rows** are covered (190,042
+  rows). The v103b claim that the tool under-reported 542/543 was wrong - its
+  `case (\d+):` regex does pick them up - and HANDOFF.md now says so explicitly.
+- Remaining unported weight is concentrated: 1040 (668 rows), 1086 (640),
+  1554 (500), 532 (252), 1095 (245), 3701 (122), 1083 (121), 1084 (99),
+  1651 (95), 403 (93). Everything else is under 90 rows.
+- Three decode workers launched with the incremental-write protocol: 1040+1086,
+  403+532, and 112/124/126/218/219+2002/2005. Their deliverables are
+  `docs/worker_1040_1086.md`, `docs/worker_403_532.md`,
+  `docs/worker_small_types.md`; each must end with a numbered PORT RECIPE so the
+  next wave implements without re-reading the decompile.
