@@ -995,3 +995,41 @@ encrypted reply frames (first = 10014 player spawn).
   getter path answering -1.
 - Suite: 64 tests, 64 green.
 
+## v89 (Nov 4, 2026) — GetUserStr + RecordPoint, and where the last six types stand
+- GetUserStr(uid, key) registered. PINNED from FUN_1404e0940 (MsgServer.c:871073):
+  the original's string getter implements ONLY 1002 (player name, sub-object
+  vtbl+0x18), 1017 (mate name) and 1064 (god-bless expiry). This build has no
+  mate or god-bless state, so 1002 answers the name and every other key pushes
+  an empty string - the wrapper always returns exactly one value (every
+  registration ends `return 1`), and the exact default of an unimplemented key
+  is UNKNOWN, so an empty string is the type-correct stand-in.
+- RecordPoint(uid, map, x, y) registered. Arg contract PINNED from
+  FUN_14043b950 (MsgServer.c:766204): four integers, uid 0 = current user,
+  pushes a boolean. Its engine body FUN_1404e7280 was NOT decoded, so the port
+  uses the operation our verified 1004 port already implements (CUser::
+  SetRecordPos): map existence check, store record_map/record_pos, persist
+  cq_user.recordmap_id/recordx/recordy.
+- tests/test_actions_v89.py (7 asserts): the script reads its own name through
+  GetUserStr, an unsupported string key yields an empty string, RecordPoint
+  succeeds and writes the column set, a missing map returns false, and the
+  probe restores the record point to (400,300) for the rest of the suite.
+- DECODE STATUS of the six remaining action types, restated honestly:
+  * 224 (7 rows) is now FULLY decoded: sscanf("%u %d %d") then CMapGroup
+    (FUN_1400875f0) slot +0xa8(a,b) as a COUNT; with the 3rd field absent the
+    test is `count > 0`, otherwise `count >= c`. The rows are
+    "%user_home_id 25", so a = the player's home map id and b = 25 = the
+    BattleGhost monster type - but slot +0xa8 itself is still unnamed (its
+    other call sites are per-record field setters on unrelated classes) and
+    `%user_home_id` is a template our engine does not expand yet: BLOCKED on
+    those two facts, no guessing.
+  * 223 (4 rows) params are "%user_home_id 4 34 39" - the same unexpanded
+    template plus a number list whose grammar was not decoded: BLOCKED.
+  * 2201 (2) / 2205 (4) parse a variable name validated by tq::TalkStrCheck
+    and act on team/booth state we do not model (params "target_bonus == 0",
+    "hunter_bonus > 0", "target", "hunter"): BLOCKED.
+  * 715 (24 rows) / 720 (5 rows) all carry an EMPTY param; the guild-manager
+    slots +0x118 / +0x260 remain unidentified (manager FUN_140087ed0 is a
+    registry lookup by index 0x16, corroborated but not proven to be the guild
+    manager): BLOCKED.
+- Suite: 65 tests, 65 green.
+

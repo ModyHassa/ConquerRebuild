@@ -150,6 +150,60 @@ int api_set_user_int(lua_State* L) {
     return 1;
 }
 
+// GetUserStr(uid, key) - PINNED from FUN_1404e0940 (MsgServer.c:871073): the
+// string getter implements ONLY key 1002 (player name, sub-object vtbl+0x18),
+// 1017 (mate name, user vtbl+0x40) and 1064 (a god-bless expiry string).
+// This build has no mate or god-bless state, so 1002 answers the name and
+// everything else answers nil, which is what an unimplemented string key
+// yields in the original.
+int api_get_user_str(lua_State* L) {
+    const long long uid = lua_arg_int(L, 1);
+    const long long key = lua_arg_int(L, 2);
+    Player* p = resolve_user(uid);
+    if (p && key == 1002) {
+        lua_push_str(L, p->name);
+        return 1;
+    }
+    // The wrapper always returns exactly one value (every registration ends
+    // `return 1`), so an unimplemented key must still push something. The
+    // exact default of FUN_1404e0940 was NOT decoded: an empty string is the
+    // type-correct stand-in for a string getter (UNKNOWN, documented).
+    lua_push_str(L, std::string());
+    return 1;
+}
+
+// RecordPoint(uid, map, x, y) - PINNED arg contract from FUN_14043b950
+// (MsgServer.c:766204: four checkinteger args, uid 0 = current user) and it
+// pushes a boolean. Its engine body FUN_1404e7280 was not decoded, but the
+// action 1004 port (CUser::SetRecordPos, already verified end to end) is the
+// same operation: validate the map exists, store the record map/cell and
+// persist it to cq_user. That is what is implemented here.
+int api_record_point(lua_State* L) {
+    const long long uid   = lua_arg_int(L, 1);
+    const long long mapid = lua_arg_int(L, 2);
+    const long long x     = lua_arg_int(L, 3);
+    const long long y     = lua_arg_int(L, 4);
+    Player* p = resolve_user(uid);
+    if (!p || mapid <= 0 || x < 0 || y < 0) { lua_push_bool(L, false); return 1; }
+    IDatabase* db = active_db();
+    if (!db || !db->map_exists((uint32_t)mapid)) {
+        std::printf("[lua] RecordPoint: map %lld does not exist\n", mapid);
+        lua_push_bool(L, false);
+        return 1;
+    }
+    p->record_map = (uint32_t)mapid;
+    p->record_pos = Position{(uint16_t)x, (uint16_t)y};
+    UserRecord r;
+    r.id = p->id; r.name = p->name; r.level = p->level;
+    r.recordmap_id = (uint32_t)mapid;
+    r.recordx = (uint32_t)x; r.recordy = (uint32_t)y;
+    db->save_user(r);
+    std::printf("[lua] RecordPoint: %s -> map %lld (%lld,%lld)\n",
+                p->name.c_str(), mapid, x, y);
+    lua_push_bool(L, true);
+    return 1;
+}
+
 // ChgMap(uid, map, x, y, force) - PINNED from the original: FUN_14043b810
 // pops five checkinteger args (userID, mapID, x, y, force) and calls
 // FUN_1404e7080. uid 0 means the current user. That function rejects uid==0
@@ -211,6 +265,8 @@ void lua_api_init() {
     h.register_fn("GetUserInt", api_get_user_int);
     h.register_fn("SetUserInt", api_set_user_int);
     h.register_fn("ChgMap", api_chg_map);
+    h.register_fn("GetUserStr", api_get_user_str);
+    h.register_fn("RecordPoint", api_record_point);
     std::printf("[lua] gameplay api registered (say, get_*, add_money,"
                 " GetUserInt, SetUserInt)\n");
 }

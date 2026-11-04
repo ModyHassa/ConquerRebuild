@@ -470,3 +470,14 @@ original routes them through FUN_1401a6420 with attrib ids 7,8,0xb,0xd-0x10,
 (arg contracts pinned), and the 224/2201/2205 decode commands already listed
 in docs/remaining_types_decode.md.
 
+## v89 (Nov 4, 2026) — GetUserStr + RecordPoint, suite 65/65
+Lua API now covers say/get_*/add_money/GetUserInt/SetUserInt/GetUserStr/
+ChgMap/RecordPoint. The last six action types are pinned down to specific
+blockers (documented in the changelog): 224 needs CMapGroup slot +0xa8 named
+plus %user_home_id expansion, 223 the same template and its number-list
+grammar, 2201/2205 team/booth state, 715/720 the guild-manager slots
++0x118/+0x260. Suite 65/65 green.
+NEXT: name CMapGroup +0xa8 by finding its implementation through the vtable
+(FUN_1400875f0's object), expand the %user_home_id template (find its source
+column), then port 224/223.
+

@@ -1363,3 +1363,8 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001853;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001853,'LuaKeyProbe',0,5000,1002,400,304,0,'v88_probe.lua');
+
+-- v89: GetUserStr / RecordPoint probe NPC
+DELETE FROM cq_npc WHERE id=99001854;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001854,'LuaStrProbe',0,5000,1002,400,305,0,'v89_probe.lua');
