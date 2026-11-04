@@ -940,3 +940,14 @@ encrypted reply frames (first = 10014 player spawn).
   harvest), this only widens the tail of the distribution.
 - Suite: 62 tests, 62 green.
 
+## v86 (Nov 2, 2026) — faster suite: five drop rolls per round
+- The drop test's item phase used to summon ONE Pheasant per round (one
+  3%/kill roll), so a bad tail could burn the whole 240s window. Fixture
+  chain 99001330 now spawns FIVE birds in one dialog reply (2006 x5 at
+  412..420,311) and the hunt kills all of them per round: five rolls for
+  ~1s of wall clock.
+- Result: tests/test_drops.py runs in ~21s instead of up to 240s, and the
+  full suite now finishes well inside a 285s window (it previously needed
+  ~450s+). The hunt deadline is 120s as a safety net.
+- Suite: 62 tests, 62 green.
+

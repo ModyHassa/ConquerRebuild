@@ -190,24 +190,24 @@ try:
                 out.append((g2, it2, x2, y2))
 
     def summon_and_kill():
+        """Spawn FIVE Pheasants with one dialog reply and kill all of them,
+        so each round buys five 3%/kill rolls instead of one."""
         got = []
         send_pkt(sock, 2031, struct.pack('<IIIHH', 0, 9990, 0, 0, 0))
-        harvest(drain_all(sock, 0.25), got)
-        body = struct.pack('<HHIHBB', 0, 0, 99001320, 0, 0, 0x66)
+        harvest(drain_all(sock, 0.2), got)
+        body = struct.pack('<HHIHBB', 0, 0, 99001330, 0, 0, 0x66)
         body += bytes([1, 6]) + b'spawn!'
         send_pkt(sock, 2032, body)
-        pk = drain_all(sock, 0.4)
+        pk = drain_all(sock, 0.35)
         harvest(pk, got)
         new = monster_ids_from_spawns(pk)
-        if not new:
-            return got
-        tid = sorted(new)[-1]
-        send_pkt(sock, 1022, atk(tid))
-        harvest(drain_all(sock, 0.5), got)
+        for tid in sorted(new):
+            send_pkt(sock, 1022, atk(tid))
+        harvest(drain_all(sock, 0.45), got)
         return got
 
     hunt = 0
-    deadline = time.time() + 240
+    deadline = time.time() + 120
     while not pills and time.time() < deadline:
         got = summon_and_kill()
         hunt += 1

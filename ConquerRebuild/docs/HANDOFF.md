@@ -453,3 +453,9 @@ vtable table in docs/msgplayer_10014_layout.md, add AddUserInt/GetUserStr/
 SetUserStr, then ChgMap/Effect/RecordPoint; still open: 715/720, 223/224,
 2201/2205, and the big systems (team/trade, homes, 183 scripts beyond dialogs).
 
+## v86 (Nov 2, 2026) — suite speedup, 62/62
+Drop-test item phase now spawns five monsters per round (chain 99001330),
+so test_drops is ~21s and the whole suite fits in under 5 minutes.
+NEXT: the three decode agents (Lua key table, remaining action types,
+Lua API function semantics) feed the next implementation wave.
+

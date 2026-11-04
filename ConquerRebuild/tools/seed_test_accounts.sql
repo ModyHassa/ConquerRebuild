@@ -1338,3 +1338,18 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001851;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001851,'LuaAttrProbe',0,5000,1002,400,302,0,'v85_probe.lua');
+
+-- ============================================================
+-- v86: a 5-spawn variant of the drop-test chain, so one dialog reply
+-- yields five 3%/kill rolls instead of one (test_drops speedup).
+-- ============================================================
+DELETE FROM cq_action WHERE id BETWEEN 99001330 AND 99001339;
+INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
+  (99001330,99001331,99001338,2006,0,'0 0 1002 412 311 0 1 0 HuntBird'),
+  (99001331,99001332,99001338,2006,0,'0 0 1002 414 311 0 1 0 HuntBird'),
+  (99001332,99001333,99001338,2006,0,'0 0 1002 416 311 0 1 0 HuntBird'),
+  (99001333,99001334,99001338,2006,0,'0 0 1002 418 311 0 1 0 HuntBird'),
+  (99001334,99001335,99001338,2006,0,'0 0 1002 420 311 0 1 0 HuntBird'),
+  (99001335,99001336,99001338,101,0,'V86~SPAWN5~OK.'),
+  (99001336,0,0,101,0,'V86~SPAWN5~DONE.'),
+  (99001338,0,0,101,0,'V86~SPAWN5~FAIL.');
