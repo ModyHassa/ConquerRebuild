@@ -1276,3 +1276,23 @@ guessed:
   cells 4/5 are unidentified and every row has an empty param, so it stays
   unported rather than guessed.
 - Build clean; suite 73/73 green (no behaviour changed in this wave).
+
+## v101 (Nov 4, 2026) — data-driven coverage: tools/coverage.py
+- New `tools/coverage.py`: diffs the types that actually have rows in
+  `cq_action` against the `case N:` labels our engine carries in
+  src/systems|script|handlers, and prints the REAL coverage plus the biggest
+  unported types. Report only (never fails), so the suite stays green.
+- Measured truth (this DB): **216 action types, 132 handled, 84 unported,
+  189,439 of 193,560 rows = 97.87%**. Top unported by rows: 1040 (668),
+  1086 (640), 1554 (500), 402 (303), 532 (252), 1095 (245), 1071 (182),
+  3701 (122), 1083 (121), 1084 (99), 1651 (95), 401 (94), 403 (93).
+- Dispatch knowledge gained while looking for them: the switch at
+  MsgServer.c:870962 keyed on the raw type (0x410 = 1040, 0x409 = 1033, ...) is
+  the **user-getter dispatch**, NOT the action engine, and the `case 0x30..0x37`
+  block at 185226-185286 is an **operation sub-switch** inside one handler. This
+  explains why 1040/1071 "have no case label": they are read through the getter
+  path, not dispatched as action bodies. Both facts are now recorded so the next
+  wave does not re-trip on them.
+- Sample shapes captured for the next wave: 1040 = `"<a> <b>"` two small ints
+  (668 rows); 1084 = `"<big> <a> <b>"` (99); 1095 = EMPTY param, pure id_next
+  (245); 1554 = keyword `chk`/`add` + data (500).

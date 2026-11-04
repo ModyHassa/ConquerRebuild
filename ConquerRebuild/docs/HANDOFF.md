@@ -556,3 +556,10 @@ left in the team module is only what the original never triggers.
 Next: pick a new subsystem (trade or homes) or re-open 112/401 with a dedicated
 decode of the action-context cell getters (+0x48 / +0x78 / +0xa34).
 
+## v101 (Nov 4, 2026) — coverage tool + dispatch facts; 97.87% by rows
+`python3 tools/coverage.py` is now the first command of every wave: it prints
+the real covered/unported rows so the batch targets the biggest gaps instead of
+guesswork. Current: 132/216 types, 97.87% of rows. Known dispatch traps are
+documented in CHANGELOG v101 (the 870962 getter switch and the 0x30-0x37 op
+sub-switch are not action types).
+
