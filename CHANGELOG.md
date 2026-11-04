@@ -951,3 +951,47 @@ encrypted reply frames (first = 10014 player spawn).
   ~450s+). The hunt deadline is 120s as a safety net.
 - Suite: 62 tests, 62 green.
 
+## v87 (Nov 4, 2026) — Lua ChgMap end to end
+- ChgMap is PINNED from the binary: FUN_14043b810 pops FIVE checkinteger args
+  (userID, mapID, x, y, force) and calls FUN_1404e7080, which rejects
+  uid==0/map==0, skips when the user state byte has bit 6 set and force is 0,
+  rejects an unknown map, rejects a cell that cannot be stood on, then performs
+  the change (FUN_1401c55b0) and answers a BOOLEAN (push-boolean helper
+  FUN_140523ba0).
+- src/systems/world.cpp gained World::teleport() - the map-change sequence the
+  1070 relive port already proved (leave the old map list, join the new one,
+  self-inclusive spawn broadcast, resend the monsters in screen, no record
+  point, no alive change). GameMap got width()/height() accessors for the
+  standability stand-in (our maps are flat, so the original's cell check is a
+  bounds check here).
+- lua_host now also resolves lua_pushboolean, so boolean-returning API calls
+  return real Lua booleans instead of 1/0.
+- tests/test_actions_v87.py (7 asserts): the script moves CentralPlain ->
+  Desert (300,300) and back, an unknown map id returns false, a cell outside
+  the map returns false, and the probe restores the player position so the
+  rest of the suite is unaffected.
+
+## v88 (Nov 4, 2026) — the real GetUserInt key table + SetUserInt signature fix
+- Three research workers decoded the key space from the binary and from the
+  content's own interface enum BasicData/[Conquer][BasicData]
+  ProgramInterfaceConstant.lua (G_PLAYER_BEGIN 1000 .. LAST 1999, keys
+  1001..1072, each with its supported operations). docs/lua_key_table.md holds
+  the table with per-key citations.
+- CORRECTIONS to what v85 assumed: guild rank is 1036 (sub vtable+0x170 ->
+  guild manager +0xf8), NOT 1037 (1037 is the task iterator at user+0xa68);
+  peerage is 1045 and VIP 1047 (not 1046/1048); and key 1003 LookFace has NO
+  getter case at all - GetUserInt answers -1 and only SetUserInt implements it.
+- SetUserInt is (uid, key, value, flag) - FOUR args, guard 1001..1998, returns
+  a boolean (FUN_140436450 at MsgServer.c:763388). v85 had three args and an
+  integer return; both are fixed.
+- GetUserInt now answers 15 pinned keys from live Player state: 1001 id,
+  1004 hair, 1005 profession, 1006 level, 1007 map, 1008/1009 pos, 1019/1020
+  life, 1021/1022 mana, 1025 money, 1029 exp, 1036 guild rank, 1056 guild id;
+  every other key returns -1 like the original's missing-case default.
+- tests: v85 rewritten to the verified semantics (1003 GET -> -1, 1036 rank,
+  1037 iterator, SetUserInt boolean), and tests/test_actions_v88.py asserts all
+  15 keys against the seeded row (level 130, profession 10, map 1002, cell
+  400,300, life 2000, mana 1500, guild 999001/rank 1000) plus two keys with no
+  getter path answering -1.
+- Suite: 64 tests, 64 green.
+

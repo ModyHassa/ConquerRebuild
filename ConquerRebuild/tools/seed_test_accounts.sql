@@ -1353,3 +1353,13 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
   (99001335,99001336,99001338,101,0,'V86~SPAWN5~OK.'),
   (99001336,0,0,101,0,'V86~SPAWN5~DONE.'),
   (99001338,0,0,101,0,'V86~SPAWN5~FAIL.');
+
+-- v87: the ChgMap probe NPC
+DELETE FROM cq_npc WHERE id=99001852;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001852,'LuaMapProbe',0,5000,1002,400,303,0,'v87_probe.lua');
+
+-- v88: the pinned key-table probe NPC
+DELETE FROM cq_npc WHERE id=99001853;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001853,'LuaKeyProbe',0,5000,1002,400,304,0,'v88_probe.lua');

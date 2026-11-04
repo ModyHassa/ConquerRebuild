@@ -253,6 +253,27 @@ void World::w_ai_broadcast(GameMap& m, const Monster& mon, const Packet& pkt) {
     }
 }
 
+void World::teleport(Player& p, uint32_t map_id, uint32_t x, uint32_t y) {
+    if (p.in_world) {
+        auto oldit = maps_.find(p.map_id);
+        if (oldit != maps_.end()) oldit->second.players().remove(&p);
+    }
+    GameMap& nm = get_or_create_map(map_id);
+    nm.players().remove(&p);          // no double-add
+    nm.players().push_back(&p);
+    p.map_id = map_id;
+    p.pos = Position{(uint16_t)x, (uint16_t)y};
+    p.in_world = true;
+    SpawnInfo si;
+    si.id = p.id; si.name = p.name;
+    si.x = p.pos.x; si.y = p.pos.y;
+    si.packed_hair = (uint16_t)(p.hair % 100 * 100 + (p.hair / 100) % 100);
+    broadcast_to_screen(nm, p.pos, build_spawn_10014(si), nullptr);
+    send_monsters_in_screen(p, nm);
+    std::printf("[world] %s teleported to map %u (%u,%u)\n",
+                p.name.c_str(), map_id, x, y);
+}
+
 void World::remove_player(Player& p) {
     if (!p.in_world) return;
     auto it = maps_.find(p.map_id);

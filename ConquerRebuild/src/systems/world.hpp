@@ -94,6 +94,8 @@ public:
     int weather = 0;   // v36: action 311 map weather state
     explicit GameMap(uint32_t id, std::string name, uint16_t w, uint16_t h)
         : id_(id), name_(std::move(name)), width_(w), height_(h) {}
+    uint16_t width() const { return width_; }     // v87: ChgMap bounds check
+    uint16_t height() const { return height_; }
     uint32_t id() const { return id_; }
     const std::string& name() const { return name_; }
     // v52 / action 2011 (0x7db): rename a live map at runtime
@@ -157,6 +159,13 @@ public:
     // Send the newly-visible monsters of a map to one player (10014
     // monster branch + CMsgAction 134), tracking known ids.
     void send_monsters_in_screen(Player& p, GameMap& m);
+
+    // v87: move a player to another map/cell (the Lua ChgMap path). Mirrors
+    // the sequence the 1070 relive port already proved: leave the old map's
+    // list, join the new one, broadcast the spawn self-inclusive and resend
+    // the monsters in screen. It does NOT touch alive or the record point -
+    // RecordPoint is a separate operation in the original.
+    void teleport(Player& p, uint32_t map_id, uint32_t x, uint32_t y);
     // Respawn + monster AI pass; called from the world tick thread.
     void tick(time_t now);
     // screen-range broadcast centered on a monster (AI pass)

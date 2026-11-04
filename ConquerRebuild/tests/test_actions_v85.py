@@ -140,8 +140,9 @@ pk = drain_all(a, 1.5)
 blob = talk_blob(pk)
 
 check('uid=%d' % uin in blob, 'GetUserInt(0,1001) is the current user id (%d)' % uin)
-check('lookface=%d' % lookface in blob,
-      'key 1003 reads mx, the lookface column (%d)' % lookface)
+check('lookface_get=-1' in blob,
+      'key 1003 answers -1 on GET: the original getter has no case for it'
+      ' (only the setter does)')
 import re as _re
 mhair = _re.search(r'hair=(\d+)', blob)
 # the value is whatever the login loaded into Player.hair, so assert the key
@@ -149,13 +150,17 @@ mhair = _re.search(r'hair=(\d+)', blob)
 # DB row after login, which the in-memory player does not see)
 check(mhair is not None, 'key 1004 reads hair (%r)' % (mhair.group(0) if mhair else None))
 check('guildrank=%s' % rank in blob,
-      'key 1037 reads cq_synattr.rank (%s)' % rank)
+      'key 1036 is the guild rank and reads cq_synattr.rank (%s)' % rank)
+check('iterator=-1' in blob,
+      'key 1037 is NOT the guild rank; it is the task iterator (no getter'
+      ' path here) and answers -1')
 check('bogus=-1' in blob, 'an unmapped key answers -1 like the original')
-check('sethair rc=0' in blob and 'hair=42' in blob,
-      'SetUserInt(0,1004,42) wrote and read back')
+check('sethair=true' in blob and 'hair=42' in blob,
+      'SetUserInt(0,1004,42,0) returned a boolean and wrote hair')
 stored = db("SELECT hair FROM cq_user WHERE id=%d" % uin)
 check(stored == '42', 'the hair write reached cq_user (%r)' % stored)
-check('setrank rc=-1' in blob, 'SetUserInt on a read-only key answers -1')
+check('setrank=false' in blob,
+      'SetUserInt refuses a key we cannot persist (boolean false)')
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

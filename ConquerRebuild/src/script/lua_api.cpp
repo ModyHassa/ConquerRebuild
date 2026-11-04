@@ -61,14 +61,19 @@ int api_add_money(lua_State* L) {
 }
 
 // ---- original-named attribute API -------------------------------------
-// GetUserInt(uid, key) / SetUserInt(uid, key, value). The key space is the
-// original's (1001..1998, guard key-0x3e9 < 0x3e6). The keys pinned by the
-// shipped content (PublicFunc/FuncGetValue.lua) are:
-//   1003 Get_UserLookFace, 1004 Get_UserHair,
-//   1037 Get_UserGuildRank, 1046 Get_UserPeerage, 1048 Get_UserVip
-// plus 1001 = the user id (FUN_1404e02d0 case 0x3e9 resolves GetID). Peerage
-// and VIP have no Player column yet, so those still answer -1 like an
-// unmapped key in the original.
+// The key space is the original's own interface enum, shipped with the
+// content at BasicData/[Conquer][BasicData]ProgramInterfaceConstant.lua
+// (G_PLAYER_BEGIN 1000 .. G_PLAYER_LAST 1999, keys 1001..1072 defined), and
+// every value below was traced to FUN_1404e02d0's switch case for that key
+// (decompiled/MsgServer.c:870826-871061). Keys the getter does not implement
+// answer -1, which is exactly what the original returns for them - notably
+// 1003 (LookFace): the enum says "get set" but the getter has no case, only
+// the setter does.
+//   PINNED here: 1001 ID, 1004 Hair, 1005 Profession, 1006 Level, 1007 MapID,
+//   1008 PosX, 1009 PosY, 1019 Life, 1020 MaxLife, 1021 Mana, 1022 MaxMana,
+//   1025 Money, 1029 Exp, 1036 GuildRank (sub vtable+0x170 -> guild manager
+//   +0xf8), 1056 SynId.  1037 is NOT the guild rank (it is the task
+//   iterator, user+0xa68) - that mix-up is fixed here.
 Player* resolve_user(long long uid) {
     Player* ctx = ctx_player();
     if (uid == 0) return ctx;
@@ -81,39 +86,110 @@ int api_get_user_int(lua_State* L) {
     const long long key = lua_arg_int(L, 2);
     Player* p = resolve_user(uid);
     long long v = -1;
-    if (p) {
+    if (p && key >= 1001 && key <= 1998) {
         switch (key) {
-        case 1001: v = (long long)p->id; break;
-        case 1003: v = (long long)p->lookface;  break;
-        case 1004: v = (long long)p->hair;      break;
-        case 1037: v = (long long)p->guild_rank; break;
-        default:   v = -1; break;   // not mapped yet (peerage 1046/vip 1048)
+        case 1001: v = (long long)p->id;          break;
+        case 1004: v = (long long)p->hair;        break;
+        case 1005: v = (long long)p->profession;  break;
+        case 1006: v = (long long)p->level;       break;
+        case 1007: v = (long long)p->map_id;      break;
+        case 1008: v = (long long)p->pos.x;       break;
+        case 1009: v = (long long)p->pos.y;       break;
+        case 1019: v = (long long)p->hp;          break;
+        case 1020: v = (long long)p->max_hp;      break;
+        case 1021: v = (long long)p->mana;        break;
+        case 1022: v = (long long)p->max_mana;    break;
+        case 1025: v = (long long)p->money;       break;
+        case 1029: v = (long long)p->exp;         break;
+        case 1036: v = (long long)p->guild_rank;  break;
+        case 1056: v = (long long)p->guild_id;    break;
+        default:   v = -1; break;   // no getter case in the original
         }
     }
     lua_push_int(L, v);
     return 1;
 }
 
+// SetUserInt(uid, key, value, flag) - PINNED from FUN_140436450
+// (MsgServer.c:763388): FOUR checkinteger args, uid 0 = current user, the key
+// guarded to 1001..1998, the 4th arg passed as `flag != 0` into the setter
+// FUN_1404e61e0, and the result pushed as a BOOLEAN (FUN_140523ba0).
+// The original's setter switch covers 1003,1004,1005,1012,1024,1032,1033,
+// 1034,1035,1037,1038,1041,1042,1043,1046,1048,1054 through an indexed
+// attribute setter we have not wired yet, so this build implements the two
+// keys that map onto real columns (1003 lookface, 1004 hair) and answers
+// false for the rest.
 int api_set_user_int(lua_State* L) {
-    const long long uid = lua_arg_int(L, 1);
-    const long long key = lua_arg_int(L, 2);
-    const long long v   = lua_arg_int(L, 3);
+    const long long uid   = lua_arg_int(L, 1);
+    const long long key   = lua_arg_int(L, 2);
+    const long long v     = lua_arg_int(L, 3);
+    const long long flag  = lua_arg_int(L, 4);
+    (void)flag;
     Player* p = resolve_user(uid);
-    if (!p) { lua_push_int(L, -1); return 1; }
-    bool ok = true;
-    switch (key) {
-    case 1003: p->lookface = (uint32_t)v;
-               if (IDatabase* db = active_db())
-                   db->update_user_lookface(p->id, (uint32_t)v);
-               break;
-    case 1004: p->hair = (uint32_t)v;
-               if (IDatabase* db = active_db())
-                   db->update_user_hair(p->id, (uint32_t)v);
-               break;
-    default:   ok = false; break;   // read-only or unmapped key
+    bool ok = false;
+    if (p && key >= 1001 && key <= 1998) {
+        switch (key) {
+        case 1003:
+            p->lookface = (uint32_t)v;
+            if (IDatabase* db = active_db())
+                db->update_user_lookface(p->id, (uint32_t)v);
+            ok = true;
+            break;
+        case 1004:
+            p->hair = (uint32_t)v;
+            if (IDatabase* db = active_db())
+                db->update_user_hair(p->id, (uint32_t)v);
+            ok = true;
+            break;
+        default:
+            ok = false;   // settable in the original but not wired here yet
+            break;
+        }
     }
-    lua_push_int(L, ok ? 0 : -1);
+    lua_push_bool(L, ok);
     return 1;
+}
+
+// ChgMap(uid, map, x, y, force) - PINNED from the original: FUN_14043b810
+// pops five checkinteger args (userID, mapID, x, y, force) and calls
+// FUN_1404e7080. uid 0 means the current user. That function rejects uid==0
+// or map==0, skips when the user's state byte has bit 6 set and force is 0,
+// rejects a map that does not exist, rejects a cell that cannot be stood on,
+// then performs the change and returns true.
+// Our adaptation, stated plainly: the state-byte gate is not modelled (we
+// have no such flag), the standability check is a bounds check against the
+// map's dimensions (our maps are flat), and only the current user can be
+// moved (cross-user lookups are not wired, same as the attribute API).
+int api_chg_map(lua_State* L) {
+    const long long uid   = lua_arg_int(L, 1);
+    const long long mapid = lua_arg_int(L, 2);
+    const long long x     = lua_arg_int(L, 3);
+    const long long y     = lua_arg_int(L, 4);
+    const long long force = lua_arg_int(L, 5);
+    (void)force;   // no state-byte gate in this build
+    Player* p = resolve_user(uid);
+    if (!p || !p->session) { lua_push_bool(L, false); return 1; }
+    if (mapid <= 0 || x < 0 || y < 0) {
+        std::printf("[lua] ChgMap: bad args uid=%lld map=%lld (%lld,%lld)\n",
+                    uid, mapid, x, y);
+        lua_push_bool(L, false);
+        return 1;
+    }
+    IDatabase* db = active_db();
+    if (!db || !db->map_exists((uint32_t)mapid)) {
+        std::printf("[lua] ChgMap: map %lld does not exist\n", mapid);
+        lua_push_bool(L, false);
+        return 1;
+    }
+    GameMap& m = World::instance().get_or_create_map((uint32_t)mapid);
+    if (x >= m.width() || y >= m.height()) {
+        std::printf("[lua] ChgMap: (%lld,%lld) outside map %lld\n",
+                    x, y, mapid);
+        lua_push_bool(L, false);
+        return 1;
+    }
+    World::instance().teleport(*p, (uint32_t)mapid, (uint32_t)x, (uint32_t)y);
+    lua_push_bool(L, true); return 1;
 }
 
 } // namespace
@@ -134,6 +210,7 @@ void lua_api_init() {
     h.register_fn("add_money", api_add_money);
     h.register_fn("GetUserInt", api_get_user_int);
     h.register_fn("SetUserInt", api_set_user_int);
+    h.register_fn("ChgMap", api_chg_map);
     std::printf("[lua] gameplay api registered (say, get_*, add_money,"
                 " GetUserInt, SetUserInt)\n");
 }

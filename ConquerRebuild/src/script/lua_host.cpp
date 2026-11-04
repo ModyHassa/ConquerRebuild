@@ -32,6 +32,7 @@ struct lua_api {
     const char*(*pushstring)(lua_State*, const char*);
     const char*(*pushlstring)(lua_State*, const char*, size_t);
     void       (*pushcclosure)(lua_State*, lua_CFunction, int);
+    void       (*pushboolean)(lua_State*, int);
     void       (*createtable)(lua_State*, int, int);
     void       (*setfield)(lua_State*, int, const char*);
     void       (*getfield)(lua_State*, int, const char*);
@@ -88,6 +89,7 @@ bool LuaHost::open(std::string* err) {
     A.pushstring   = (decltype(A.pushstring))sym("lua_pushstring");
     A.pushlstring  = (decltype(A.pushlstring))sym("lua_pushlstring");
     A.pushcclosure = (decltype(A.pushcclosure))sym("lua_pushcclosure");
+    A.pushboolean  = (decltype(A.pushboolean))sym("lua_pushboolean");
     A.createtable  = (decltype(A.createtable))sym("lua_createtable");
     A.setfield     = (decltype(A.setfield))sym("lua_setfield");
     A.getfield     = (decltype(A.getfield))sym("lua_getfield");
@@ -244,6 +246,10 @@ std::string lua_arg_str(lua_State* L, int idx) {
 
 void lua_push_int(lua_State* L, long long v) {
     if (A.pushinteger) A.pushinteger(L, (lua_Integer)v);
+}
+
+void lua_push_bool(lua_State* L, bool v) {
+    if (A.pushboolean) A.pushboolean(L, v ? 1 : 0);
 }
 
 void lua_push_str(lua_State* L, const std::string& v) {

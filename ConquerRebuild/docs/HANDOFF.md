@@ -459,3 +459,14 @@ so test_drops is ~21s and the whole suite fits in under 5 minutes.
 NEXT: the three decode agents (Lua key table, remaining action types,
 Lua API function semantics) feed the next implementation wave.
 
+## v87/v88 (Nov 4, 2026) — ChgMap + the real key table, suite 64/64
+ChgMap(uid,map,x,y,force) works through World::teleport with boolean returns.
+GetUserInt now implements 15 pinned keys (the enum file in the content is the
+authority), SetUserInt is 4-arg and boolean, and docs/lua_key_table.md lists
+every key with citations and what blocks the rest. Suite 64/64 green.
+NEXT: SetUserInt's remaining keys need an indexed attribute setter (the
+original routes them through FUN_1401a6420 with attrib ids 7,8,0xb,0xd-0x10,
+0x1a); then RecordPoint (4 args pinned, engine body undecoded), Talk/Effect
+(arg contracts pinned), and the 224/2201/2205 decode commands already listed
+in docs/remaining_types_decode.md.
+

@@ -72,6 +72,8 @@ void lua_api_init();
 long long lua_arg_int(lua_State* L, int idx);
 std::string lua_arg_str(lua_State* L, int idx);
 void lua_push_int(lua_State* L, long long v);
+void lua_push_bool(lua_State* L, bool v);   // a real Lua boolean, like the
+                                            // original's push-boolean helper
 void lua_push_str(lua_State* L, const std::string& v);
 
 } // namespace conquer
