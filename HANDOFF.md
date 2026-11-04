@@ -507,3 +507,10 @@ NEXT high-value options: port the team system (unblocks 1013 and team chat),
 the home/house subsystem (unblocks 223/224), or decode FUN_1404e6500 for
 AddUserInt.
 
+## v93 (Nov 4, 2026) — AddUserInt live, suite 69/69
+AddUserInt(uid,key,value,flag) implemented for Life (1019) and Mana (1021) with
+clamping + 10017 refresh; the engine's fallthrough semantics are matched
+(true for unwired in-range keys). docs/team_decode.md pins the team manager
+(FUN_140118320, registry 0x1e) and the count slots +0x28/+0x50, which is the
+foundation for porting teams next.
+

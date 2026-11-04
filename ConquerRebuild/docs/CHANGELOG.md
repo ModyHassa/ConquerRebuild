@@ -1100,3 +1100,27 @@ encrypted reply frames (first = 10014 player spawn).
     (C:99361), so the slot stays UNKNOWN.
 - Suite: 68 tests, 68 green.
 
+## v93 (Nov 4, 2026) — AddUserInt implemented, team/home/guild decode started
+- AddUserInt(uid, key, value, flag) is PINNED and implemented. The wrapper
+  FUN_1404365a0 (MsgServer.c:763424-763457) has the same four args and
+  1001..1998 guard as SetUserInt but calls its own engine FUN_1404e6500
+  (C:874405), whose proven cases are: 0x3ee 1006 Level (full level-add with
+  level-up handling), 0x3f2 1010 Virtue (scaled, sub attrib 0x17), 0x3fa 1018
+  RidingPoints, 0x3fb 1019 Life and 0x3fd 1021 Mana (both AddAttrib on the
+  sub-object). The engine sets its result to 1 as soon as the user resolves and
+  has no default case, so unwired in-range keys answer true; false only when
+  the user cannot be resolved or the key is out of range.
+- Implemented 1019 Life and 1021 Mana with the clamp-to-[0,max] the ported
+  attribute path already uses, plus the 10017 refresh. Level add stays unwired
+  (it needs the level-up pipeline) and answers true like the engine.
+- tests/test_actions_v93.py (10 asserts): life drops by exactly 100, an
+  over-add clamps to max life, mana add works, an in-range unwired key answers
+  true, an out-of-range key answers false.
+- Research workers started the team/home/guild decode. docs/team_decode.md
+  already pins the key-1013 chain: the team manager singleton is FUN_140118320
+  (MsgServer.c:206496, registry index 0x1e), manager vtable +0x28 is
+  LookupUserTeam(id) and +0x50 is GetMemberCount(mgr, team, extra).
+  docs/home_decode.md and docs/guild_slots_decode.md hold their verified facts
+  so far and mark the rest IN PROGRESS / BLOCKED.
+- Suite: 69 tests, 69 green.
+

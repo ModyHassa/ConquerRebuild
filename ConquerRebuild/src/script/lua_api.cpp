@@ -7,6 +7,8 @@
 #include "script/lua_host.hpp"
 #include "systems/world.hpp"
 #include "systems/chat.hpp"
+#include "systems/combat.hpp"   // ATTRIB_LIFE (AddUserInt 1019)
+#include "systems/magic.hpp"    // ATTRIB_MANA (AddUserInt 1021)
 
 #include <cstdio>
 #include <cstring>
@@ -187,6 +189,59 @@ int api_talk(lua_State* L) {
     return 1;
 }
 
+// AddUserInt(uid, key, value, flag) - PINNED from FUN_1404365a0
+// (MsgServer.c:763424-763457): the same four args and 1001..1998 guard as
+// SetUserInt, uid 0 = current user, pushed as a boolean, but it calls its OWN
+// engine FUN_1404e6500 (C:874405). That engine sets its result to 1 as soon as
+// the user resolves and has no default case, so in-range keys it does not
+// handle still answer true. Proven cases (C:874445+):
+//   0x3ee 1006 Level  - full level-add with level-up handling
+//   0x3f2 1010 Virtue - scaled by FUN_140164ee0 then sub attrib 0x17
+//   0x3fa 1018 RidingPoints - FUN_140162b60(user, value)
+//   0x3fb 1019 Life   - sub-object attrib 0 via AddAttrib(value, notify)
+//   0x3fd 1021 Mana   - sub-object attrib 2 via AddAttrib(value, notify)
+// This build implements the two that map onto fields we own (1019, 1021) with
+// the same clamp-to-[0,max] the ported attribute path already uses; the level
+// add needs the level-up pipeline and stays unwired (still answers true).
+int api_add_user_int(lua_State* L) {
+    const long long uid  = lua_arg_int(L, 1);
+    const long long key  = lua_arg_int(L, 2);
+    const long long v    = lua_arg_int(L, 3);
+    const long long flag = lua_arg_int(L, 4);
+    (void)flag;
+    Player* p = resolve_user(uid);
+    if (!p || key < 1001 || key > 1998) {
+        lua_push_bool(L, false);
+        return 1;
+    }
+    switch (key) {
+    case 1019: {   // Life
+        long long nh = (long long)p->hp + v;
+        if (nh < 0) nh = 0;
+        if (nh > (long long)p->max_hp) nh = (long long)p->max_hp;
+        p->hp = (uint32_t)nh;
+        if (p->session)
+            p->session->send(build_user_attrib_10017(p->id,
+                                                     {{ATTRIB_LIFE, p->hp}}));
+        break;
+    }
+    case 1021: {   // Mana
+        long long nm = (long long)p->mana + v;
+        if (nm < 0) nm = 0;
+        if (nm > (long long)p->max_mana) nm = (long long)p->max_mana;
+        p->mana = (uint32_t)nm;
+        if (p->session)
+            p->session->send(build_user_attrib_10017(p->id,
+                                                     {{ATTRIB_MANA, p->mana}}));
+        break;
+    }
+    default:
+        break;   // in range, not wired: the engine's fallthrough answers true
+    }
+    lua_push_bool(L, true);
+    return 1;
+}
+
 // GetUserStr(uid, key) - PINNED from FUN_1404e0940 (MsgServer.c:871073): the
 // string getter implements ONLY key 1002 (player name, sub-object vtbl+0x18),
 // 1017 (mate name, user vtbl+0x40) and 1064 (a god-bless expiry string).
@@ -305,6 +360,7 @@ void lua_api_init() {
     h.register_fn("GetUserStr", api_get_user_str);
     h.register_fn("RecordPoint", api_record_point);
     h.register_fn("Talk", api_talk);
+    h.register_fn("AddUserInt", api_add_user_int);
     std::printf("[lua] gameplay api registered (say, get_*, add_money,"
                 " GetUserInt, SetUserInt)\n");
 }
