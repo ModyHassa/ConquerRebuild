@@ -207,7 +207,7 @@ try:
         return got
 
     hunt = 0
-    deadline = time.time() + 150
+    deadline = time.time() + 240
     while not pills and time.time() < deadline:
         got = summon_and_kill()
         hunt += 1

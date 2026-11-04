@@ -443,3 +443,13 @@ FUN_1404e02d0 onto our Player fields, add stc(), the Set* writers, ChgMap,
 Effect, and the GetSyna*/GetTeam* family, then bind the event-driven
 ActiveScripts (EventType registration).
 
+## v85 (Nov 2, 2026) — GetUserInt/SetUserInt, suite 62/62
+Attribute API is live under the original names with keys pinned by the
+shipped content (1003 lookface, 1004 hair, 1037 guild rank, 1001 id; uid 0 =
+current player). Unmapped keys answer -1 like the original. hair is a real
+player column now (load + persist). Suite 62/62 green.
+NEXT: decode FUN_1404e02d0's remaining keys (1005..1998) against the CUser
+vtable table in docs/msgplayer_10014_layout.md, add AddUserInt/GetUserStr/
+SetUserStr, then ChgMap/Effect/RecordPoint; still open: 715/720, 223/224,
+2201/2205, and the big systems (team/trade, homes, 183 scripts beyond dialogs).
+

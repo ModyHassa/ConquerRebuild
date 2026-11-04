@@ -62,6 +62,7 @@ public:
     uint32_t itemtype_amount(uint32_t itemtype) override;
     bool itemtype_ident(uint32_t itemtype) override;
     void update_user_lookface(uint32_t player_id, uint32_t lookface) override;
+    void update_user_hair(uint32_t player_id, uint32_t hair) override;
     bool add_money(uint32_t user_id, int64_t delta) override;
     // ---- v24: weapon skill (proficiency) ----
     std::vector<WeaponSkillUpRecord> load_weapon_skill_up() override;

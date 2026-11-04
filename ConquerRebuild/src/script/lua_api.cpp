@@ -60,6 +60,62 @@ int api_add_money(lua_State* L) {
     return 0;
 }
 
+// ---- original-named attribute API -------------------------------------
+// GetUserInt(uid, key) / SetUserInt(uid, key, value). The key space is the
+// original's (1001..1998, guard key-0x3e9 < 0x3e6). The keys pinned by the
+// shipped content (PublicFunc/FuncGetValue.lua) are:
+//   1003 Get_UserLookFace, 1004 Get_UserHair,
+//   1037 Get_UserGuildRank, 1046 Get_UserPeerage, 1048 Get_UserVip
+// plus 1001 = the user id (FUN_1404e02d0 case 0x3e9 resolves GetID). Peerage
+// and VIP have no Player column yet, so those still answer -1 like an
+// unmapped key in the original.
+Player* resolve_user(long long uid) {
+    Player* ctx = ctx_player();
+    if (uid == 0) return ctx;
+    if (ctx && (long long)ctx->id == uid) return ctx;
+    return nullptr;   // cross-user lookups need the world map (not wired yet)
+}
+
+int api_get_user_int(lua_State* L) {
+    const long long uid = lua_arg_int(L, 1);
+    const long long key = lua_arg_int(L, 2);
+    Player* p = resolve_user(uid);
+    long long v = -1;
+    if (p) {
+        switch (key) {
+        case 1001: v = (long long)p->id; break;
+        case 1003: v = (long long)p->lookface;  break;
+        case 1004: v = (long long)p->hair;      break;
+        case 1037: v = (long long)p->guild_rank; break;
+        default:   v = -1; break;   // not mapped yet (peerage 1046/vip 1048)
+        }
+    }
+    lua_push_int(L, v);
+    return 1;
+}
+
+int api_set_user_int(lua_State* L) {
+    const long long uid = lua_arg_int(L, 1);
+    const long long key = lua_arg_int(L, 2);
+    const long long v   = lua_arg_int(L, 3);
+    Player* p = resolve_user(uid);
+    if (!p) { lua_push_int(L, -1); return 1; }
+    bool ok = true;
+    switch (key) {
+    case 1003: p->lookface = (uint32_t)v;
+               if (IDatabase* db = active_db())
+                   db->update_user_lookface(p->id, (uint32_t)v);
+               break;
+    case 1004: p->hair = (uint32_t)v;
+               if (IDatabase* db = active_db())
+                   db->update_user_hair(p->id, (uint32_t)v);
+               break;
+    default:   ok = false; break;   // read-only or unmapped key
+    }
+    lua_push_int(L, ok ? 0 : -1);
+    return 1;
+}
+
 } // namespace
 
 void lua_api_init() {
@@ -76,7 +132,10 @@ void lua_api_init() {
     h.register_fn("get_y", api_get_y);
     h.register_fn("get_name", api_get_name);
     h.register_fn("add_money", api_add_money);
-    std::printf("[lua] gameplay api registered (say, get_*, add_money)\n");
+    h.register_fn("GetUserInt", api_get_user_int);
+    h.register_fn("SetUserInt", api_set_user_int);
+    std::printf("[lua] gameplay api registered (say, get_*, add_money,"
+                " GetUserInt, SetUserInt)\n");
 }
 
 } // namespace conquer

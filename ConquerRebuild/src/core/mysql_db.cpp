@@ -99,7 +99,7 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         "SELECT u.id,u.account_id,u.name,u.recordmap_id,u.recordx,u.recordy,"
         "u.level,(a.type=1),u.life,u.mana,u.exp,u.money,u.profession,u.pk,u.lookface, "
         "(SELECT syn_id FROM cq_synattr WHERE id=u.id LIMIT 1), "
-        "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1) "
+        "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair "
         "FROM cq_user u LEFT JOIN accounts a "
         "ON a.id=u.account_id WHERE u.account_id=%u LIMIT 1", account_id);
     if (!exec(sql)) return out;
@@ -123,6 +123,7 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         if (row[12]) out.profession = strtoul(row[12], nullptr, 10);
         if (row[15]) out.syn_id = strtoul(row[15], nullptr, 10);
         if (row[16]) out.syn_rank = strtoul(row[16], nullptr, 10);
+        if (row[17]) out.hair = strtoul(row[17], nullptr, 10);
         if (row[13]) out.pk = (int32_t)strtol(row[13], nullptr, 10);
         if (row[14]) out.lookface = strtoul(row[14], nullptr, 10);
     }
@@ -445,6 +446,15 @@ bool MySQLDatabase::delete_item(uint32_t item_id) {
 }
 
 // ---- v36: hairdresser 1005 lookface persist ------------------------
+void MySQLDatabase::update_user_hair(uint32_t player_id, uint32_t hair) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[128];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_user SET hair=%u WHERE id=%u LIMIT 1", hair, player_id);
+    exec(sql);
+}
+
 void MySQLDatabase::update_user_lookface(uint32_t player_id,
                                          uint32_t lookface) {
     if (!conn_) return;

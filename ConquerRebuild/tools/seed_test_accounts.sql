@@ -1333,3 +1333,8 @@ INSERT INTO cq_action (id,id_next,id_nextfail,type,data,param) VALUES
 DELETE FROM cq_npc WHERE id=99001850;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001850,'LuaProbe',0,5000,1002,400,301,0,'v84_probe.lua');
+
+-- v85: the attribute-API probe NPC
+DELETE FROM cq_npc WHERE id=99001851;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001851,'LuaAttrProbe',0,5000,1002,400,302,0,'v85_probe.lua');

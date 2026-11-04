@@ -51,6 +51,7 @@ struct Player {
     std::vector<uint32_t> menu_ids;
     uint32_t profession = 0;             // cq_user.profession (v29 task checks)
     uint32_t lookface = 100003;           // cq_user.lookface (v36: 1005)
+    uint32_t hair = 0;                    // cq_user.hair (v85: GetUserInt key 1004)
     int32_t  pk = 0;                     // cq_user.pk (v29 task checks)
     uint64_t last_talk_ms = 0;          // chat 2001 flood guard (original
                                         // FUN_1401765e0: 500ms repeat gate)

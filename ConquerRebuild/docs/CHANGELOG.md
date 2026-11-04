@@ -916,3 +916,27 @@ encrypted reply frames (first = 10014 player spawn).
   write ("after reward money=7").
 - Suite: 61 tests, 61 green. Coverage 97.8%, 122 of 216 types.
 
+## v85 (Nov 2, 2026) — original-named attribute API + hair persistence
+- src/script/lua_api.cpp now registers GetUserInt(uid, key) and
+  SetUserInt(uid, key, value) under their ORIGINAL names, so the shipped
+  PublicFunc libraries can bind against them. Keys are pinned from the
+  content itself: PublicFunc/FuncGetValue.lua defines
+  Get_UserLookFace -> GetUserInt(uid,1003), Get_UserHair -> 1004,
+  Get_UserGuildRank -> 1037, Get_UserPeerage -> 1046, Get_UserVip -> 1048,
+  and FUN_1404e02d0's case 0x3e9 resolves the user id for 1001.
+  Implemented: 1001 id, 1003 lookface, 1004 hair, 1037 guild rank; any other
+  key answers -1, which is what the original returns for a key it does not
+  handle. uid 0 means the current (context) player, the original's
+  DAT_140975bf0 rule; cross-user lookups are not wired yet.
+- cq_user.hair is a real player field now (Player.hair, UserRecord.hair,
+  load_user appends u.hair, IDatabase::update_user_hair + MySQL impl), so
+  SetUserInt(0, 1004, n) persists instead of dying in memory.
+- data/lua/v85_probe.lua + NPC 99001851 "LuaAttrProbe": tests/test_actions_v85.py
+  proves 1001/1003/1037 read the live columns, 1037 matches cq_synattr.rank,
+  an unmapped key answers -1, SetUserInt writes hair (verified in cq_user),
+  and a read-only key answers -1.
+- tests/test_drops.py: hunt deadline 150s -> 240s after one 196-kill run with
+  zero 3% rolls; the item phase stays deterministic (summon + multi-drain
+  harvest), this only widens the tail of the distribution.
+- Suite: 62 tests, 62 green.
+

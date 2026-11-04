@@ -38,6 +38,7 @@ struct UserRecord {
     uint32_t syn_rank     = 0;  // cq_synattr.rank    (guild rank code)
     int32_t  pk           = 0;  // cq_user.pk
     uint32_t lookface     = 0;  // cq_user.lookface (hairdresser 1005)
+    uint32_t hair         = 0;  // cq_user.hair (v85: script key 1004)
 };
 
 // Combat stats derived from equipped items (cq_item joined cq_itemtype) plus
@@ -284,6 +285,7 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
                              uint32_t amount) = 0;
     virtual void update_user_lookface(uint32_t player_id,
                                      uint32_t lookface) = 0;
+    virtual void update_user_hair(uint32_t player_id, uint32_t hair) = 0;
     virtual uint32_t itemtype_amount(uint32_t itemtype) = 0;
     // v48: cq_itemtype.ident (GetCell 0x17) — 543 consume gate
     virtual bool itemtype_ident(uint32_t itemtype) = 0;
@@ -358,6 +360,7 @@ public:
     bool delete_item(uint32_t) override { return false; }
     bool update_item(uint32_t, uint32_t, uint32_t) override { return false; }
     void update_user_lookface(uint32_t, uint32_t) override {}
+    void update_user_hair(uint32_t, uint32_t) override {}
     uint32_t itemtype_amount(uint32_t) override { return 0; }
     bool itemtype_ident(uint32_t) override { return false; }
     bool execute_sql(const std::string&) override { return true; }
