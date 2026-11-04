@@ -2548,8 +2548,16 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             active_db()->execute_sql(
                 "DELETE FROM cq_synattr WHERE id=" + std::to_string(kuid));
-            // the removed member's in-memory guild clears on its next login
-            // (cq_synattr.syn_id and cq_user are read at login)
+            // v97: if the member is online, clear their guild in memory now
+            // (World::find_player walks the map user lists, the same reach the
+            // original takes through the user-list lookup). The DB row is gone,
+            // so a later login stays clean either way.
+            if (Player* kp = w.find_player(kuid)) {
+                kp->guild_id = 0;
+                kp->guild_rank = 0;
+                std::printf("[action] %u 715 cleared guild state of online %u\n",
+                            p.id, kuid);
+            }
             std::printf("[action] %u 715 kicked %s (%u) from guild %u\n",
                         p.id, kname.c_str(), kuid, p.guild_id);
             cur = a->id_next;

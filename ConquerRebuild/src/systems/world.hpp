@@ -129,6 +129,17 @@ class World {
 public:
     static World& instance() { static World w; return w; }
     auto& maps() { return maps_; }
+
+    // v97: locate an ONLINE player by id. The original reaches users through
+    // the map-group user list (userlist lookup by id), so every social system
+    // (team, trade, kick notices, whisper) needs this. Returns null when the
+    // player is not online on any of our maps.
+    Player* find_player(uint32_t id) {
+        for (auto& kv : maps_)
+            for (Player* pl : kv.second.players())
+                if (pl && pl->id == id) return pl;
+        return nullptr;
+    }
     GameMap& get_or_create_map(uint32_t map_id) {
         auto it = maps_.find(map_id);
         if (it == maps_.end()) {

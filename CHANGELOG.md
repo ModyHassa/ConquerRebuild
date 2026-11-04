@@ -1201,3 +1201,22 @@ guessed:
   collision broke v68/v69 until it was renumbered.
 - Suite: 72 tests, 72 green.
 
+## v97 (Nov 4, 2026) — World::find_player, and the team wire decoded
+- Added World::find_player(id): walks the per-map player lists, the same reach
+  the original takes through its user-list by-id lookup. Every social system
+  (team, trade, notices, whisper) needs it. Action 715 now uses it to clear an
+  ONLINE kicked member's guild state immediately; the DB row is already removed,
+  so a later login stays clean either way.
+- Suite: 72 tests, 72 green.
+- docs/team_wire_decode.md (research worker, every row cited): CMsgTeam 1023
+  (0x3ff) is a fixed 12-byte request with NO packed string - size@+0,
+  type=0x3ff@+2, sub-command@+4 (u16), argument@+8 (u32); builder
+  FUN_1418f3900 (Team.c:14348-14355), parse FUN_1418f3970 (C:14327).
+  CTeamService::ProcessMsg (Team.c:7012-7517) switches the sub-command with
+  PROVEN numbers: 1 = apply to join (target team id in arg0, needs <5 members,
+  leader check, closed-flag check), 2 = leave (self), 3 = accept an application
+  (arg0 = team/inviter), 4 = invite (arg0 = invitee, leader only, target must be
+  online), 7 = kick (arg0 = member id), 8 = close the team to applications.
+  Team object fields proven so far: +0x3c id, +0x40 leader, +0x44 closed flag,
+  +0x47 a second flag, member count via FUN_1418e22b0 capped at 5.
+
