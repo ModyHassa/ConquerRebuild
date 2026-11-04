@@ -1382,3 +1382,22 @@ guessed:
 - Tests: `tests/test_actions_v104.py` asserts the 42-byte length, wire+0x0C/+0x14/
   +0x18 contents, the sender id, both branch outcomes and that field3 == 0 emits
   no packet. Suite: **75 tests, 75 green**.
+
+## v105 (Nov 4, 2026) — action type 402 PORTED (303 rows, 100% of real content)
+- The four counters the 402 gate calls are named by the binary itself: the catch
+  thunks at `MsgServer.c:1230575+` are `CountAllNpc`, `CountFurnitureNpc`,
+  `CountNpcByName` and `CountNpcByType`, matching the four subject keywords in
+  vtable-slot order. That closes the last blocker recorded in v103b.
+- Real content uses only `type` (297 rows, e.g. `type 25 < 8`) and `name` (6 rows,
+  e.g. `name ItemBox < 3`); `all` and `furniture` have ZERO rows, so they are
+  implemented as a logged UNKNOWN that takes `id_nextfail` rather than guessed.
+- `case 402` now counts NPCs on the actor's map across `cq_npc` + `cq_dynanpc` and
+  applies the proven gate (`op "<" && count < value` / `op "==" && count == value`
+  else fail). Name and type both verified live against seeded NPCs.
+- Bug found and fixed while testing: the SQL escaper iterated the whole 128-byte
+  buffer (`for (char c : nm)`) instead of up to the NUL, embedding NULs in the
+  statement so MariaDB received a truncated `... name='V104Count`. Now walks the
+  C string; the server log's `bad SQL` line was what exposed it.
+- Tests: `tests/test_actions_v105.py` (fixtures 99001080-92, npcs 99001894-99)
+  covers name `==`, name `<` (count 2 vs 2 -> fail), type `==`, and the furniture
+  UNKNOWN path. Suite: **76 tests, 76 green**.

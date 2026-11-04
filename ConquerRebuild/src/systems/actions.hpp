@@ -1644,6 +1644,67 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 402: {  // npc-count gate (old-engine case 0x192, MsgServer.c:207733).
+            // PROVEN: sscanf "%s %s %s %d" must yield exactly 4 tokens; the first
+            // token picks a CRoleManager counter - the binary's own catch
+            // handlers (Catch_1406691d0/210/250/290, MsgServer.c:1230575+) name
+            // them CountAllNpc / CountFurnitureNpc / CountNpcByName /
+            // CountNpcByType - and the gate is
+            //   op "<"  && count <  value -> id_next
+            //   op "==" && count == value -> id_next
+            //   anything else             -> id_nextfail
+            // Shipped content only uses "type" (297 rows, e.g. "type 25 < 8")
+            // and "name" (6 rows, e.g. "name ItemBox < 3", "name Prince == 1").
+            // NPCs are counted over cq_npc + cq_dynanpc on the actor's map, the
+            // two NPC sources this rebuild models.
+            // "all" and "furniture" have ZERO rows in the shipped DB and the
+            // furniture predicate is still UNKNOWN, so they log and fail -
+            // never invent them.
+            char subj[64] = {0}, nm[128] = {0}, op[8] = {0};
+            int val = 0;
+            int n = std::sscanf(a->param.c_str(), "%63s %127s %7s %d",
+                                subj, nm, op, &val);
+            if (n != 4) {
+                std::printf("[action] %u: 402 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string sql;
+            if (strcasecmp(subj, "type") == 0) {
+                unsigned t = (unsigned)std::strtoul(nm, nullptr, 10);
+                sql = "SELECT COUNT(*) FROM cq_npc WHERE mapid=" +
+                      std::to_string(p.map_id) + " AND type=" + std::to_string(t);
+            } else if (strcasecmp(subj, "name") == 0) {
+                std::string esc;
+                for (const char* q = nm; *q; ++q) {
+                    if (*q == '\'') esc += "''"; else esc += *q;
+                }
+                sql = "SELECT COUNT(*) FROM cq_npc WHERE mapid=" +
+                      std::to_string(p.map_id) + " AND name='" + esc + "'";
+            } else {
+                std::printf("[action] %u: 402 subject '%s' UNKNOWN (no content "
+                            "uses it)\n", p.id, subj);
+                cur = a->id_nextfail;
+                break;
+            }
+            int count = 0;
+            std::string out;
+            auto db = active_db();
+            if (db && db->query_string(sql, out)) count = std::atoi(out.c_str());
+            // dyna NPCs (301) live in their own table; the role manager counts
+            // them as NPC roles on the map too.
+            std::string dsql = sql;
+            dsql.replace(dsql.find("cq_npc"), 6, "cq_dynanpc");
+            std::string dout;
+            if (db && db->query_string(dsql, dout)) count += std::atoi(dout.c_str());
+            bool pass = (strcasecmp(op, "<") == 0 && count < val) ||
+                        (strcasecmp(op, "==") == 0 && count == val);
+            std::printf("[action] %u: 402 %s %s %s %d -> count %d %s\n",
+                        p.id, subj, nm, op, val, count, pass ? "pass" : "fail");
+            cur = pass ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the

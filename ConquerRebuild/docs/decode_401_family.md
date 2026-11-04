@@ -33,7 +33,7 @@ Implemented as `case 401` in `src/systems/actions.hpp` with `Player.next_task_id
 (the original's `user+0xa34`); `tests/test_actions_v103.py` asserts the exact
 2031 bytes, the ok/fail branches and that the zero-id path emits no push.
 
-## 402 (303 rows) — pure conditional gate
+## 402 (303 rows) — PROVEN AND PORTED (v105)
 No SQL, no packet. f1 = subject (all/furniture/name/type), f2 = value,
 f3 = op (`==` or `<`), f4 = a constant.
 Body read in v103 (`MsgServer.c:207735-207782`), so the gate is now PROVEN:
@@ -51,9 +51,26 @@ return (op=="<"  && count <  value) ||
        (op=="==" && count == value);
 ```
 The surrounding string `CRoleManager::CountFurnitureNpc` confirms the family.
-BLOCKER (the only one left): the four CRoleManager count methods themselves -
-what "all" counts (players? npcs? everything) is not established, so the type is
-still not ported.
+The four counters are NAMED BY THE BINARY ITSELF: the catch handlers at
+`MsgServer.c:1230575+` are `Catch_1406691d0` = "CRoleManager::CountAllNpc",
+`Catch_140669210` = "CRoleManager::CountFurnitureNpc", `Catch_140669250` =
+"CRoleManager::CountNpcByName", and the next thunk = "CountNpcByType" - exactly
+matching the four subject keywords, in the same order as the vtable slots.
+
+Shipped content uses only two of them:
+
+| subject | rows | example |
+|---|---|---|
+| `type` | 297 | `type 25 < 8` |
+| `name` | 6 | `name ItemBox < 3`, `name Princess == 1`, `name %syn_name == 1` |
+| `all` / `furniture` | 0 | never used by any row |
+
+IMPLEMENTED: `type` and `name` count NPCs on the actor's map over `cq_npc` plus
+`cq_dynanpc` (the two NPC sources this rebuild models), then apply the proven
+gate `<` / `==`. `all` and `furniture` have zero rows and their furniture
+predicate is still UNKNOWN, so they log and take `id_nextfail` - they are never
+guessed. The `%syn_name` rows (guild NPC names) stay literal because the guild
+NPC is not modelled yet.
 
 ## 403 (93 rows) — format PROVEN, structure missing
 A 22-field conversion plus an owner rule were recovered, but the NPC info

@@ -594,3 +594,12 @@ bytes and takes an optional slot14 for call sites that set payload+0x10.
 analysis on FUN_1400875f0's object, since the vtable route failed), then the
 1554/1095 decodes and 1086's levexp curve tail.
 
+## v105 (Nov 4, 2026) — 402 ported, suite 76/76
+Old-engine 402 (303 rows) is live: subject `type`/`name` count NPCs over cq_npc +
+cq_dynanpc on the actor's map and apply the proven `<`/`==` gate; `all` and
+`furniture` are 0-row subjects whose predicate is still UNKNOWN and therefore log
++ fail. Remaining old-engine family work: 403 (needs the 108-byte NPC info
+struct), 532 (item-attribute driven, not an action case), 543/544 (helper
+definitions). Next big new-engine targets: 1040 rebirth (requirement table) and
+1086 (levexp curve) once their helpers are read.
+
