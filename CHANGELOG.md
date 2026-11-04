@@ -1076,3 +1076,27 @@ encrypted reply frames (first = 10014 player spawn).
   column afterwards so later waves see the seeded value.
 - Suite: 67 tests, 67 green.
 
+## v92 (Nov 4, 2026) — Lua Talk() implemented, blockers for the last types pinned down
+- Talk(uid, channel, msg) is PINNED and implemented from FUN_1404e73b0
+  (MsgServer.c:874893): uid 0 = current user (a 0 uid is a LuaError); a NULL or
+  empty message is a LuaError; the user is resolved by id; when the channel
+  argument is 0 it is replaced with the DEFAULT CHANNEL 2000 (C:874915) and the
+  user's vtbl+0x150 sender is called with (channel, from-string, msg); the call
+  answers a boolean. The from-string constant DAT_1406e4608 was not resolved, so
+  this build sends an empty sender (renders as a system line).
+- tests/test_actions_v92.py: Talk(0,0,...) and Talk(0,2001,...) both reach the
+  client as CMsgTalk 1004, an empty message answers false, and the drain holds
+  the expected number of talk packets.
+- Blocker status, made explicit instead of implied:
+  * 223/224 need the HOME subsystem: `%user_home_id` IS expanded by the engine
+    (msgserver_gameaction.c:5073, _snprintf "%u") but the substituted expression
+    was not recoverable from the decompile, and our engine models neither homes
+    nor the CMapGroup count slot +0xa8 (its other call sites in the decompile
+    are per-record field setters on unrelated classes, so the slot cannot be
+    named from them). Not guessed.
+  * 715/720 need the guild-manager slots +0x118 / +0x260. The three resolvable
+    +0x118 call sites (C:208141, 246246, 1009435) carry no log literal naming
+    the slot, and the manager itself is a registry lookup by index 0x16
+    (C:99361), so the slot stays UNKNOWN.
+- Suite: 68 tests, 68 green.
+

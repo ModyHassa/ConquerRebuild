@@ -163,6 +163,30 @@ int api_set_user_int(lua_State* L) {
     return 1;
 }
 
+// Talk(uid, channel, msg) - PINNED from FUN_1404e73b0 (MsgServer.c:874893):
+// uid 0 = current user (a 0 uid is a LuaError), a NULL/empty msg is a
+// LuaError, the user is resolved by id, and when the channel argument is 0 it
+// is replaced with the DEFAULT CHANNEL 2000 (C:874915) before the user's
+// vtbl+0x150 sender is called with (channel, from-string, msg). The function
+// answers a boolean. The from-string constant DAT_1406e4608 was not resolved,
+// so this build sends an empty sender, which renders as a system line.
+int api_talk(lua_State* L) {
+    const long long uid = lua_arg_int(L, 1);
+    long long ch        = lua_arg_int(L, 2);
+    const std::string msg = lua_arg_str(L, 3);
+    Player* p = resolve_user(uid);
+    if (!p || !p->session || msg.empty()) {
+        lua_push_bool(L, false);
+        return 1;
+    }
+    if (ch == 0) ch = 2000;                       // C:874915 default channel
+    p->session->send(build_talk_1004("" /*from*/, p->name, msg, "",
+                                     0x00FFFFFFu, (uint16_t)ch, 0, 0, 0, 0));
+    std::printf("[lua] Talk(%lld, %lld): %s\n", uid, ch, msg.c_str());
+    lua_push_bool(L, true);
+    return 1;
+}
+
 // GetUserStr(uid, key) - PINNED from FUN_1404e0940 (MsgServer.c:871073): the
 // string getter implements ONLY key 1002 (player name, sub-object vtbl+0x18),
 // 1017 (mate name, user vtbl+0x40) and 1064 (a god-bless expiry string).
@@ -280,6 +304,7 @@ void lua_api_init() {
     h.register_fn("ChgMap", api_chg_map);
     h.register_fn("GetUserStr", api_get_user_str);
     h.register_fn("RecordPoint", api_record_point);
+    h.register_fn("Talk", api_talk);
     std::printf("[lua] gameplay api registered (say, get_*, add_money,"
                 " GetUserInt, SetUserInt)\n");
 }

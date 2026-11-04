@@ -498,3 +498,12 @@ NEXT: the base-attribute recompute paths (FUN_140199cb0/140199d90/140199f50/
 %user_home_id (223/224), guild slots +0x118/+0x260 (715/720), team/booth state
 (2201/2205), FUN_1404e6500 (AddUserInt).
 
+## v92 (Nov 4, 2026) — Talk() live, suite 68/68
+Talk(uid, channel, msg) works (default channel 2000, empty msg refused,
+boolean return). Blocker inventory is now explicit: 223/224 need the home
+subsystem + CMapGroup slot +0xa8; 715/720 need guild-manager +0x118/+0x260;
+2201/2205 need team/booth state; AddUserInt needs FUN_1404e6500.
+NEXT high-value options: port the team system (unblocks 1013 and team chat),
+the home/house subsystem (unblocks 223/224), or decode FUN_1404e6500 for
+AddUserInt.
+

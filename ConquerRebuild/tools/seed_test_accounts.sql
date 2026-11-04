@@ -1378,3 +1378,8 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001856;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001856,'LuaProfProbe',0,5000,1002,400,307,0,'v91_probe.lua');
+
+-- v92: Talk API probe NPC
+DELETE FROM cq_npc WHERE id=99001857;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001857,'LuaTalkProbe',0,5000,1002,400,308,0,'v92_probe.lua');
