@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 #include "script/lua_host.hpp"
 #include "systems/world.hpp"
+#include "systems/team.hpp"
 #include "systems/chat.hpp"
 #include "systems/combat.hpp"
 #include "systems/usereffect.hpp"  // build_user_effect_1015 (Lua Effect)   // ATTRIB_LIFE (AddUserInt 1019)
@@ -102,7 +103,12 @@ int api_get_user_int(lua_State* L) {
         // getter path; each has a matching cq_user column, loaded at login)
         case 1010: v = (long long)p->virtue;      break;
         case 1011: v = (long long)p->meto;        break;
-        case 1013: v = 0;                          break;  // no team system yet,
+        case 1013: {  // G_PLAYER_TeamMemberCount: TeamManager slot +0x50
+            if (Team* t = team_manager().lookup_user_team(p->id))
+                v = (long long)team_manager().member_count(*t);
+            else v = 0;
+            break;
+        }
                                                            // so every user has
                                                            // no team (the key
                                                            // answers 0 when the

@@ -130,3 +130,35 @@ if (cVar4 == '\0') {
 | **13 (0xd)** | 7456-7461 | leader only; `FUN_1418e1aa0(team)` → `+0x46=0` | **clear flag +0x46** |
 | **14 (0xe)** | 7462-7468 | `iVar5=*(u32*)(buf+8)` must be online; rewrites `buf+8 = actor` and `SendToTeam(iVar5, msg)` (relay only) | **relay to another team** (arg0 = destination team id) |
 | >0xe | none | switch has **no default label**; unknown values do nothing | Team.c:7074-7468 |
+
+## 3. Final worker report — extra proven facts (v98 implementation)
+
+- **Member cap = 5**: `FUN_1418e22b0` clamps the count (`Team.c:940-945`), and four
+  `< 5` gates plus the five-slot loops confirm it.
+- **CTeam** (0x48 bytes from the `"CTeam"` heap): member array `+0x20`, its end
+  `+0x28` (count = `(end-start)/4`), `id +0x3c`, `leader +0x40`, closed flag
+  `+0x44`, and flags `+0x45` / `+0x46` / `+0x47` (clearing `+0x47` also clears
+  `+0x44`).
+- **Team info struct** is 0x20 bytes: `team_id, leader_id, member[5], f45, f46, f47`.
+- **Outbound packets**: `0x3ff` (12 bytes), `0x7fd` (20 bytes, four builders),
+  and **`0x402` CMsgTeamMember, 0x94 bytes**, which carries the team id, the
+  leader and the five members and is sent to every member. 0x402 offsets are NOT
+  pinned yet, so the rebuild does not emit it (no invented layout).
+- **Correction to an earlier assumption**: `0x3ea` / `0x3eb` are NOT team-info
+  packets - they are `CMsgLog`, variable length, and carry no id at all.
+- There is **no "change leader" and no "query" sub-command** in the switch.
+
+## 4. Port status (v98, commit for the team wave)
+
+Implemented in `src/systems/team.hpp` + the `MSG_TEAM_1023` handler: an
+in-memory `TeamManager` (lookup by user, `GetMemberCount` clamped to 5) and the
+proven sub-commands 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10-13 and 14. Lua
+`GetUserInt(uid, 1013)` now returns the real member count.
+Documented deviations, all flagged in code:
+- a LEADER leaving via sub 2 dissolves the team, because the original removes a
+  member through `FUN_1418e9a90(..., 2)` and whether it reassigns leadership is
+  NOT proven;
+- sub 4 delivers the invitation 1023 to the invitee (the decode says
+  `SendToTeam(target's team)`, but an invitee has no team by definition).
+Blocks still open: `0x402` offsets, and sub 1 needs the client to learn a team
+id, which only `0x402` would teach it.

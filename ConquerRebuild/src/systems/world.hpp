@@ -44,6 +44,7 @@ struct Player {
     uint32_t guild_id = 0;                // v81: cq_synattr.syn_id (the
                                           // original's actor +0x170 getter)
     uint32_t guild_rank = 0;              // v81: cq_synattr.rank
+    uint32_t team_id = 0;                 // v98: TeamManager team id (0 = none)
     // v42: dialog menu-task list (original CUser obj+0x13a vector, cap
     // 20): 102/103/104/120 dialogs put the array INDEX in the 2032
     // u2 reply-id slot; the client echoes it back and we map it to the

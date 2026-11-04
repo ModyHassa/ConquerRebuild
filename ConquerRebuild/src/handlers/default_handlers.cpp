@@ -3,6 +3,7 @@
 #include "protocol/ids.hpp"
 #include "systems/login.hpp"
 #include "systems/world.hpp"
+#include "systems/team.hpp"
 #include "systems/monsters.hpp"
 #include "systems/xp.hpp"
 #include "systems/movement.hpp"
@@ -452,6 +453,166 @@ void register_default_handlers(Dispatcher& d) {
     });
     d.add(MSG_CONNECT_1052, [](ClientSession& s, PacketReader& r) {
         (void)r; log_packet(s, "CONNECT(1052)", MSG_CONNECT_1052);
+    });
+
+    // ---- TEAM (1023 CMsgTeam) --------------------------------------
+    // v98: docs/team_wire_decode.md. CTeamService::ProcessMsg (Team.c:7012)
+    // switches on the sub-command at wire+0x04; the u32 at wire+0x08 is a team
+    // id, a user id or unused depending on the case (table in section 2).
+    // Teams live only in memory - the dump has no cq_team table.
+    d.add(MSG_TEAM_1023, [](ClientSession& s, PacketReader& r) {
+        if (!s.authenticated || r.remaining() < 8) return;
+        World& w = World::instance();
+        Player& p = w.players[s.player_id];
+        if (!p.in_world) return;
+        const uint16_t sub = r.read<uint16_t>();
+        r.read<uint16_t>();                  // the +0x06 gap
+        const uint32_t arg = r.read<uint32_t>();
+        TeamManager& tm = team_manager();
+        auto send_to = [&w](uint32_t uid, const Packet& pk) {
+            auto it = w.players.find(uid);
+            if (it != w.players.end() && it->second.session)
+                it->second.session->send(pk);
+        };
+        auto tell = [&p](const std::string& msg) {
+            if (p.session)
+                p.session->send(build_talk_1004("SYSTEM", p.name, msg, "",
+                                                0xFFFFFF, 2001, 0, 0, 0, 0));
+        };
+        std::printf("[team] %u sub %u arg %u\n", p.id, sub, arg);
+        switch (sub) {
+        case 0: {  // FUN_1418e9340: create a team with the actor as leader
+            if (tm.lookup_user_team(p.id)) { tell("You are already in a team."); break; }
+            Team* t = tm.create(p.id);
+            p.team_id = t->id;
+            std::printf("[team] %u created team %u\n", p.id, t->id);
+            break;
+        }
+        case 1: {  // apply to join team `arg`
+            if (tm.lookup_user_team(p.id)) break;
+            Team* t = tm.get(arg);
+            if (!t) break;
+            if (tm.member_count(*t) >= TeamManager::MAX_MEMBERS) {
+                tell("The team is full."); break;                 // STR_TEAM_FULL
+            }
+            if (t->closed) { tell("That team refuses new members."); break; }
+            const Packet relay = build_team_1023(1, p.id);        // copy: arg0 = applicant
+            for (uint32_t m : t->members) send_to(m, relay);
+            tell("Join request sent.");                           // STR_JOIN_REQUEST_SENT
+            break;
+        }
+        case 2: {  // leave the team (self)
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t) break;
+            const uint32_t tid = t->id;
+            const bool was_leader = (t->leader == p.id);
+            tm.remove_member(*t, p.id);
+            p.team_id = 0;
+            Team* left = tm.get(tid);
+            if (left && left->members.empty()) {
+                tm.disband(*left);
+            } else if (left && was_leader) {
+                // the original removes a member through FUN_1418e9a90 with
+                // reason 2; whether it reassigns leadership is NOT proven, so
+                // the team is dissolved instead of inventing a successor rule.
+                std::printf("[team] leader %u left team %u -> disbanding "
+                            "(successor rule UNKNOWN)\n", p.id, tid);
+                tm.disband(*left);
+            }
+            break;
+        }
+        case 3: {  // accept: join the team led by `arg`
+            if (tm.lookup_user_team(p.id)) break;
+            Team* t = tm.lookup_user_team(arg);
+            if (!t || t->leader != arg) break;   // proven leader check
+            if (tm.member_count(*t) >= TeamManager::MAX_MEMBERS) {
+                tell("The team is full."); break;
+            }
+            tm.add_member(*t, p.id);
+            p.team_id = t->id;
+            std::printf("[team] %u joined team %u\n", p.id, t->id);
+            break;
+        }
+        case 4: {  // invite user `arg` to my team
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t) break;
+            if (t->leader != p.id) { tell("Only the leader invites."); break; }
+            if (tm.member_count(*t) >= TeamManager::MAX_MEMBERS) {
+                tell("The team is full."); break;
+            }
+            auto it = w.players.find(arg);
+            if (it == w.players.end() || !it->second.in_world) {
+                tell("That player is not online."); break;
+            }
+            send_to(arg, build_team_1023(4, p.id));
+            tell("Invitation sent.");
+            break;
+        }
+        case 5: {  // leader adds the invited user `arg` to my team
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id) break;
+            if (tm.lookup_user_team(arg)) break;   // already in a team
+            if (tm.member_count(*t) >= TeamManager::MAX_MEMBERS) {
+                tell("The team is full."); break;
+            }
+            tm.add_member(*t, arg);
+            if (auto it = w.players.find(arg); it != w.players.end())
+                it->second.team_id = t->id;
+            break;
+        }
+        case 6: {  // disband (leader only)
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id) break;
+            for (uint32_t m : t->members)
+                if (auto it = w.players.find(m); it != w.players.end())
+                    it->second.team_id = 0;
+            tm.disband(*t);
+            p.team_id = 0;
+            break;
+        }
+        case 7: {  // kick member `arg` (leader only, never self)
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id || arg == p.id) break;
+            if (!tm.is_member(*t, arg)) break;
+            const uint32_t tid = t->id;
+            tm.remove_member(*t, arg);
+            if (auto it = w.players.find(arg); it != w.players.end())
+                it->second.team_id = 0;
+            send_to(arg, build_team_1023(2, tid));   // reason 2 = removed
+            break;
+        }
+        case 8: {  // close the team to applications (+0x44 = 1, +0x47 = 0)
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id) break;
+            t->closed = true;
+            t->f47 = false;
+            break;
+        }
+        case 9: {  // re-open (+0x44 = 0)
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id) break;
+            t->closed = false;
+            break;
+        }
+        case 10: case 11: case 12: case 13: {  // flags +0x45 / +0x46
+            Team* t = tm.lookup_user_team(p.id);
+            if (!t || t->leader != p.id) break;
+            if (sub == 10) t->f45 = true;
+            else if (sub == 11) t->f45 = false;
+            else if (sub == 12) t->f46 = true;
+            else t->f46 = false;
+            break;
+        }
+        case 14: {  // relay the message to another team (`arg` = team id)
+            Team* t = tm.get(arg);
+            if (!t) break;
+            const Packet relay = build_team_1023(14, p.id);
+            for (uint32_t m : t->members) send_to(m, relay);
+            break;
+        }
+        default:
+            break;   // the original switch has no default label
+        }
     });
 
     // ---- NPC (2031 CMsgNpc / 2032 CMsgTaskDialog) -----------------

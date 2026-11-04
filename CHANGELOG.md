@@ -1220,3 +1220,26 @@ guessed:
   Team object fields proven so far: +0x3c id, +0x40 leader, +0x44 closed flag,
   +0x47 a second flag, member count via FUN_1418e22b0 capped at 5.
 
+## v98 (Nov 4, 2026) — the TEAM module is live (in-memory, 14 sub-commands)
+- src/systems/team.hpp: TeamManager holding CTeam objects exactly as the
+  original does (no cq_team table exists; the module owns its own map, teams come
+  from the "CTeam" heap tag). Fields per the decode: id, leader, member array,
+  closed flag, flags f45/f46/f47, and the PROVEN 5-member clamp from
+  FUN_1418e22b0.
+- MSG_TEAM_1023 handler (CMsgTeam, fixed 12-byte packet, no packed string):
+  sub 0 create, 1 apply, 2 leave, 3 accept/join, 4 invite, 5 leader-adds,
+  6 disband, 7 kick, 8/9 close/reopen, 10-13 the two flags, 14 relay to another
+  team. Every gate cites docs/team_wire_decode.md.
+- Lua GetUserInt(uid, 1013) now answers with the real member count instead of 0.
+- tests/test_actions_v98.py: two live sessions (TestKnight + ChatA), 15 asserts -
+  create, no double create, invite delivery with sub 4 and the inviter id, join,
+  counts on both sides, kick notice, member counts after the kick, disband, and
+  the leader-leave path.
+- Documented deviations (in the header comment and docs/team_wire_decode.md):
+  a leader leaving dissolves the team (successor rule UNKNOWN in the original),
+  and sub 4's invitation goes to the invitee because an invitee has no team.
+- Not emitted yet: 0x402 CMsgTeamMember (0x94 bytes) because its field offsets
+  are not pinned; 0x3ea/0x3eb are CMsgLog, NOT team info (an earlier assumption
+  disproved).
+- Suite: 73 tests, 73 green.
+

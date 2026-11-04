@@ -533,3 +533,9 @@ Guild kick (715), guild context resolve (720), PK-bonus predicate (2201) and the
 PK target/hunter test (2205). Three workers are decoding the team wire (0x3ff),
 the home types (223/224) and a sweep of the remaining small types.
 
+## v98 (Nov 4, 2026) — team module live, suite 73/73
+TeamManager + MSG_TEAM_1023 with every proven sub-command, lua key 1013 real.
+Next: 0x402 CMsgTeamMember once its offsets are pinned, then sub 1 (apply) which
+needs that packet, then the home types 223/224 (still BLOCKED on the +0xa8
+identity) and the ready sweep types 112 / 401 / 2002.
+

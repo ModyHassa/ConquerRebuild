@@ -1446,3 +1446,9 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99001873,'PkWhoH',0,5000,1002,403,313,99001033,''),
   (99001874,'KickEmpty',0,5000,1002,404,313,99001040,''),
   (99001875,'KickReal',0,5000,1002,405,313,99001043,'');
+
+-- v98: team system probe (team state is in memory, no table to seed)
+DELETE FROM cq_npc WHERE id BETWEEN 99001880 AND 99001889;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001880,'TeamProbe',0,5000,1002,406,313,0,'v98_probe.lua');
+

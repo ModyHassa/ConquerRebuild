@@ -25,6 +25,7 @@ enum MsgId : uint16_t {
     MSG_WALK_10005        = 10005, // 0x2715 CMsgWalk   (pb, fields 1..5 verified)
     MSG_ACTION_10010      = 10010, // 0x271A CMsgAction (general action relay)
     MSG_SPAWN_10014       = 10014, // 0x271E CMsgPlayer (other-player appear)
+    MSG_TEAM_1023         = 1023,  // 0x3FF  CMsgTeam (team module)
     MSG_INTERACT_1022     = 1022,  // 0x3FE  CMsgInteract (attacks/interactions)
     MSG_USER_ATTRIB_10017 = 10017, // 0x2721 CMsgUserAttrib (attr key/value pairs)
     MSG_SRP_REQUEST_1542  = 1542,  // 0x606 CMsgSrpRequest (SRP6 username)
