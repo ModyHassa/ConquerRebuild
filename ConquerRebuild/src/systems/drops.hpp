@@ -38,6 +38,7 @@
 #include "protocol/ids.hpp"
 #include "systems/monsters.hpp"
 #include <ctime>
+#include <atomic>
 #include <random>
 #include <map>
 #include <mutex>
@@ -324,8 +325,15 @@ inline uint32_t tq_rand(int n) { // stand-in for tq::RandGet (n > 0)
     // deterministic sequence every process -> 3% pill drops became
     // reproducibly luck-dependent on test ordering)
     static thread_local std::mt19937 rng([]{
+        // NOT std::time(): it has one-second resolution, so a suite run and a
+        // standalone rerun started in the same second shared the identical
+        // sequence and failed the same way twice in a row. Two independent
+        // random_device draws per thread avoid that correlation.
         std::random_device rd;
-        return rd() ^ (std::mt19937::result_type)std::time(nullptr);
+        std::mt19937::result_type a = rd();
+        std::mt19937::result_type b = rd();
+        static std::atomic<uint32_t> tie{0};
+        return a ^ (b << 1) ^ (std::mt19937::result_type)(tie++ * 0x9e3779b9u);
     }());
     return (uint32_t)(rng() % (uint32_t)n);
 }

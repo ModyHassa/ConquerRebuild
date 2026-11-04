@@ -159,8 +159,13 @@ check('sethair=true' in blob and 'hair=42' in blob,
       'SetUserInt(0,1004,42,0) returned a boolean and wrote hair')
 stored = db("SELECT hair FROM cq_user WHERE id=%d" % uin)
 check(stored == '42', 'the hair write reached cq_user (%r)' % stored)
-check('setrank=false' in blob,
-      'SetUserInt refuses a key we cannot persist (boolean false)')
+check('setrank=true' in blob,
+      'SetUserInt answers TRUE for an in-range key with no wired case (the'
+      ' original has no default case and falls through to return 1)')
+rank_after = db("SELECT rank FROM cq_synattr WHERE id=%d" % uin)
+check(str(rank_after) == str(rank),
+      'and it wrote nothing: 1036 is not in the original setter case list'
+      ' (%r -> %r)' % (rank, rank_after))
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

@@ -112,41 +112,46 @@ int api_get_user_int(lua_State* L) {
 
 // SetUserInt(uid, key, value, flag) - PINNED from FUN_140436450
 // (MsgServer.c:763388): FOUR checkinteger args, uid 0 = current user, the key
-// guarded to 1001..1998, the 4th arg passed as `flag != 0` into the setter
-// FUN_1404e61e0, and the result pushed as a BOOLEAN (FUN_140523ba0).
-// The original's setter switch covers 1003,1004,1005,1012,1024,1032,1033,
-// 1034,1035,1037,1038,1041,1042,1043,1046,1048,1054 through an indexed
-// attribute setter we have not wired yet, so this build implements the two
-// keys that map onto real columns (1003 lookface, 1004 hair) and answers
-// false for the rest.
+// guarded to 1001..1998, and the result pushed as a BOOLEAN.
+// The setter engine FUN_1404e61e0 (C:874287-874403) has NO default case: any
+// in-range key that has no case falls through to `return 1` at C:874400-874402,
+// so SetUserInt reports TRUE for keys it ignores. It only answers false when
+// there is no user to resolve (C:874296-874299 uid==0 reaching the engine,
+// C:874309-874311 the lookup failing). The wrapper's 4th arg (`flag`) is
+// coerced with `flag != 0` (C:763419) and the engine signature has no 5th
+// parameter, so for the setter that argument is dead - stated here rather than
+// silently "used".
+// The setter's case list is 1003,1004,1005,1012,1024,1032,1033,1034,1035,
+// 1037,1038,1041,1042,1043,1046,1048,1054 (C:874310-874394). This build wires
+// the two that map onto real columns (1003 lookface, 1004 hair); the rest fall
+// through exactly like the original's missing cases, i.e. true + no write.
 int api_set_user_int(lua_State* L) {
     const long long uid   = lua_arg_int(L, 1);
     const long long key   = lua_arg_int(L, 2);
     const long long v     = lua_arg_int(L, 3);
     const long long flag  = lua_arg_int(L, 4);
-    (void)flag;
+    (void)flag;   // dead for the setter, see above
     Player* p = resolve_user(uid);
-    bool ok = false;
-    if (p && key >= 1001 && key <= 1998) {
-        switch (key) {
-        case 1003:
-            p->lookface = (uint32_t)v;
-            if (IDatabase* db = active_db())
-                db->update_user_lookface(p->id, (uint32_t)v);
-            ok = true;
-            break;
-        case 1004:
-            p->hair = (uint32_t)v;
-            if (IDatabase* db = active_db())
-                db->update_user_hair(p->id, (uint32_t)v);
-            ok = true;
-            break;
-        default:
-            ok = false;   // settable in the original but not wired here yet
-            break;
-        }
+    if (!p || key < 1001 || key > 1998) {
+        lua_push_bool(L, false);   // guard failure == silent false (C:763401)
+        return 1;
     }
-    lua_push_bool(L, ok);
+    switch (key) {
+    case 1003:
+        p->lookface = (uint32_t)v;
+        if (IDatabase* db = active_db())
+            db->update_user_lookface(p->id, (uint32_t)v);
+        break;
+    case 1004:
+        p->hair = (uint32_t)v;
+        if (IDatabase* db = active_db())
+            db->update_user_hair(p->id, (uint32_t)v);
+        break;
+    default:
+        // in range, no case wired: the original returns 1 here too
+        break;
+    }
+    lua_push_bool(L, true);   // C:874400-874402 fallthrough behaviour
     return 1;
 }
 

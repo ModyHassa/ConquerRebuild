@@ -1033,3 +1033,27 @@ encrypted reply frames (first = 10014 player spawn).
     manager): BLOCKED.
 - Suite: 65 tests, 65 green.
 
+## v90 (Nov 4, 2026) — SetUserInt's verified fallthrough, and a real RNG bug
+- SetUserInt now matches FUN_1404e61e0 exactly: it has NO default case, so any
+  in-range key that has no case falls through to `return 1` (C:874400-874402).
+  The function therefore answers TRUE for keys it ignores and FALSE only when
+  no user can be resolved (C:874296-874299 / C:874309-874311) or the key is
+  outside 1001..1998 (the wrapper's own guard, C:763401). The 4th arg (`flag`)
+  is dead for the setter: the wrapper coerces it with `flag != 0` (C:763419)
+  but FUN_1404e61e0's signature has no 5th parameter.
+- tests/test_actions_v90.py: an in-range unwired key answers true and writes
+  nothing, an out-of-range key answers false, a wired key (1004) answers true
+  and cq_user.hair becomes 55. tests/test_actions_v85.py updated: 1036 is not
+  in the setter's case list either, so SetUserInt(0,1036,5,0) is a true+no-write.
+- REAL BUG FIXED in the drop RNG: tq_rand seeded mt19937 with
+  `std::random_device() ^ std::time(nullptr)`, and time() has one-second
+  resolution, so a suite run and a standalone rerun started in the same second
+  drew the identical sequence and failed the same way twice in a row (two
+  consecutive "no item drop after ~200 kills" runs). It now mixes two
+  independent random_device draws with a per-thread tie counter.
+- tests/test_weaponskill.py: the post-level-up exp assertion allowed only 12/13;
+  the total depends on hits landed and crits, so it is a 6..20 range now (the
+  property being tested is that overflow exp is carried).
+- Suite: 66 tests, 66 green (drops run twice back to back and weaponskill
+  standalone before the full suite).
+

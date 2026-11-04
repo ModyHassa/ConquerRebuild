@@ -481,3 +481,12 @@ NEXT: name CMapGroup +0xa8 by finding its implementation through the vtable
 (FUN_1400875f0's object), expand the %user_home_id template (find its source
 column), then port 224/223.
 
+## v90 (Nov 4, 2026) — SetUserInt fallthrough, RNG seed fix, suite 66/66
+SetUserInt answers true for in-range keys with no wired case (no default in
+FUN_1404e61e0) and false only when the user cannot be resolved; its flag arg is
+dead. The drop RNG no longer seeds from time() seconds. Suite 66/66 green.
+NEXT BLOCKERS unchanged and documented: CMapGroup+0xa8 (224), %user_home_id
+expansion (223/224), guild-manager +0x118/+0x260 (715/720), team/booth state
+(2201/2205), FUN_1401a2660 per-attrib writer (remaining SetUserInt keys) and
+FUN_1404e6500 (AddUserInt).
+
