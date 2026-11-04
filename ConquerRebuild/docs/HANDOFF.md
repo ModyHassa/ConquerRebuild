@@ -490,3 +490,11 @@ expansion (223/224), guild-manager +0x118/+0x260 (715/720), team/booth state
 (2201/2205), FUN_1401a2660 per-attrib writer (remaining SetUserInt keys) and
 FUN_1404e6500 (AddUserInt).
 
+## v91 (Nov 4, 2026) — attrib writer decoded, profession settable, suite 67/67
+docs/attrib_writer.md maps every attrib id SetUserInt can reach (C:289018) and
+key 1005 Profession is now written through Player + cq_user. Suite 67/67.
+NEXT: the base-attribute recompute paths (FUN_140199cb0/140199d90/140199f50/
+140199e70) if we model str/agi/vit/spi; still open: CMapGroup+0xa8 (224),
+%user_home_id (223/224), guild slots +0x118/+0x260 (715/720), team/booth state
+(2201/2205), FUN_1404e6500 (AddUserInt).
+

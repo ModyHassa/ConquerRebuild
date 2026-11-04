@@ -147,6 +147,14 @@ int api_set_user_int(lua_State* L) {
         if (IDatabase* db = active_db())
             db->update_user_hair(p->id, (uint32_t)v);
         break;
+    case 1005:
+        // attrib 7 in FUN_1401a2660 (C:289135): FUN_140372400(user,value,1)
+        // writes the profession and refreshes byte user+0xeee - the same field
+        // our Player.profession mirrors from cq_user.profession.
+        p->profession = (uint32_t)v;
+        if (IDatabase* db = active_db())
+            db->update_user_profession(p->id, (uint32_t)v);
+        break;
     default:
         // in range, no case wired: the original returns 1 here too
         break;

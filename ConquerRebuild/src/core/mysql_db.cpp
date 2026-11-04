@@ -455,6 +455,17 @@ void MySQLDatabase::update_user_hair(uint32_t player_id, uint32_t hair) {
     exec(sql);
 }
 
+void MySQLDatabase::update_user_profession(uint32_t player_id,
+                                           uint32_t profession) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[128];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_user SET profession=%u WHERE id=%u LIMIT 1",
+        profession, player_id);
+    exec(sql);
+}
+
 void MySQLDatabase::update_user_lookface(uint32_t player_id,
                                          uint32_t lookface) {
     if (!conn_) return;

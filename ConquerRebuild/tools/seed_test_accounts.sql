@@ -1373,3 +1373,8 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001855;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001855,'LuaSetProbe',0,5000,1002,400,306,0,'v90_probe.lua');
+
+-- v91: SetUserInt profession probe NPC
+DELETE FROM cq_npc WHERE id=99001856;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001856,'LuaProfProbe',0,5000,1002,400,307,0,'v91_probe.lua');

@@ -1057,3 +1057,22 @@ encrypted reply frames (first = 10014 player spawn).
 - Suite: 66 tests, 66 green (drops run twice back to back and weaponskill
   standalone before the full suite).
 
+## v91 (Nov 4, 2026) — the per-attrib writer decoded, profession settable
+- Decoded FUN_1401a2660 (C:289018), the real per-attrib writer that
+  FUN_1401a6420 forwards to, so the attrib ids used by SetUserInt now have a
+  proven meaning. docs/attrib_writer.md holds the table: attrib 7 = profession
+  via FUN_140372400(user+0x1cf*8,value,1); 8 = raw u16 at user+0xf92; 0xa =
+  FUN_140171510; 0xb = lookface via FUN_1403721b0 with the face/hair
+  value%1000 workaround; 0xd/0xe/0xf/0x10 = spirit/vitality/strength/agility
+  through FUN_140199e70/140199f50/140199cb0/140199d90; 0x1a = hair via
+  FUN_1403722b0. Only cases 0xa/0xd/0xe/0xf/0x10 clamp ((int)value < 0 -> 0).
+- SetUserInt key 1005 (Profession) is implemented on that evidence:
+  Player.profession plus cq_user persistence through the new
+  IDatabase::update_user_profession. Keys 1032-1035 stay unwired on purpose:
+  the original routes them through attribute recompute paths for fields our
+  Player does not model (they still answer true, the engine fallthrough).
+- tests/test_actions_v91.py: profession reads 10, SetUserInt(0,1005,20,0) answers
+  true, the script sees 20, cq_user.profession is 20, and the test restores the
+  column afterwards so later waves see the seeded value.
+- Suite: 67 tests, 67 green.
+
