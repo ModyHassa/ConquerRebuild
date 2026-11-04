@@ -39,6 +39,12 @@ struct UserRecord {
     int32_t  pk           = 0;  // cq_user.pk
     uint32_t lookface     = 0;  // cq_user.lookface (hairdresser 1005)
     uint32_t hair         = 0;  // cq_user.hair (v85: script key 1004)
+    // v94: the rest of the pinned GetUserInt keys that have a real cq_user column
+    uint32_t virtue       = 0;  // cq_user.virtue        (key 1010)
+    uint32_t meto         = 0;  // cq_user.metempsychosis(key 1011)
+    uint32_t home_id      = 0;  // cq_user.home_id       (key 1014)
+    uint32_t nobility     = 0;  // cq_user.nobility      (key 1045)
+    uint32_t business     = 0;  // cq_user.business      (key 1046)
 };
 
 // Combat stats derived from equipped items (cq_item joined cq_itemtype) plus

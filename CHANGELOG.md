@@ -1124,3 +1124,25 @@ encrypted reply frames (first = 10014 player spawn).
   so far and mark the rest IN PROGRESS / BLOCKED.
 - Suite: 69 tests, 69 green.
 
+## v94 (Nov 4, 2026) — eight more GetUserInt keys, all backed by real columns
+- The pinned key table now reads the columns that actually exist in cq_user.
+  New keys (each with its getter path already recorded in docs/lua_key_table.md):
+  1010 Virtue <- cq_user.virtue; 1011 Metempsychosis <- cq_user.metempsychosis;
+  1014 HomeID <- cq_user.home_id; 1015 AccountId <- cq_user.account_id;
+  1031 PK <- cq_user.pk; 1045 Peerage <- cq_user.nobility;
+  1046 Business <- cq_user.business; and 1013 TeamMemberNum answers 0 because
+  this build has no team system, which is exactly what the original returns when
+  the team lookup finds no team (FUN_140118320 manager +0x28 returns 0).
+- Plumbing: UserRecord gained virtue/meto/home_id/nobility/business (account_id
+  and pk already existed), load_user appends the five columns after u.hair and
+  parses them, Player carries them from login, and the Lua switch reads them.
+- tests/test_actions_v94.py (9 asserts) checks every new key against its live
+  column (account id 100001 proves the load). tests/test_actions_v88.py was
+  updated: it used 1010/1014 as "no source" examples, and those are implemented
+  now, so it asserts 1016 battle effect and 1023 mentor points answer -1.
+- docs/team_decode.md also carries the refreshed worker findings: registry index
+  0x1e is Team.dll, the manager singleton is FUN_140118320 with vtable +0x28
+  LookupUserTeam and +0x50 GetMemberCount, and Team.c:145-165 proves the module
+  dispatches wire types 0x3ea, 0x3eb, 0x3ff and 0x7fd.
+- Suite: 70 tests, 70 green.
+

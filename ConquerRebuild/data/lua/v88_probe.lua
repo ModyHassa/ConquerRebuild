@@ -11,5 +11,8 @@ function on_talk()
     say("money=" .. GetUserInt(0, 1025))
     say("exp=" .. GetUserInt(0, 1029))
     say("synid=" .. GetUserInt(0, 1056) .. " rank=" .. GetUserInt(0, 1036))
-    say("virtue=" .. GetUserInt(0, 1010) .. " home=" .. GetUserInt(0, 1014))
+    -- keys that still have no wired source in this build: 1016 battle effect,
+    -- 1023 mentor points (their engine getters exist but read state we do not
+    -- model yet), so the correct answer is the original's missing-value -1
+    say("battle=" .. GetUserInt(0, 1016) .. " mentor=" .. GetUserInt(0, 1023))
 end

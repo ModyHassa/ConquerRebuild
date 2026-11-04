@@ -514,3 +514,11 @@ clamping + 10017 refresh; the engine's fallthrough semantics are matched
 (FUN_140118320, registry 0x1e) and the count slots +0x28/+0x50, which is the
 foundation for porting teams next.
 
+## v94 (Nov 4, 2026) — 23 GetUserInt keys live, suite 70/70
+Keys 1010/1011/1013/1014/1015/1031/1045/1046 joined the table and read real
+cq_user columns (1013 is 0 by design until teams exist). Suite 70/70 green.
+NEXT: teams. Team.c is decompiled in full: registry 0x1e = Team.dll, manager
+FUN_140118320, vtable +0x28 LookupUserTeam, +0x50 GetMemberCount, and the module
+handles wire types 0x3ea/0x3eb/0x3ff/0x7fd (Team.c:145-165). That is enough to
+start the team data model + CMsgTeam 1023 handling.
+

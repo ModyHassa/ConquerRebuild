@@ -664,6 +664,13 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
             p.alive = true;
             p.lookface = rec.lookface ? rec.lookface : p.lookface;
             p.hair = rec.hair;   // v85: script key 1004
+            // v94: keys 1010/1011/1014/1015/1045/1046
+            p.virtue     = rec.virtue;
+            p.meto       = rec.meto;
+            p.home_id    = rec.home_id;
+            p.account_id = rec.account_id;   // already loaded
+            p.nobility   = rec.nobility;
+            p.business   = rec.business;
             p.record_map = rec.recordmap_id;
             p.record_pos = Position{(uint16_t)rec.recordx, (uint16_t)rec.recordy};
             // hp from cq_user.life; combat stats from equipped items

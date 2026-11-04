@@ -146,8 +146,9 @@ check('mana=%s/' % mana in blob, 'key 1021 = mana (%s)' % mana)
 check('money=%s' % money in blob, 'key 1025 = money (%s)' % money)
 check('synid=%s rank=%s' % (synid, rank) in blob,
       'keys 1056/1036 = guild id and rank (%s/%s)' % (synid, rank))
-check('virtue=-1 home=-1' in blob,
-      'keys with no getter path answer -1 (1010 virtue, 1014 home)')
+check('battle=-1 mentor=-1' in blob,
+      'keys whose state we do not model still answer -1 (1016 battle effect,'
+      ' 1023 mentor points)')
 
 print('RESULT: %d FAILURES' % len(fails))
 sys.exit(1 if fails else 0)

@@ -97,6 +97,20 @@ int api_get_user_int(lua_State* L) {
         case 1007: v = (long long)p->map_id;      break;
         case 1008: v = (long long)p->pos.x;       break;
         case 1009: v = (long long)p->pos.y;       break;
+        // v94: the rest of the pinned keys (see docs/lua_key_table.md for each
+        // getter path; each has a matching cq_user column, loaded at login)
+        case 1010: v = (long long)p->virtue;      break;
+        case 1011: v = (long long)p->meto;        break;
+        case 1013: v = 0;                          break;  // no team system yet,
+                                                           // so every user has
+                                                           // no team (the key
+                                                           // answers 0 when the
+                                                           // lookup finds none)
+        case 1014: v = (long long)p->home_id;     break;
+        case 1015: v = (long long)p->account_id;  break;
+        case 1031: v = (long long)p->pk;          break;
+        case 1045: v = (long long)p->nobility;    break;
+        case 1046: v = (long long)p->business;    break;
         case 1019: v = (long long)p->hp;          break;
         case 1020: v = (long long)p->max_hp;      break;
         case 1021: v = (long long)p->mana;        break;

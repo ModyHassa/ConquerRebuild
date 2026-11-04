@@ -99,7 +99,8 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         "SELECT u.id,u.account_id,u.name,u.recordmap_id,u.recordx,u.recordy,"
         "u.level,(a.type=1),u.life,u.mana,u.exp,u.money,u.profession,u.pk,u.lookface, "
         "(SELECT syn_id FROM cq_synattr WHERE id=u.id LIMIT 1), "
-        "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair "
+        "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair,"
+        "u.virtue,u.metempsychosis,u.home_id,u.nobility,u.business "
         "FROM cq_user u LEFT JOIN accounts a "
         "ON a.id=u.account_id WHERE u.account_id=%u LIMIT 1", account_id);
     if (!exec(sql)) return out;
@@ -124,6 +125,12 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         if (row[15]) out.syn_id = strtoul(row[15], nullptr, 10);
         if (row[16]) out.syn_rank = strtoul(row[16], nullptr, 10);
         if (row[17]) out.hair = strtoul(row[17], nullptr, 10);
+        // v94: keys 1010/1011/1014/1015/1045/1046 read these columns
+        if (row[18]) out.virtue     = strtoul(row[18], nullptr, 10);
+        if (row[19]) out.meto       = strtoul(row[19], nullptr, 10);
+        if (row[20]) out.home_id    = strtoul(row[20], nullptr, 10);
+        if (row[21]) out.nobility   = strtoul(row[21], nullptr, 10);
+        if (row[22]) out.business   = strtoul(row[22], nullptr, 10);
         if (row[13]) out.pk = (int32_t)strtol(row[13], nullptr, 10);
         if (row[14]) out.lookface = strtoul(row[14], nullptr, 10);
     }

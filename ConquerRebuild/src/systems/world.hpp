@@ -52,6 +52,13 @@ struct Player {
     uint32_t profession = 0;             // cq_user.profession (v29 task checks)
     uint32_t lookface = 100003;           // cq_user.lookface (v36: 1005)
     uint32_t hair = 0;                    // cq_user.hair (v85: GetUserInt key 1004)
+    // v94: remaining pinned GetUserInt keys backed by cq_user columns
+    uint32_t virtue = 0;                  // 1010 Virtue
+    uint32_t meto = 0;                    // 1011 Metempsychosis (rebirth)
+    uint32_t home_id = 0;                 // 1014 HomeID
+    uint32_t account_id = 0;              // 1015 AccountId
+    uint32_t nobility = 0;                // 1045 Peerage
+    uint32_t business = 0;                // 1046 Business state
     int32_t  pk = 0;                     // cq_user.pk (v29 task checks)
     uint64_t last_talk_ms = 0;          // chat 2001 flood guard (original
                                         // FUN_1401765e0: 500ms repeat gate)
