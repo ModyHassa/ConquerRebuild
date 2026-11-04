@@ -2498,6 +2498,159 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_next;
             break;
         }
+        case 715: {  // 0x2cb: kick a guild member by NAME
+            // msgserver_gameaction.c:9239-9266: param must be non-null and
+            // shorter than 0x24, a byte compare against the actor's own name
+            // rejects self, then manager slot +0x118(actor_id, param) does the
+            // kick. That slot is PROVEN = KickOutMember By Name:
+            // Syndicate.c:113481 FUN_1417b6770 resolves the member by name,
+            // requires the SAME guild id (FUN_141785ea0 on both), gates on rank
+            // (actor rank == 1000, i.e. leader, OR actor rank > 0x397 while the
+            // member rank < 0x2b3), logs "User[%lu] KickOutMember By Name"
+            // (C:113560) and runs FUN_1417aebb0 to remove the member.
+            std::string kname = a->param;
+            while (!kname.empty() && (kname.back() == ' ' || kname.back() == '\t'))
+                kname.pop_back();
+            size_t k0 = kname.find_first_not_of(" \t");
+            if (k0) kname.erase(0, k0 == std::string::npos ? kname.size() : k0);
+            if (kname.empty() || kname.size() >= 0x24 || !p.guild_id) {
+                std::printf("[action] %u 715 kick '%s' rejected (name/guild)\n",
+                            p.id, kname.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string ksql =
+                "SELECT s.id,s.rank FROM cq_user u JOIN cq_synattr s ON s.id=u.id"
+                " WHERE u.name='" + kname + "' AND s.syn_id=" +
+                std::to_string(p.guild_id) + " LIMIT 1";
+            std::string krow;
+            if (!active_db()->query_string(ksql, krow) || krow.empty()) {
+                std::printf("[action] %u 715 '%s' is not in guild %u -> "
+                            "id_nextfail\n", p.id, kname.c_str(), p.guild_id);
+                cur = a->id_nextfail;
+                break;
+            }
+            uint32_t kuid = (uint32_t)std::strtoul(krow.c_str(), nullptr, 10);
+            const char* kbar = std::strchr(krow.c_str(), ',');
+            uint32_t krank = kbar ? (uint32_t)std::strtoul(kbar + 1, nullptr, 10) : 0;
+            if (kuid == p.id) {   // the original's self name compare
+                std::printf("[action] %u 715 cannot kick self\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            const bool kleader = (p.guild_rank == 1000);
+            const bool ksenior = (p.guild_rank > 0x397 && krank < 0x2b3);
+            if (!kleader && !ksenior) {
+                std::printf("[action] %u 715 rank %u may not kick rank %u\n",
+                            p.id, p.guild_rank, krank);
+                cur = a->id_nextfail;
+                break;
+            }
+            active_db()->execute_sql(
+                "DELETE FROM cq_synattr WHERE id=" + std::to_string(kuid));
+            // the removed member's in-memory guild clears on its next login
+            // (cq_synattr.syn_id and cq_user are read at login)
+            std::printf("[action] %u 715 kicked %s (%u) from guild %u\n",
+                        p.id, kname.c_str(), kuid, p.guild_id);
+            cur = a->id_next;
+            break;
+        }
+        case 720: {  // 0x2d0: resolve the guild id held in the action context
+            // msgserver_gameaction.c:9470-9471 calls manager slot +0x260 with
+            // the uint at ctx+0xA68 (param_4 + 0x14d as a pointer) and returns
+            // its bool. That slot is PROVEN = FUN_1417abc20 (Syndicate.c:106047)
+            // which runs FUN_1417cade0(manager, id) - a lookup of the guild by
+            // id in the manager map (C:127766) - overwrites the slot with the
+            // resolved id and passes only when the lookup found it. Our context
+            // slot is Player.script_guild_id, filled by 721.
+            if (!p.script_guild_id) {
+                std::printf("[action] %u 720 no guild id in context -> "
+                            "id_nextfail\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string rsql = "SELECT id FROM cq_syndicate WHERE id=" +
+                               std::to_string(p.script_guild_id) + " LIMIT 1";
+            std::string rid;
+            if (active_db()->query_string(rsql, rid) && !rid.empty()) {
+                p.script_guild_id = (uint32_t)std::strtoul(rid.c_str(), nullptr, 10);
+                std::printf("[action] %u 720 guild %u resolved\n",
+                            p.id, p.script_guild_id);
+                cur = a->id_next;
+                break;
+            }
+            std::printf("[action] %u 720 guild %u not found -> id_nextfail\n",
+                        p.id, p.script_guild_id);
+            p.script_guild_id = 0;
+            cur = a->id_nextfail;
+            break;
+        }
+        case 2201: {  // ProcessActionPkBonus: a cq_pk_bonus predicate
+            // FUN_140141c80 = CGameAction::ProcessActionPkBonus()
+            // (MsgServer.c:221620). The param is "<var> <op> <value>" where var
+            // is target_bonus or hunter_bonus and op is "==" or ">" (any other
+            // var/op takes the shared DBERROR + false path, C:221626-221628).
+            // Proven SQL (C:221652, 221677, 221680, 221712):
+            //   SELECT count(*) FROM cq_pk_bonus WHERE target=<actor> AND bonus<op><v>
+            //   SELECT count(*) FROM cq_pk_bonus WHERE hunter=<actor> AND bonus<op><v>
+            // and the actor id substituted into the first %d is the player's
+            // (param_4 vtable+8 = GetID). Pass when the count is non-zero.
+            std::string var, op, val;
+            {
+                std::istringstream ps(a->param);
+                ps >> var >> op >> val;
+            }
+            const bool tgt = (var == "target_bonus");
+            const bool hun = (var == "hunter_bonus");
+            if ((!tgt && !hun) || (op != "==" && op != ">") || val.empty()) {
+                std::printf("[action] %u 2201 bad spec '%s' -> id_nextfail\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string ps1 =
+                "SELECT count(*) FROM cq_pk_bonus WHERE " +
+                std::string(tgt ? "target" : "hunter") + "=" +
+                std::to_string(p.id) + " AND bonus" +
+                (op == "==" ? "=" : ">") + val;
+            std::string cnt;
+            const bool okc = active_db()->query_string(ps1, cnt) &&
+                             !cnt.empty() &&
+                             std::strtoull(cnt.c_str(), nullptr, 10) != 0;
+            std::printf("[action] %u 2201 %s %s %s -> %s (%s)\n", p.id,
+                        var.c_str(), op.c_str(), val.c_str(),
+                        okc ? "pass" : "fail", cnt.c_str());
+            cur = okc ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 2205: {  // ProcessActionPkBonus: is the actor a target / hunter?
+            // Same function: param "target" (MsgServer.c:221847) tests manager
+            // registry module 0x13 slot +0x18(actor) and param "hunter"
+            // (C:221858) tests slot +0x10(actor); both are booleans.
+            // APPROXIMATION, NOT A PIN: module 0x13 is not modelled here, so the
+            // test is answered from cq_pk_bonus, the only store the module's own
+            // SQL touches. For an empty table - our data - the answer is false,
+            // which is exactly what the original module returns with no rows.
+            std::string what = a->param;
+            while (!what.empty() && (what.back() == ' ' || what.back() == '\t'))
+                what.pop_back();
+            if (what != "target" && what != "hunter") {
+                std::printf("[action] %u 2205 bad spec '%s' -> id_nextfail\n",
+                            p.id, what.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            std::string ms = "SELECT count(*) FROM cq_pk_bonus WHERE " +
+                             std::string(what == "target" ? "Target" : "Hunter") +
+                             "=" + std::to_string(p.id);
+            std::string mc;
+            const bool mok = active_db()->query_string(ms, mc) && !mc.empty() &&
+                             std::strtoull(mc.c_str(), nullptr, 10) != 0;
+            std::printf("[action] %u 2205 %s -> %s\n", p.id, what.c_str(),
+                        mok ? "pass" : "fail");
+            cur = mok ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 721: {  // 0x2d1: resolve a guild id by name into the actor
             // param_7 (a string shorter than 0x10 = the 15-char guild name
             // limit) is handed to the manager slot +0x250, the returned id is

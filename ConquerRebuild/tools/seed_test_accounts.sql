@@ -1398,3 +1398,51 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001860;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001860,'LuaEffectProbe',0,5000,1002,400,311,0,'v95_probe.lua');
+
+-- v96: guild PK/kick actions (715/720/2201/2205) + a kickable guild member
+-- NOTE band 99001020-99001059 is reserved for v96 (99000900+ belongs to
+-- v68/v69 fixtures - do not reuse it).
+INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
+  (100097,'kickvictim','test123',0,0,0)
+ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (97,100097,'KickVictim',100003,15,2000,1500,1002,405,305,130,10)
+ON DUPLICATE KEY UPDATE recordmap_id=1002,recordx=VALUES(recordx),
+                      recordy=VALUES(recordy);
+DELETE FROM cq_synattr WHERE id=97;
+INSERT INTO cq_synattr (id,syn_id,rank) VALUES (97,999001,500);
+
+DELETE FROM cq_action WHERE id BETWEEN 99001020 AND 99001059;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99001020,2201,'target_bonus == 0',99001021,99001022),
+  (99001021,101,'ok2201',0,0),
+  (99001022,101,'fail2201',0,0),
+  (99001023,2201,'hunter_bonus > 0',99001024,99001025),
+  (99001024,101,'ok2201b',0,0),
+  (99001025,101,'fail2201b',0,0),
+  (99001030,2205,'target',99001031,99001032),
+  (99001031,101,'ok2205',0,0),
+  (99001032,101,'fail2205',0,0),
+  (99001033,2205,'hunter',99001034,99001035),
+  (99001034,101,'ok2205b',0,0),
+  (99001035,101,'fail2205b',0,0),
+  (99001040,715,'',99001041,99001042),
+  (99001041,101,'ok715',0,0),
+  (99001042,101,'fail715',0,0),
+  (99001043,715,'KickVictim',99001044,99001045),
+  (99001044,101,'ok715b',0,0),
+  (99001045,101,'fail715b',0,0),
+  (99001050,721,'TestGuild',99001051,99001053),
+  (99001051,720,'',99001052,99001053),
+  (99001052,101,'ok720',0,0),
+  (99001053,101,'fail720',0,0);
+
+DELETE FROM cq_npc WHERE id BETWEEN 99001870 AND 99001879;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99001870,'PkBonusA',0,5000,1002,400,313,99001020,''),
+  (99001871,'PkBonusB',0,5000,1002,401,313,99001023,''),
+  (99001872,'PkWhoT',0,5000,1002,402,313,99001030,''),
+  (99001873,'PkWhoH',0,5000,1002,403,313,99001033,''),
+  (99001874,'KickEmpty',0,5000,1002,404,313,99001040,''),
+  (99001875,'KickReal',0,5000,1002,405,313,99001043,'');

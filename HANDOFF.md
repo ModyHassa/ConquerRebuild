@@ -528,3 +528,8 @@ Effect(uid,target,effect,mode) sends CMsgUserEffect 1015 for the "self" target
 research workers are decoding the team module (CTeam + CMsgTeam 0x3ff), types
 2201/2205, and the guild vtable slots +0x118/+0x260 with capstone.
 
+## v96 (Nov 4, 2026) — 715/720/2201/2205 live, suite 72/72
+Guild kick (715), guild context resolve (720), PK-bonus predicate (2201) and the
+PK target/hunter test (2205). Three workers are decoding the team wire (0x3ff),
+the home types (223/224) and a sweep of the remaining small types.
+

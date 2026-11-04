@@ -1164,3 +1164,40 @@ encrypted reply frames (first = 10014 player spawn).
   empty effect name is refused, and an unsupported target answers false.
 - Suite: 71 tests, 71 green.
 
+## v96 (Nov 4, 2026) — guild kick + guild-context + PK-bonus actions
+Four more types are live, all decoded from their real handlers rather than
+guessed:
+- 715 (2 rows) = kick a guild member BY NAME. msgserver_gameaction.c:9239-9266
+  rejects a param that equals the actor's own name, then manager slot +0x118,
+  which is PROVEN = KickOutMember By Name: Syndicate.c:113481 FUN_1417b6770
+  resolves the member by name, requires the same guild id, gates on rank (leader
+  1000, or actor rank > 0x397 while the target rank < 0x2b3), logs
+  "User[%lu] KickOutMember By Name" (C:113560) and removes the member. The port
+  works on cq_synattr and deletes the member row.
+- 720 (5 rows) = resolve the guild id held in the action context. The slot
+  +0x260 is PROVEN = FUN_1417abc20 (Syndicate.c:106047) which runs
+  FUN_1417cade0(manager, id) - a guild-by-id map lookup (C:127766) - overwrites
+  the context value with the resolved id and passes only when found. Our context
+  slot is Player.script_guild_id, filled by action 721.
+- 2201 (2 rows) = CGameAction::ProcessActionPkBonus (MsgServer.c:221583,
+  FUN_140141c80). Param "<var> <op> <value>" with var target_bonus/hunter_bonus
+  and op == / > turns into SELECT count(*) FROM cq_pk_bonus WHERE
+  target|hunter=<actor> AND bonus<op><value> (C:221652/221677/221712); pass when
+  the count is non-zero. NOTE: an earlier note in this repo claimed the shipped
+  cq_pk_bonus has no Bonus column - that was MY truncated SHOW COLUMNS; the
+  column exists and this type is fully faithful.
+- 2205 (2 rows) = the same function testing registry module 0x13 slots
+  +0x18(actor) for "target" and +0x10(actor) for "hunter" (C:221847/221858).
+  Module 0x13 is not modelled in this rebuild, so the test is answered from
+  cq_pk_bonus (Target/Hunter) - an APPROXIMATION, documented in the code, and
+  exact for our data because the table is empty.
+- tests/test_actions_v96.py (12 asserts, fixture band 99001020-99001059 and NPCs
+  99001870-99001875): 2201 fails empty and passes once a row exists, 2205
+  target passes on that row while hunter fails, 715 fails on the empty param
+  every content row carries, passes for the leader with a real name, removes the
+  member from cq_synattr, and fails on a second kick, and 721 -> 720 resolves the
+  guild.
+- Fixture bands: v96 took 99001020+ because 99000900+ belongs to v68/v69; the
+  collision broke v68/v69 until it was renumbered.
+- Suite: 72 tests, 72 green.
+
