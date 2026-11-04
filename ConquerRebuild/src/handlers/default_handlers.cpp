@@ -474,6 +474,13 @@ void register_default_handlers(Dispatcher& d) {
             if (it != w.players.end() && it->second.session)
                 it->second.session->send(pk);
         };
+        // 0x402 team info: sent to the whole team after any membership change
+        // (the original funnels every add/remove through FUN_1418e9820 /
+        // FUN_1418e9a90, which build 0x402 and SendToTeam).
+        auto send_info = [&](const Team& t) {
+            const Packet info = build_team_1026(t);
+            for (uint32_t m : t.members) send_to(m, info);
+        };
         auto tell = [&p](const std::string& msg) {
             if (p.session)
                 p.session->send(build_talk_1004("SYSTEM", p.name, msg, "",
@@ -485,6 +492,7 @@ void register_default_handlers(Dispatcher& d) {
             if (tm.lookup_user_team(p.id)) { tell("You are already in a team."); break; }
             Team* t = tm.create(p.id);
             p.team_id = t->id;
+            send_info(*t);
             std::printf("[team] %u created team %u\n", p.id, t->id);
             break;
         }
@@ -509,6 +517,9 @@ void register_default_handlers(Dispatcher& d) {
             tm.remove_member(*t, p.id);
             p.team_id = 0;
             Team* left = tm.get(tid);
+            if (left && !left->members.empty()) send_info(*left);
+            Team gone;
+            send_to(p.id, build_team_1026(gone));
             if (left && left->members.empty()) {
                 tm.disband(*left);
             } else if (left && was_leader) {
@@ -530,6 +541,7 @@ void register_default_handlers(Dispatcher& d) {
             }
             tm.add_member(*t, p.id);
             p.team_id = t->id;
+            send_info(*t);
             std::printf("[team] %u joined team %u\n", p.id, t->id);
             break;
         }
@@ -558,6 +570,7 @@ void register_default_handlers(Dispatcher& d) {
             tm.add_member(*t, arg);
             if (auto it = w.players.find(arg); it != w.players.end())
                 it->second.team_id = t->id;
+            send_info(*t);
             break;
         }
         case 6: {  // disband (leader only)
@@ -579,6 +592,12 @@ void register_default_handlers(Dispatcher& d) {
             if (auto it = w.players.find(arg); it != w.players.end())
                 it->second.team_id = 0;
             send_to(arg, build_team_1023(2, tid));   // reason 2 = removed
+            if (Team* rest = tm.get(tid)) send_info(*rest);
+            // the removed member clears its team window: the original sends the
+            // same 0x402 struct down a second slot (a user list) in the removal
+            // helper, so an all-zero struct is what it receives.
+            Team empty;
+            send_to(arg, build_team_1026(empty));
             break;
         }
         case 8: {  // close the team to applications (+0x44 = 1, +0x47 = 0)

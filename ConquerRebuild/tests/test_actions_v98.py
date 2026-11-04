@@ -155,6 +155,38 @@ send_team(a, 0, 0)
 drain_all(a, 0.8)
 check('team_count=1' in count_of(a), 'a second sub 0 does not create a second team')
 
+# --- 0x402 CMsgTeamMember: the team window the client renders ----------
+send_team(a, 6, 0)                     # start clean
+drain_all(a, 0.8)
+send_team(a, 0, 0)
+pk = drain_all(a, 1.6)
+info = [p for p in pk if p[1] == 1026]
+check(len(info) >= 1, 'creating a team emits a 1026 CMsgTeamMember')
+tid = 0
+if info:
+    d = info[0][2]
+    ln, _tp = struct.unpack_from('<HH', d, 0)
+    mode, const = d[4], d[5]
+    team_id, leader, m0, m1 = struct.unpack_from('<IIII', d, 8)
+    tid = team_id
+    check(ln == 0x94, '0x402 declares the proven 0x94 length (got %d)' % ln)
+    check(mode == 0 and const == 1, 'the mode byte is 0 and +5 is the constant 1')
+    check(team_id != 0 and leader == knight,
+          'the info carries the team id and the leader id')
+    check(m0 == knight and m1 == 0, 'member[0] is the leader, member[1] is empty')
+
+# --- sub 1: apply to join with the team id learned from 0x402 ----------
+send_team(b, 1, tid)
+pk = drain_all(a, 1.6)
+app = [p for p in pk if p[1] == 1023]
+check(len(app) == 1, 'sub 1 forwards the application to the team')
+if app:
+    sub, _g, arg = struct.unpack_from('<HHI', app[0][2], 4)
+    check(sub == 1 and arg == chata,
+          'the forwarded copy carries sub 1 and the applicant id')
+check('Join request sent' in talk_blob(drain_all(b, 1.2)),
+      'the applicant is told the request went out')
+
 # --- sub 4: invite ------------------------------------------------------
 send_team(a, 4, chata)
 pk = drain_all(b, 1.6)
@@ -167,7 +199,18 @@ if inv:
 
 # --- sub 3: the invitee joins the team led by `arg` ----------------------
 send_team(b, 3, knight)
-drain_all(b, 0.8)
+pk_b = drain_all(b, 1.0)
+pk_a = drain_all(a, 1.0)
+j_a = [p for p in pk_a if p[1] == 1026]
+j_b = [p for p in pk_b if p[1] == 1026]
+check(len(j_a) == 1 and len(j_b) == 1,
+      'joining broadcasts a fresh 0x402 to the team AND to the joiner')
+for pkts, who in ((j_a, 'leader'), (j_b, 'joiner')):
+    if pkts:
+        _ln, _t, _m0, _m1, _tid, _lead, mm0, mm1 = struct.unpack_from(
+            '<HHBBIIII', pkts[0][2], 0)
+        check(mm0 != 0 and mm1 != 0 and mm0 != mm1,
+              'the %s info lists both members' % who)
 check('team_count=2' in count_of(a), 'after sub 3 the leader sees 2 members')
 check('team_count=2' in count_of(b), 'and the joiner sees 2 members')
 

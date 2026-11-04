@@ -96,4 +96,24 @@ inline Packet build_team_1023(uint16_t sub, uint32_t arg) {
     return p;
 }
 
+// CMsgTeamMember 1026 (0x402): builder FUN_1418f3ae0 (Team.c:14393-14410).
+// PROVEN layout: size 0x94 @+0, type 0x402 @+2, mode byte 0 @+4 (both call
+// sites Team.c:6346/6364 pass 0), constant 1 @+5, then SEVEN dwords copied from
+// the team-info struct at +8..+0x20: team_id, leader, member[5]. The bytes from
+// +0x24 to 0x94 are left as they are (zero). Sent to the whole team after any
+// membership change (manager slot +0x68 = SendToTeam).
+inline Packet build_team_1026(const Team& t) {
+    Packet p(1026);
+    p.write<uint8_t>(0);                 // +0x04 mode (proven 0)
+    p.write<uint8_t>(1);                 // +0x05 constant
+    p.write<uint16_t>(0);                // pad to the +0x08 dword boundary
+    p.write<uint32_t>(t.id);             // +0x08
+    p.write<uint32_t>(t.leader);         // +0x0C
+    for (std::size_t i = 0; i < TeamManager::MAX_MEMBERS; ++i)   // +0x10 .. +0x20
+        p.write<uint32_t>(i < t.members.size() ? t.members[i] : 0);
+    while (p.payload.size() + 4 < 0x94) p.write<uint8_t>(0);   // pad to 0x94
+    p.finalize();
+    return p;
+}   // NOTE: +0x24..0x94 are not read by the builder (it only writes 7 dwords).
+
 }  // namespace conquer

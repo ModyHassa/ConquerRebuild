@@ -539,3 +539,14 @@ Next: 0x402 CMsgTeamMember once its offsets are pinned, then sub 1 (apply) which
 needs that packet, then the home types 223/224 (still BLOCKED on the +0xa8
 identity) and the ready sweep types 112 / 401 / 2002.
 
+## v99 (Nov 4, 2026) — team 0x402 + sub 1 done, suite 73/73
+The team module is functionally complete for a single client: 0x402 team info,
+every proven sub-command, and lua 1013. Remaining team work: 0x7fd offsets (20
+bytes, four builders) and the +0x45/+0x46 flag meanings.
+Verified-and-rejected this wave: the sweep worker's "implementable now" verdicts
+for 112 and 401 do NOT hold when read at the source - 401's EVENT_LAYNPC string
+does not exist in any decompiled file, and 112 needs the identity of record
+slots +0x48/+0x78 and FUN_1403a6400's argument meaning. 2002 (delmonsternow)
+does parse "%d %s %d" but how the three values select the monsters is still
+unread. All three stay UNPORTED until their evidence exists.
+

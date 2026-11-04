@@ -1243,3 +1243,20 @@ guessed:
   disproved).
 - Suite: 73 tests, 73 green.
 
+## v99 (Nov 4, 2026) — team window packet 0x402 + sub 1 (apply) complete
+- 1026 / 0x402 CMsgTeamMember is now emitted. Its layout is PROVEN from the
+  builder FUN_1418f3ae0 (Team.c:14393-14410): size 0x94 @+0, type 0x402 @+2,
+  mode byte 0 @+4 (both call sites Team.c:6346/6364 pass 0), constant 1 @+5,
+  then seven dwords at +8..+0x20 = team_id, leader, member[5]; the builder
+  writes nothing past +0x24.
+- Sent whenever membership changes: create, join (sub 3), leader-add (sub 5),
+  kick (remaining team plus an all-zero struct to the removed member - the
+  removal helper funnels the same struct down a second slot into a user list),
+  and leave. This is what teaches a client its team id, so sub 1 (apply to
+  join) is now testable and tested end to end.
+- tests/test_actions_v98.py now has 23 asserts: the 0x94 length, the mode 0 and
+  the +5 constant, team id and leader id, member[0]/member[1], the sub 1
+  forward with the applicant id, the "Join request sent" notice, and the fresh
+  0x402 broadcast to BOTH the team and the joiner.
+- Suite: 73 tests, 73 green.
+
