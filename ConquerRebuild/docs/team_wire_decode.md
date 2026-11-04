@@ -162,3 +162,33 @@ Documented deviations, all flagged in code:
   `SendToTeam(target's team)`, but an invitee has no team by definition).
 Blocks still open: `0x402` offsets, and sub 1 needs the client to learn a team
 id, which only `0x402` would teach it.
+
+## 5. Wire type 0x7fd (2045) — PROVEN layouts (v100)
+Always **0x14 (20) bytes**: `size u16 @+0`, `type 0x7FD @+2`,
+`sub-command u16 @+4`, then up to three dwords. Four builders, Team.c:14098-14162:
+
+| Builder | Sub @+4 | Payload |
+|---|---|---|
+| `FUN_1418f34f0` | caller's u16 | **u8** arg @+8 ("closed" notice) |
+| `FUN_1418f3530` | 1 | d1 @+8, d2 @+0xC, d3 @+0x10 (team status triple) |
+| `FUN_1418f3590` | 3 | d1 @+8, **d2 @+0x10, d3 @+0xC** (the swap is real) |
+| `FUN_1418f35f0` | 4 | d1 @+8 |
+
+**The sub-0 path is DEAD CODE in the original.** Its only caller sits behind the
+team's `+0x47` flag in the "close team" sub-command 8, and `+0x47` is never set
+to 1 in Team.c (only cleared at lines 531 and 1598). So the original never emits
+0x7fd on close, and neither do we.
+
+## 6. Team flags +0x45 / +0x46
+Both are plain bools with setters/clearers (Team.c:545-599) and getters, and both
+are copied into the team-info struct at byte offsets **+7** and **+0x1d**
+(Team.c:1020-1021). Their MEANINGS are still UNKNOWN: no read site ties them to a
+client-visible rule beyond that struct copy. Sub-commands 10-13 drive them.
+
+## 7. Type 112 (further evidence, still BLOCKED)
+Case 0x70 (MsgServer.c:222645) needs a non-null dialog context, then builds a
+line with `FUN_1403a6400(pkt, 0x70, cell5_getter(+0x78), cell4_getter(+0x48))`
+and sends it to self. By analogy with the ported dialog cases (modes 1/2/3/5/6
+where the THIRD argument is the text), the text would come from cell 5. What
+cells 4 and 5 hold for this type is NOT established, and the 18 rows carry an
+empty param, so there is nowhere to take a text from. Stays unported.

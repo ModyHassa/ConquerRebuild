@@ -550,3 +550,9 @@ slots +0x48/+0x78 and FUN_1403a6400's argument meaning. 2002 (delmonsternow)
 does parse "%d %s %d" but how the three values select the monsters is still
 unread. All three stay UNPORTED until their evidence exists.
 
+## v100 (Nov 4, 2026) — 0x7fd decoded (not sent), dead code proven, 73/73
+Team work is now evidence-complete for everything that actually fires. What is
+left in the team module is only what the original never triggers.
+Next: pick a new subsystem (trade or homes) or re-open 112/401 with a dedicated
+decode of the action-context cell getters (+0x48 / +0x78 / +0xa34).
+

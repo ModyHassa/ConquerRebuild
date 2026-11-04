@@ -1260,3 +1260,19 @@ guessed:
   0x402 broadcast to BOTH the team and the joiner.
 - Suite: 73 tests, 73 green.
 
+
+## v100 (Nov 4, 2026) — 0x7fd decoded, and a dead-code finding
+- 2045 / 0x7fd CMsgTeamStatus: all FOUR builders' layouts are now proven
+  (Team.c:14098-14162) - always 0x14 bytes, sub-command u16 at +4, then
+  a u8 (sub 0) or three dwords; the sub-3 builder really does swap d2/d3 into
+  +0x10/+0xC. Implemented one-to-one in src/systems/team.hpp so the swap cannot
+  be lost, and deliberately NOT sent: their triggers are not proven.
+- Dead code proven: the sub-0 "closed" notice is gated on the team flag +0x47,
+  which Team.c NEVER sets to 1 (only clears, lines 531/1598), so the original
+  never emits it. Sub-command 8 therefore only flips +0x44.
+- Flags +0x45/+0x46: bools driven by sub-commands 10-13, copied into the
+  team-info struct at +7 and +0x1d; their client-visible meaning stays UNKNOWN.
+- Type 112: one step further (the text would be cell 5 via getter +0x78) but
+  cells 4/5 are unidentified and every row has an empty param, so it stays
+  unported rather than guessed.
+- Build clean; suite 73/73 green (no behaviour changed in this wave).

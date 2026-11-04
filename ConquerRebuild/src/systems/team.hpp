@@ -116,4 +116,47 @@ inline Packet build_team_1026(const Team& t) {
     return p;
 }   // NOTE: +0x24..0x94 are not read by the builder (it only writes 7 dwords).
 
+// ---------------------------------------------------------------- 2045 0x7fd
+// CMsgTeamStatus 2045 (0x7fd): ALWAYS 0x14 (20) bytes -
+// size u16 @+0, type 0x7FD @+2, sub-command u16 @+4, then up to three dwords.
+// Four builders exist in the original and their layouts are PROVEN
+// (Team.c:14098-14162); their TRIGGERS are not, so nothing here is sent yet:
+//   FUN_1418f34f0: sub u16 @+4, u8 arg @+8            "closed" notice (see note)
+//   FUN_1418f3530: sub 1 @+4, d1 @+8, d2 @+0xC, d3 @+0x10   (team status)
+//   FUN_1418f3590: sub 3 @+4, d1 @+8, d2 @+0x10, d3 @+0xC   (NOTE the swap)
+//   FUN_1418f35f0: sub 4 @+4, d1 @+8                         (single id)
+// DEAD CODE FOUND: the only caller of the sub-0 builder sits behind the team's
+// +0x47 flag (the "close team" sub-command 8), and +0x47 is NEVER set to 1
+// anywhere in Team.c (only cleared, lines 531 and 1598), so the original never
+// actually emits it. We therefore do not emit it either.
+enum Team2045 : uint16_t {
+    TEAM_2045_CLOSED = 0,   // FUN_1418f34f0, u8 payload (dead path)
+    TEAM_2045_STATUS = 1,   // FUN_1418f3530, three dwords
+    TEAM_2045_SWAPPED = 3,  // FUN_1418f3590, d2/d3 swap
+    TEAM_2045_ONE = 4,      // FUN_1418f35f0, one dword
+};
+
+inline Packet build_team_2045_u8(uint16_t sub, uint8_t arg) {
+    Packet p(2045); p.write<uint16_t>(sub); p.write<uint16_t>(0);
+    p.write<uint8_t>(arg); p.write<uint8_t>(0); p.write<uint16_t>(0);
+    p.finalize(); return p;
+}
+inline Packet build_team_2045_3d(uint16_t sub, uint32_t d1, uint32_t d2, uint32_t d3) {
+    Packet p(2045); p.write<uint16_t>(sub); p.write<uint16_t>(0);
+    p.write<uint32_t>(d1); p.write<uint32_t>(d2); p.write<uint32_t>(d3);
+    p.finalize(); return p;
+}
+// FUN_1418f3590 writes d2 to +0x10 and d3 to +0x0C (the opposite of the other
+// three-dword builder) - kept explicit so the swap can never be lost.
+inline Packet build_team_2045_sub3(uint32_t d1, uint32_t d2, uint32_t d3) {
+    Packet p(2045); p.write<uint16_t>(3); p.write<uint16_t>(0);
+    p.write<uint32_t>(d1); p.write<uint32_t>(d3); p.write<uint32_t>(d2);
+    p.finalize(); return p;
+}
+inline Packet build_team_2045_one(uint32_t d1) {
+    Packet p(2045); p.write<uint16_t>(4); p.write<uint16_t>(0);
+    p.write<uint32_t>(d1); p.write<uint32_t>(0); p.write<uint32_t>(0);
+    p.finalize(); return p;
+}
+
 }  // namespace conquer
