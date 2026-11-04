@@ -1146,3 +1146,21 @@ encrypted reply frames (first = 10014 player spawn).
   dispatches wire types 0x3ea, 0x3eb, 0x3ff and 0x7fd.
 - Suite: 70 tests, 70 green.
 
+## v95 (Nov 4, 2026) — Lua Effect() implemented from its engine
+- Effect(uid, target, effect, mode) is PINNED from FUN_1404f1e90
+  (MsgServer.c:881315): uid 0 = current user; a missing target/effect/mode is a
+  LuaError; the mode string is compared with "del" and becomes 0x18, anything
+  else becomes 10 (C:881360-881365); the target string is compared with "self"
+  (and "couple" in the next branch); for "self" it builds CMsgUserEffect via
+  FUN_14037e0a0 - mode at wire+8, owner id at wire+4, the effect NAME added as
+  the packer string (C:881348-881356) - and broadcasts it self-inclusive
+  through the sub-object vtable +0x348.
+- The port reuses the 1015 builder the 1027 action already proves
+  (build_user_effect_1015 with EFFECT_ADD/EFFECT_DEL), implements the "self"
+  target, and answers false for targets that need mate/team state we do not
+  model (couple) instead of pretending success.
+- tests/test_actions_v95.py (8 asserts): add and del both answer true and arrive
+  as 1015 with modes 10 and 24, the effect name travels as the packer string, an
+  empty effect name is refused, and an unsupported target answers false.
+- Suite: 71 tests, 71 green.
+

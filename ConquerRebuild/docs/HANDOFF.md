@@ -522,3 +522,9 @@ FUN_140118320, vtable +0x28 LookupUserTeam, +0x50 GetMemberCount, and the module
 handles wire types 0x3ea/0x3eb/0x3ff/0x7fd (Team.c:145-165). That is enough to
 start the team data model + CMsgTeam 1023 handling.
 
+## v95 (Nov 4, 2026) — Lua Effect live, suite 71/71
+Effect(uid,target,effect,mode) sends CMsgUserEffect 1015 for the "self" target
+(mode 10 add / 24 del) and refuses targets needing mate/team state. Three
+research workers are decoding the team module (CTeam + CMsgTeam 0x3ff), types
+2201/2205, and the guild vtable slots +0x118/+0x260 with capstone.
+

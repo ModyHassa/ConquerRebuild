@@ -1393,3 +1393,8 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
 DELETE FROM cq_npc WHERE id=99001859;
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
   VALUES (99001859,'LuaKeyProbe2',0,5000,1002,400,310,0,'v94_probe.lua');
+
+-- v95: Lua Effect probe NPC
+DELETE FROM cq_npc WHERE id=99001860;
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr)
+  VALUES (99001860,'LuaEffectProbe',0,5000,1002,400,311,0,'v95_probe.lua');

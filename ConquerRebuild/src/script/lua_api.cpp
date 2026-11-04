@@ -7,7 +7,8 @@
 #include "script/lua_host.hpp"
 #include "systems/world.hpp"
 #include "systems/chat.hpp"
-#include "systems/combat.hpp"   // ATTRIB_LIFE (AddUserInt 1019)
+#include "systems/combat.hpp"
+#include "systems/usereffect.hpp"  // build_user_effect_1015 (Lua Effect)   // ATTRIB_LIFE (AddUserInt 1019)
 #include "systems/magic.hpp"    // ATTRIB_MANA (AddUserInt 1021)
 
 #include <cstdio>
@@ -256,6 +257,38 @@ int api_add_user_int(lua_State* L) {
     return 1;
 }
 
+// Effect(uid, target, effect, mode) - PINNED from FUN_1404f1e90
+// (MsgServer.c:881315): uid 0 = current user; all three remaining args must be
+// present ("szObj or szEffect or szOpt is NULL" is a LuaError); the mode string
+// is compared with "del" and becomes 0x18, anything else becomes 10 (add)
+// (C:881360-881365); the target string is compared with "self" (and "couple" in
+// the next branch) - for "self" it builds CMsgUserEffect via FUN_14037e0a0
+// (mode at wire+8, owner id at wire+4, the effect name as the packer string)
+// and broadcasts it self-inclusive through sub-object vtable +0x348 (C:881368+).
+// This build implements the "self" target; "couple" needs mate support we do
+// not have yet.
+int api_effect(lua_State* L) {
+    const long long uid = lua_arg_int(L, 1);
+    const std::string target = lua_arg_str(L, 2);
+    const std::string effect = lua_arg_str(L, 3);
+    const std::string opt    = lua_arg_str(L, 4);
+    Player* p = resolve_user(uid);
+    if (!p || !p->session || effect.empty()) {
+        lua_push_bool(L, false);
+        return 1;
+    }
+    const uint8_t mode = (opt == "del") ? EFFECT_DEL : EFFECT_ADD;
+    if (target == "self") {
+        p->session->send(build_user_effect_1015(p->id, mode, effect));
+        std::printf("[lua] Effect(%lld, self, %s, %s)\n",
+                    uid, effect.c_str(), opt.c_str());
+        lua_push_bool(L, true);
+        return 1;
+    }
+    lua_push_bool(L, false);   // couple/team targets need systems we lack
+    return 1;
+}
+
 // GetUserStr(uid, key) - PINNED from FUN_1404e0940 (MsgServer.c:871073): the
 // string getter implements ONLY key 1002 (player name, sub-object vtbl+0x18),
 // 1017 (mate name, user vtbl+0x40) and 1064 (a god-bless expiry string).
@@ -375,6 +408,7 @@ void lua_api_init() {
     h.register_fn("RecordPoint", api_record_point);
     h.register_fn("Talk", api_talk);
     h.register_fn("AddUserInt", api_add_user_int);
+    h.register_fn("Effect", api_effect);
     std::printf("[lua] gameplay api registered (say, get_*, add_money,"
                 " GetUserInt, SetUserInt)\n");
 }
