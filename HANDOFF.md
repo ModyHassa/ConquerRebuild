@@ -563,3 +563,11 @@ guesswork. Current: 132/216 types, 97.87% of rows. Known dispatch traps are
 documented in CHANGELOG v101 (the 870962 getter switch and the 0x30-0x37 op
 sub-switch are not action types).
 
+## v102 (Nov 4, 2026) — router solved, 52 types enumerated, suite 73/73
+`python3 tools/newengine_map.py <type...>` now answers "which case is this type"
+for 1001-1729, verified 6/6 against the hand-ported types. docs/newengine_router.md
+holds the full table: for each unported type, the case, the proven semantics, and
+the ONE missing helper/field that blocks it. Next wave = read those helpers
+(they are small, listed by name) and port the families in bulk. Workers are
+decoding 401/402/403/532/542-544 and 1554/1095/1651 in parallel.
+

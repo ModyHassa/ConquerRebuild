@@ -1296,3 +1296,30 @@ guessed:
 - Sample shapes captured for the next wave: 1040 = `"<a> <b>"` two small ints
   (668 rows); 1084 = `"<big> <a> <b>"` (99); 1095 = EMPTY param, pure id_next
   (245); 1554 = keyword `chk`/`add` + data (500).
+
+## v102 (Nov 4, 2026) — the new-engine router is SOLVED: 52 unported types mapped
+- tools/newengine_map.py reads the byte map DAT_14013aa9c straight out of the PE
+  and returns, for any type 1001-1729, its CASE LABEL (and the body address from
+  the rel32 table). Verified machine-side against the six types we already
+  ported by hand: 1075->0x41, 1076->0x42, 1077->0x43, 1080->0x46, 1081->0x47,
+  1085->0x4B. **6/6 OK**.
+- CORRECTION to a previous worker verdict: FUN_14012a6e0 is NOT missing from the
+  decompile. decompiled/msgserver_gameaction.c contains the switch AND all 175
+  case bodies (case 0x00 at line 10950 onward). Only the decompiler's
+  "Could not find normalized switch variable" warning made it look absent.
+- docs/newengine_router.md: the case index for all 84 unported types (52 inside
+  this engine, 32 elsewhere) plus a per-type table of what is PROVEN and exactly
+  which helper function or field is UNKNOWN. Twelve bodies were read and
+  classified this wave, including the two biggest unported types:
+  * 1040 (668 rows) = REBIRTH (requirement-table search + apply + gmlog/rebirth);
+  * 1086 (640 rows) = `var[v2] = FUN_140382f00(user, v1)` over the level-exp curve.
+- Newly proven helpers, now reusable: FUN_140164520(user, idx, val) is exactly
+  `if (idx>7) error; else user_var64[idx] = val` (8 slots at user+0x2F0), and
+  FUN_1401a9b00(user, id, num, str) pushes `{id, TimeGet()/1000, num, str}` into
+  the container at user+0x330 (guard: num!=0 || str!=NULL).
+- Two decode workers were launched in parallel (401/402/403/532/542-544, and
+  1554/1095/1651) with the incremental-write protocol; they write
+  DECODE_401_532.md and DECODE_1554_1095.md.
+- No action type was ported in this wave ON PURPOSE: every candidate body needs
+  one named helper or field that is still UNKNOWN, and inventing it is forbidden.
+  Suite: 73 tests, 73 green.
