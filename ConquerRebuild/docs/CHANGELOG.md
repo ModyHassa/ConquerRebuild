@@ -1676,7 +1676,8 @@ reading the code, not by guessing:
 - **UNKNOWN (flagged, not guessed):** attrib `0xb` (VP getter `+0x30`) is not modelled by
   this engine and is not sent; the tier-3+ path reads `cq_user.old_prof` (user+0xedb) which
   is not loaded yet, so it reports 0x32 only and logs the gap.
-- Suite: 87 green; the only failures in this run were v38/v39/transport_live, all three
-  "connection refused" because the 5816 server process vanished mid-suite (no OOM record in
-  dmesg, no crash trace in the server log). All three pass standalone.
+- Suite: **83/83 green** (clean re-run; same 83 distinct tests as the previous run). The first
+  run of this wave lost v38/v39/transport_live to "connection refused" because the 5816 server
+  process vanished mid-suite — no OOM record in dmesg, no crash trace in the server log — and all
+  three pass both standalone and in the re-run, so it was an environment flake, not a regression.
 
