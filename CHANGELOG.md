@@ -1607,3 +1607,17 @@ guessed:
   item-attribute definitions) read by the item-attribute subsystem.
 - 1650/1651 gated on the faction state byte `user+0x12D`; 1082/1096/1098/1072 each need their
   named subsystem - all recorded in docs/decode_remaining_subsystems.md.
+
+## v118 (Nov 5, 2026) — 1083 flags decoded to the status bitmap, 1095 loader mapped (docs)
+- The `+0x2D8` queries that blocked 1083 are the **presence bitmap at `user+0xF68`**
+  (0xC0 bits, word/bit addressing with an `idx <= 0xBF` guard). The setter switch
+  (MsgServer.c:299106-301600) pairs each index with a notify id: 0x1B -> 0x1F, 0x1C -> 0x20,
+  0x1D -> 0x21. So 1083's `chk` asks "does the actor HAVE state 0x1B" / "state 0x1C or >= 1
+  second of privilege left", which needs the status-bitmap subsystem. Still BLOCKED.
+- 1095's CMagicManager loader is mapped: four queries (cq_magictype, cq_magictype_ex,
+  cq_magictype WHERE auto_learn!=0 -> a map<id,magic> SET, cq_magictypeop). The 64-cell
+  container FUN_1402f16c0 walks is NOT any of those tables, so the grouping code is the one
+  missing piece. Still BLOCKED.
+- Also started a narrowly-scoped worker (per the owner's instruction to keep workers to ONE
+  task because of their tool cap) on the CUserData column adapter, the single decode that
+  still blocks 1040 (668 rows).

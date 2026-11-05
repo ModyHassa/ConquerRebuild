@@ -687,3 +687,10 @@ so the point budget comes from the CUserData cache; its byte offsets are now map
 and only the column adapter is missing. 532 is not an action at all (data-only item-attribute
 definitions). Everything left is written down in docs/decode_remaining_subsystems.md.
 
+## v118 (Nov 5, 2026) — 1083 flags + 1095 loader identified (docs)
+1083's 0x1B/0x1C are entries in the status presence bitmap at user+0xF68 (0xC0 bits; setters at
+MsgServer.c:299106-301600 pair index -> notify id 0x1F/0x20/0x21). 1095's CMagicManager loads
+cq_magictype / _ex / auto_learn (as a map<id,magic> set) / cq_magictypeop, but the 64-cell
+per-level container the action walks is built by code not yet found. A narrowly-scoped worker
+is decoding the CUserData column adapter for 1040.
+

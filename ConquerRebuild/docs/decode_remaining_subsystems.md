@@ -63,3 +63,35 @@ comparing a name against the object's `0x1040` property. Needs the faction subsy
 `(*FUN_1401181A0 vtbl+0xD8)(obj, DATA)`, a 16-byte record and `FUN_140165E10`; 1098 a 15-field
 sscanf into a 0x38 struct; 1072 the `FUN_1403A5840`/`FUN_1403A5CE0` packet family with the
 constant `0xD`. Each needs its named subsystem decoded first.
+
+## 1083's flags 0x1B/0x1C - they are the STATUS PRESENCE BITMAP (new, verified)
+
+`(*(user10_vtbl + 0x2D8))(user10, idx)` is not a plain flag getter: `idx` addresses the
+**presence bitmap at `user+0xF68`** (0xC0 = 192 bits, addressed as
+`word = idx>>5, bit = idx&31`, guarded by `idx <= 0xBF`). The setter switch
+(MsgServer.c:299106-301600, with a monster twin at 300656-301400) shows the pattern:
+
+```
+case 0x1B: set bit; notify(..., 0x1F)
+case 0x1C: set bit; notify(..., 0x20)
+case 0x1D: set bit; notify(..., 0x21)
+```
+So 1083's `chk` really asks "does this actor currently HAVE state 0x1B" (value != 0) or
+"state 0x1C, or at least one second of privilege left" (value == 0, via FUN_140383750).
+Porting 1083 therefore needs the status-bitmap subsystem (the same bitmap every 1027-style
+effect touch), which this rebuild does not have yet. BLOCKED, not guessed.
+
+## 1095's CMagicManager - what it actually loads (new, verified)
+
+The manager's loader (MsgServer.c:534083-534377) runs FOUR queries:
+1. `SELECT * FROM cq_magictype` (534083)
+2. `SELECT * FROM cq_magictype_ex` (534183)
+3. `SELECT * FROM cq_magictype WHERE auto_learn!=0` (534280) - iterated and stored into a
+   `map<id, magic>` at `mgr+0x148/0x178` keyed by **cell 0 (id)**, i.e. a lookup SET of
+   auto-learn spells, not a per-level list.
+4. `SELECT * FROM cq_magictypeop` (534377)
+The container `FUN_1402f16c0` walks (`mgr+0x1B8/+0x188`) holds records with 64 cells where
+cells 5..64 are magic ids and cell 1/2/3/4 are (level, byte, profession, mode) - that is NOT
+any of the four tables above (cq_magictype is one spell per row), so the grouping code that
+builds it is still unidentified. 1095 remains BLOCKED at that point; it is all data=0 rows
+with empty params, i.e. a pure "grant what this actor should already know" action.
