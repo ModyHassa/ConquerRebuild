@@ -1782,3 +1782,16 @@ the source instead of being re-explained every run.
   inside a larger load function, so the container is attached there but its type still
   needs the allocation site. 1043 stays BLOCKED.
 
+### v122d — the four blocked types share one root helper
+- `FUN_1401181a0` is now understood: it is a **cached component getter**
+  (`GetService()->vt[0x20](20)`, guarded by the once-flag at 0x140975d10 and cached at
+  0x140975d08). 1043, 1082, 1096 and 1098 all call it, which is why they were all stuck
+  at the same place: they operate on that one component and we had not named it.
+- **1096's flow is now exact** (register level): the five negative-token checks, then
+  `data` column -> int -> `component->vt[0xd8](id)` -> `0x140165da0(player)` precondition ->
+  allocate a 16-byte node `{0, id, 0, 0}` -> hand it to the player via `vt+0x8`. It is a
+  queue append, not a state read.
+- Written up in `docs/worker_v122_shared_helpers.md`; 1043's write-up now points at it
+  (the `user+0x1110` container is very likely a member list of that component, so closing
+  component 20 closes 1043 as a side effect).
+

@@ -735,4 +735,8 @@ writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows)
   hand-written record (newengine_map ANCHORS, newengine_router.md, actions.hpp cases +
   body uniqueness) and runs as the suite preflight. 729 types / 39 ported / 0 problems.
   Fixed one narrative slip (1075 case was written 0x3e = 1072's label).
+- v122d: `FUN_1401181a0` identified as the cached component getter
+  (`GetService()->vt[0x20](20)`, cache 0x140975d08, once-flag 0x140975d10) shared by
+  1043/1082/1096/1098. 1096's exact flow documented. ONE remaining unknown unblocks all
+  four: **component id 20**.
 
