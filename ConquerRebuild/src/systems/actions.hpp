@@ -3418,10 +3418,18 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
-        case 112: {  // patch-news dialog: CMsgDialog mode 112,
-            // reply id = DATA column, text = param (case 0x70,
-            // FUN_1403a6400 with mode 0x70 — NO remapper call)
-            send_line(112, 0, a->data, 0, 0, a->param);
+        case 112: {  // NPC dialog page, mode 112 (case 0x70, MsgServer.c
+            // 222645-222670; verified 2026-11-05 against the builder body
+            // FUN_1403a6400 at MsgServer.c:657813 and the call site disassembly
+            // at 0x140144007-0x14014406x):
+            //   GetField(4) via vtbl +0x48 -> the DATA column (numeric)
+            //   GetField(5) via vtbl +0x78 -> the PARAM column (text)
+            //   call: FUN_1403a6400(buf, 0x70 /*mode*/, text, (u1)data, 0)
+            // The builder writes payload+0x0A = param_4 (=> wire+0x0E = FACE =
+            // (u1)data) and payload+0x08 = param_5 (=> wire+0x0C = reply id = 0).
+            // The earlier port had face and reply-id swapped: it put data in the
+            // reply slot and left the face at 0.
+            send_line(112, (uint8_t)a->data, 0, 0, 0, a->param);
             cur = a->id_next;
             break;
         }

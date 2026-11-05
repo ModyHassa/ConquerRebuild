@@ -1415,3 +1415,18 @@ guessed:
   `docs/worker_1040_1086.md`, `docs/worker_403_532.md`,
   `docs/worker_small_types.md`; each must end with a numbered PORT RECIPE so the
   next wave implements without re-reading the decompile.
+
+## v107 (Nov 5, 2026) — type 112 wire swapped-field bug FIXED, suite 77/77
+- Real fidelity bug found in shipped code: action 112 (18 rows) sent the DATA
+  column in the 2032 reply-id slot and left the FACE at 0. Re-proved from the
+  builder body `FUN_1403a6400` (MsgServer.c:657813) plus the call-site
+  disassembly (`0x140144007`): the original passes `param_4 = (u8)DATA` and
+  `param_5 = 0`, and the builder maps `param_4 -> wire+0x0E (face)`,
+  `param_5 -> wire+0x0C (reply id)`, `param_2 -> wire+0x0F (mode 112)`.
+  Corrected to `send_line(112, (uint8_t)data, 0, 0, 0, param)`.
+- Two older tests (`test_actions_v44.py`, `test_actions_v62.py`) had asserted the
+  swapped behaviour and were corrected; a new `test_actions_v106.py` asserts the
+  three slots straight off the wire (reply id 0, face = DATA, mode 112).
+- Rebirth worker (1040's apply `FUN_1401c3180`) is running with the
+  incremental-write protocol; its deliverable is docs/worker_rebirth_apply.md.
+- Suite: **77 tests, 77 green**.

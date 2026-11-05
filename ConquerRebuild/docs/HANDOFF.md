@@ -614,3 +614,10 @@ docs/worker_1040_1086.md, docs/worker_403_532.md and docs/worker_small_types.md
 (112/124/126/218/219/2002/2005). Read those files first next wave - implement
 straight from their PORT RECIPE sections.
 
+## v107 (Nov 5, 2026) — 112 wire fix, suite 77/77
+Action 112 was sending DATA in the reply-id slot with a zero face; the original
+puts DATA in the FACE (+0x0E) and 0 in the reply id (+0x0C), proven from
+FUN_1403a6400 and the 0x140144007 call site. Fixed, two stale tests corrected, one
+new wire test added. A worker is decoding the rebirth apply (FUN_1401c3180) so
+type 1040 (668 rows) can be ported next.
+

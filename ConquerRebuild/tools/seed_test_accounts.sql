@@ -1504,3 +1504,13 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99001897,'Npc402Lt',0,5000,1002,414,313,99001083,''),
   (99001898,'Npc402Furn',0,5000,1002,415,313,99001086,''),
   (99001899,'Npc402Type',0,5000,1002,416,313,99001089,'');
+
+-- v106: action type 112 (dialog page, mode 112; data = action id)
+DELETE FROM cq_action WHERE id BETWEEN 99001093 AND 99001095;
+DELETE FROM cq_npc WHERE id BETWEEN 99001810 AND 99001819;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
+  (99001093,112,'v106dialog112',99001094,99001095,42),
+  (99001094,101,'v106ok112',0,0,0),
+  (99001095,101,'v106fail112',0,0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99001810,'Npc112',0,5000,1002,417,313,99001093,'');

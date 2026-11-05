@@ -102,8 +102,10 @@ lines = run_chain(99000870)
 notice = [l for l in lines if l['mode'] == 0x70]
 check(len(notice) == 1, '112 emits exactly one mode-0x70 line')
 if notice:
-    check(notice[0]['actionid'] == 1,
-          '112 reply action id carries the DATA column')
+    check(notice[0]['actionid'] == 0,
+          '112 reply action id is 0 (proven param_5 = 0)')
+    check(notice[0]['face'] == 1,
+          '112 FACE carries the DATA column (corrected in v106)')
     check(any('112~notice~line.' in s for s in notice[0]['strings']),
           '112 text is the param string')
 

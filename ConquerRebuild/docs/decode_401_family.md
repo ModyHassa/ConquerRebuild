@@ -87,3 +87,33 @@ All 115 rows have an EMPTY param. Repo history says 542 was ported in v71, so
 
 ## 543 (78 rows) and 544 (1 row)
 Frozen on the definition of four helper functions; nothing portable yet.
+
+## 112 (18 rows) — WIRE CORRECTION (v107)
+Type 112 was already implemented, but with the two fields SWAPPED. Re-verified
+2026-11-05 from the builder body `FUN_1403a6400` (MsgServer.c:657813-657841) and
+the call site disassembly at `0x140144007-0x14014406x`:
+
+```
+GetField(4) via vtbl +0x48 -> ebx  = the DATA column (numeric)
+GetField(5) via vtbl +0x78 -> rdi  = the PARAM column (text)
+call FUN_1403a6400(buf, edx=0x70 /*mode*/, r8=text, r9d=ebx /*param_4*/,
+                   [rsp+0x20]=0 /*param_5*/)
+```
+The builder writes `payload+0x08 = param_5` and `payload+0x0A = param_4`, and the
+payload base is `obj+0x428` = wire+4, therefore:
+
+| wire | value |
+|---|---|
+| +0x08 | 0 (pic1) |
+| +0x0A | 0 (pic2) |
+| +0x0C | **0** — reply id (= param_5) |
+| +0x0E | **(u8)DATA** — the FACE (= param_4) |
+| +0x0F | **112** — mode (= param_2) |
+| +0x10 | string packer with the PARAM text |
+
+The old port sent `send_line(112, face=0, aid=DATA, ...)`, i.e. it put DATA in the
+reply-id slot and left the face at zero. Fixed to
+`send_line(112, (uint8_t)a->data, 0, 0, 0, a->param)`; `tests/test_actions_v44.py`
+and `tests/test_actions_v62.py` enshrined the wrong expectation and were corrected
+to assert reply-id 0 and face = DATA. New `tests/test_actions_v106.py` proves the
+three slots directly from the wire.

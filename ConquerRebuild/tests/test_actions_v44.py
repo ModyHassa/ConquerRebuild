@@ -64,13 +64,16 @@ send_pkt(a, 1008, struct.pack('<II', 100001, 777))
 drain_all(a)
 print('TestKnight logged in')
 
-# --- 112: mode-112 dialog line, wire id = DATA(7), then chain runs ---
+# --- 112: mode-112 dialog line, FACE = DATA(7), reply id = 0 (corrected in
+# v106: the builder FUN_1403a6400 writes param_4 at +0x0E and param_5 at +0x0C,
+# and the 112 call site passes param_4 = DATA, param_5 = 0) ---
 pkts = click_option(a, 99000580, 'news~112. 99000580')
 d112 = [p for p in pkts if p[1] == 2032 and p[2][0xF] == 112]
 check(len(d112) == 1, f'one mode-112 line ({len(d112)})')
 if d112:
     wire_id = struct.unpack_from('<H', d112[0][2], 0xC)[0]
-    check(wire_id == 7, f"112 wire id = DATA column 7 (got {wire_id})")
+    check(wire_id == 0, f"112 reply id is 0 (got {wire_id})")
+    check(d112[0][2][0xE] == 7, f"112 face = DATA column 7 (got {d112[0][2][0xE]})")
     check(strings_of_2032(d112[0]) == ['V44~PATCH~NEWS.'],
           f"112 text (got {strings_of_2032(d112[0])})")
 s = [x for p in pkts if p[1] == 2032 for x in strings_of_2032(p)]
