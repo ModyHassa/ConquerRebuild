@@ -902,6 +902,12 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
                     ws.type = wsr.type; ws.level = wsr.level; ws.exp = wsr.exp;
                     p.weapon_skills[wsr.type] = ws;
                 }
+                // v110: cq_achievement row (point + the 13 bitmask fields)
+                {
+                    auto ar = active_db()->load_achievement(rec.id);
+                    for (int i = 0; i < 15; ++i) p.ach[i] = ar.cells[i];
+                    p.ach_dirty = false;
+                }
                 // v37: cq_magic rows (learned spells)
                 p.magics.clear();
                 for (const auto& mr : active_db()->load_player_magics(rec.id)) {

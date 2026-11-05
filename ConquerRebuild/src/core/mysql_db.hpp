@@ -32,6 +32,10 @@ public:
     std::vector<GeneratorRecord> load_generators(uint32_t map_id) override;
     std::map<uint32_t, uint64_t> load_levexp() override;
     std::map<uint32_t, uint32_t> load_levexp_time() override;
+    AchievementRecord load_achievement(uint32_t user_id) override;
+    void save_achievement(uint32_t user_id,
+                          const AchievementRecord& rec) override;
+    uint32_t achievement_points(uint32_t position) override;
     void save_exp_level(uint32_t user_id, uint64_t exp, uint32_t level) override;
     std::map<std::string, int64_t> load_user_vars(uint32_t player_id) override;
     void save_user_vars(uint32_t player_id,

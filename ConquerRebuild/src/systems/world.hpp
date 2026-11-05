@@ -46,6 +46,10 @@ struct Player {
     struct ActionRecord { uint32_t id = 0; uint32_t timestamp = 0;
                           int32_t num = 0; std::string str; };
     std::vector<ActionRecord> action_records;
+    // v110: cq_achievement row. cells[1] = point, cells[2..14] = achieve1..13
+    // (the original's 1-based cell numbering in CAchInfo).
+    uint32_t ach[15] = {0};
+    bool ach_dirty = false;
     uint32_t script_guild_id = 0;         // v79: 721 stores the guild id here
                                           // (the original's actor +0x14d)
     uint32_t guild_id = 0;                // v81: cq_synattr.syn_id (the

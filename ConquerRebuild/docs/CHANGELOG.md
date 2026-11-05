@@ -1474,3 +1474,30 @@ guessed:
   no-write path and the bad-param fail branch. Fixtures live in the repo-verified-free
   band 99020000+/99020100+ after two earlier bands turned out to be owned by v74/v76.
 - Suite: **78 tests, 78 green**.
+
+## v110 (Nov 5, 2026) — action type 1554 PORTED (500 rows) + real cq_achievement storage
+- **1554 ported** (new-engine case 0x99, msgserver_gameaction.c:19025-19085).
+  `sscanf "%s"`; the DATA column is a `cq_achievementtype.position`:
+  `field = (data/100)%100 + 1`, `bit = data%100` (1-based).
+  * `chk` -> FUN_140171090: data 0 passes, an out-of-range position logs and fails,
+    otherwise the branch is the bit test of cell `field`.
+  * `add` -> FUN_140170e90 + FUN_1403772a0: only when the bit is clear, set it and
+    add `cq_achievementtype.point` of that position to cell 1 (the point column).
+  * `clr` -> FUN_140113380 + FUN_140377690: only when the bit is set, clear it and
+    subtract the same points. Both always continue at id_next; an unknown command
+    takes id_nextfail.
+- **Storage is the real table**: `cq_achievement(userid, point, achieve1..13)`.
+  The original's cells are 1-based, so cell 1 = `point` and cells 2..14 =
+  `achieve1..13` (exactly 14 cells, matching the `field < 0xF` guard). New
+  IDatabase API: `load_achievement` / `save_achievement` / `achievement_points`
+  (the latter resolves FUN_1403762d0 against `cq_achievementtype.position`).
+  Rows load at login and save on disconnect when dirty.
+- **Bug found while wiring it**: `achievement_points` took the DB mutex and then
+  called `query_string`, which takes the same non-recursive mutex -> the server
+  thread deadlocked and 22 suite tests collapsed with "no 1213 challenge". Fixed
+  by leaving the locking to `query_string`.
+- Tests: `tests/test_actions_v110.py` (fixture position 20101 = field 2 bit 1,
+  worth 25 points) proves the empty-bit fail branch, add-then-check, a re-login
+  that reloads the row, clear-then-check, and the persisted
+  `point`/`achieve1` values (25 -> 0) read straight out of cq_achievement.
+- Suite: **79 tests, 79 green**.

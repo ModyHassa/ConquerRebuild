@@ -1541,3 +1541,27 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020100,'Npc1086a',0,5000,1002,420,313,99020000,''),
   (99020101,'Npc1086b',0,5000,1002,421,313,99020003,''),
   (99020102,'Npc1086c',0,5000,1002,422,313,99020006,'');
+
+-- v110: achievement system (action 1554) — position 20101 = field 2 (achieve1) bit 1
+INSERT INTO cq_achievementtype (id,name,position,point,facebook) VALUES
+  (9001,'V110~Test',20101,25,0)
+  ON DUPLICATE KEY UPDATE position=VALUES(position), point=VALUES(point);
+DELETE FROM cq_achievement WHERE userid=96;
+DELETE FROM cq_action WHERE id BETWEEN 99020010 AND 99020020;
+DELETE FROM cq_npc WHERE id BETWEEN 99020110 AND 99020112;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
+  (99020010,1554,'chk',99020011,99020012,20101),
+  (99020011,101,'v110-pre-ok',0,0,0),
+  (99020012,101,'v110-pre-fail',0,0,0),
+  (99020013,1554,'add',99020014,0,20101),
+  (99020014,1554,'chk',99020015,99020016,20101),
+  (99020015,101,'v110-add-ok',0,0,0),
+  (99020016,101,'v110-add-fail',0,0,0),
+  (99020017,1554,'clr',99020018,0,20101),
+  (99020018,1554,'chk',99020019,99020020,20101),
+  (99020019,101,'v110-still-set',0,0,0),
+  (99020020,101,'v110-cleared',0,0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020110,'Npc1554a',0,5000,1002,423,313,99020010,''),
+  (99020111,'Npc1554b',0,5000,1002,424,313,99020013,''),
+  (99020112,'Npc1554c',0,5000,1002,425,313,99020017,'');

@@ -295,6 +295,70 @@ void MySQLDatabase::save_user(const UserRecord& r) {
 
 
 // ---- xp system (v18) --------------------------------------------------
+IDatabase::AchievementRecord MySQLDatabase::load_achievement(uint32_t uid) {
+    // v110: one cq_achievement row per user (userid is the PK).
+    AchievementRecord out;
+    if (!conn_) return out;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[512];
+    std::snprintf(sql, sizeof sql,
+        "SELECT point,achieve1,achieve2,achieve3,achieve4,achieve5,achieve6,"
+        "achieve7,achieve8,achieve9,achieve10,achieve11,achieve12,achieve13 "
+        "FROM cq_achievement WHERE userid=%u", uid);
+    if (!exec(sql)) return out;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return out;
+    MYSQL_ROW row = mysql_fetch_row(res);
+    if (row) {
+        for (int i = 0; i < 14; ++i) {
+            uint32_t v = row[i] ? (uint32_t)std::strtoul(row[i], nullptr, 10) : 0;
+            out.cells[i + 1] = v;          // cells[1] = point, [2..14] = achieveN
+        }
+        out.found = true;
+    }
+    mysql_free_result(res);
+    return out;
+}
+
+void MySQLDatabase::save_achievement(uint32_t uid,
+                                    const AchievementRecord& rec) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[768];
+    std::snprintf(sql, sizeof sql,
+        "INSERT INTO cq_achievement (userid,point,achieve1,achieve2,achieve3,"
+        "achieve4,achieve5,achieve6,achieve7,achieve8,achieve9,achieve10,"
+        "achieve11,achieve12,achieve13) VALUES (%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,"
+        "%u,%u,%u,%u,%u) ON DUPLICATE KEY UPDATE point=VALUES(point),"
+        "achieve1=VALUES(achieve1),achieve2=VALUES(achieve2),"
+        "achieve3=VALUES(achieve3),achieve4=VALUES(achieve4),"
+        "achieve5=VALUES(achieve5),achieve6=VALUES(achieve6),"
+        "achieve7=VALUES(achieve7),achieve8=VALUES(achieve8),"
+        "achieve9=VALUES(achieve9),achieve10=VALUES(achieve10),"
+        "achieve11=VALUES(achieve11),achieve12=VALUES(achieve12),"
+        "achieve13=VALUES(achieve13)",
+        uid, rec.cells[1], rec.cells[2], rec.cells[3], rec.cells[4],
+        rec.cells[5], rec.cells[6], rec.cells[7], rec.cells[8], rec.cells[9],
+        rec.cells[10], rec.cells[11], rec.cells[12], rec.cells[13],
+        rec.cells[14]);
+    exec(sql);
+}
+
+uint32_t MySQLDatabase::achievement_points(uint32_t position) {
+    // v110: FUN_1403762d0 -> the cq_achievementtype.point of that position.
+    if (!conn_ || position == 0) return 0;
+    // NOTE: do NOT take mtx_ here - query_string() already locks it and
+    // std::mutex is not recursive (v110: a second lock deadlocked the whole
+    // server thread and stalled every later test).
+    char sql[256];
+    std::snprintf(sql, sizeof sql,
+        "SELECT point FROM cq_achievementtype WHERE position=%u LIMIT 1",
+        position);
+    std::string out;
+    if (!query_string(sql, out)) return 0;
+    return (uint32_t)std::strtoul(out.c_str(), nullptr, 10);
+}
+
 std::map<uint32_t, uint32_t> MySQLDatabase::load_levexp_time() {
     // v109: up_lev_time column of the same type-0 level records.
     std::map<uint32_t, uint32_t> out;

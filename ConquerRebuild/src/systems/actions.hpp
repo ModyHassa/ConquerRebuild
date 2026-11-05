@@ -1733,6 +1733,74 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1554: {  // achievement chk/add/clr (new-engine case 0x99,
+            // msgserver_gameaction.c:19025-19085). VERIFIED:
+            //   sscanf "%s" (>= 1 token); the DATA column is the achievement
+            //   POSITION (cq_achievementtype.position), encoding
+            //   field = (data/100)%100 + 1 and bit = data%100 (1-based bit).
+            //   "chk" -> FUN_140171090: data==0 passes; invalid position logs
+            //            and fails; otherwise bit test of cell `field`;
+            //            returns that as the branch (id_next / id_nextfail).
+            //   "add" -> FUN_140170e90 -> FUN_1403772a0: only when the bit is
+            //            clear, set it and add cq_achievementtype.point of the
+            //            position to cell 1 (the point column); always id_next.
+            //   "clr" -> FUN_140113380 -> FUN_140377690: only when the bit is
+            //            set, clear it and subtract the same points; id_next.
+            //   any other command -> id_nextfail. The achievement system is
+            //   gated by a server config byte (mgr+0x51); this rebuild has it
+            //   enabled, which is the behaviour every shipped row expects.
+            // Cell map (cq_achievement): 1 = point, 2..14 = achieve1..13.
+            char cmd[32] = {0};
+            int n = std::sscanf(a->param.c_str(), "%31s", cmd);
+            if (n < 1) {
+                std::printf("[action] %u: 1554 empty param\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            uint32_t data = a->data;
+            uint32_t field = (data / 100) % 100 + 1;
+            uint32_t bit = data % 100;
+            bool valid = (data != 0 && field < 15 && bit < 33);
+            if (!std::strcmp(cmd, "chk")) {
+                bool ok;
+                if (data == 0) ok = true;      // FUN_140376830: data 0 passes
+                else if (!valid) {
+                    std::printf("[action] %u: 1554 chk position %u out of "
+                                "range\n", p.id, data);
+                    ok = false;
+                } else {
+                    ok = ((p.ach[field] >> ((bit - 1) & 31)) & 1) != 0;
+                }
+                cur = ok ? a->id_next : a->id_nextfail;
+            } else if (!std::strcmp(cmd, "add")) {
+                if (valid) {
+                    uint32_t mask = 1u << ((bit - 1) & 31);
+                    if ((p.ach[field] & mask) == 0) {
+                        p.ach[field] |= mask;
+                        if (active_db())
+                            p.ach[1] += active_db()->achievement_points(data);
+                        p.ach_dirty = true;
+                    }
+                }
+                cur = a->id_next;
+            } else if (!std::strcmp(cmd, "clr")) {
+                if (valid) {
+                    uint32_t mask = 1u << ((bit - 1) & 31);
+                    if (p.ach[field] & mask) {
+                        p.ach[field] &= ~mask;
+                        uint32_t pts = active_db()
+                            ? active_db()->achievement_points(data) : 0;
+                        p.ach[1] = (p.ach[1] > pts) ? p.ach[1] - pts : 0;
+                        p.ach_dirty = true;
+                    }
+                }
+                cur = a->id_next;
+            } else {
+                std::printf("[action] %u: 1554 unknown cmd '%s'\n", p.id, cmd);
+                cur = a->id_nextfail;
+            }
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the

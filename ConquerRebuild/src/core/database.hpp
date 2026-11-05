@@ -191,6 +191,17 @@ public:
     // 1086 walks both columns (FUN_140382f00 reads cell 1 = exp and
     // cell 2 = up_lev_time of the same level record).
     virtual std::map<uint32_t, uint32_t> load_levexp_time() = 0;
+    // v110: cq_achievement (userid PK, point, achieve1..achieve13) + the
+    // cq_achievementtype point table. cells[1] = the point column,
+    // cells[2..14] = achieve1..achieve13 (the original's 1-based cells).
+    struct AchievementRecord {
+        uint32_t cells[15] = {0};
+        bool found = false;
+    };
+    virtual AchievementRecord load_achievement(uint32_t user_id) = 0;
+    virtual void save_achievement(uint32_t user_id,
+                                  const AchievementRecord& rec) = 0;
+    virtual uint32_t achievement_points(uint32_t position) = 0;
     virtual void save_exp_level(uint32_t user_id, uint64_t exp, uint32_t level) = 0;
     // v27: user script vars (stc counters + dataN/var(N)); keys are
     // "stc:a:b", "stcd:a:b", or plain var names. Sidecar table
@@ -350,6 +361,11 @@ public:
     }
     std::map<uint32_t, uint32_t> load_levexp_time() override {
         return {{1,2},{2,4},{3,6},{4,8},{5,10},{6,12},{7,14}};
+    }
+    AchievementRecord load_achievement(uint32_t) override { return {}; }
+    void save_achievement(uint32_t, const AchievementRecord&) override {}
+    uint32_t achievement_points(uint32_t position) override {
+        return position == 20101 ? 25 : 0;   // dev mirror of the seed row
     }
     void save_exp_level(uint32_t, uint64_t, uint32_t) override {}
     std::map<std::string, int64_t> load_user_vars(uint32_t pid) override {

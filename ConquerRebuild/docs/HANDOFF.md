@@ -636,3 +636,10 @@ thresholds) and load_levexp_time() exposes up_lev_time. Fixture bands for new wa
 99020000+ (actions) / 99020100+ (npcs) - 99001100, 99001200 and 99001300 are owned by
 v74/v74/v76.
 
+## v110 (Nov 5, 2026) — 1554 ported, suite 79/79
+Achievements are live: action 1554 chk/add/clr on cq_achievementtype.position with the
+original's 1-based cell math (field = (data/100)%100+1, bit = data%100) over the real
+cq_achievement row (point + achieve1..13), loaded at login and saved on disconnect.
+Watch out for IDatabase: any new method that calls query_string must NOT take mtx_
+itself (non-recursive -> deadlock, which cost a whole suite run today).
+

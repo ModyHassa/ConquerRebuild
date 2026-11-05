@@ -322,6 +322,14 @@ void World::remove_player(Player& p) {
             }
             db->save_user_vars(p.id, raw);
         }
+        // v110: persist the achievement row when it changed
+        if (p.ach_dirty) {
+            IDatabase::AchievementRecord ar;
+            for (int i = 0; i < 15; ++i) ar.cells[i] = p.ach[i];
+            ar.found = true;
+            db->save_achievement(p.id, ar);
+            p.ach_dirty = false;
+        }
         // v24: flush dirty weapon-skill (proficiency) rows
         for (const auto& [wtype, ws] : p.weapon_skills) {
             if (!ws.dirty) continue;
