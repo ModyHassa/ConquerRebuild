@@ -295,13 +295,37 @@ void MySQLDatabase::save_user(const UserRecord& r) {
 
 
 // ---- xp system (v18) --------------------------------------------------
+std::map<uint32_t, uint32_t> MySQLDatabase::load_levexp_time() {
+    // v109: up_lev_time column of the same type-0 level records.
+    std::map<uint32_t, uint32_t> out;
+    if (!conn_) return out;
+    std::lock_guard<std::mutex> lk(mtx_);
+    if (!exec("SELECT level,up_lev_time FROM cq_levexp WHERE type=0 ORDER BY id"))
+        return out;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return out;
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(res))) {
+        if (!row[0] || !row[1]) continue;
+        uint32_t lvl = (uint32_t)std::strtoul(row[0], nullptr, 10);
+        if (!out.count(lvl))
+            out[lvl] = (uint32_t)std::strtoul(row[1], nullptr, 10);
+    }
+    mysql_free_result(res);
+    return out;
+}
+
 std::map<uint32_t, uint64_t> MySQLDatabase::load_levexp() {
     // original: the map group loads cq_levexp at startup and looks
     // records up by level during AwardExp (FUN_14014de60).
     std::map<uint32_t, uint64_t> out;
     if (!conn_) return out;
     std::lock_guard<std::mutex> lk(mtx_);
-    if (!exec("SELECT level,exp FROM cq_levexp")) return out;
+    // v109: the original looks records up with type 0 only
+    // (FUN_14014de60(table, 0, level)); a mixed-type read picked the wrong
+    // row for a level and corrupted the level-up thresholds.
+    if (!exec("SELECT level,exp FROM cq_levexp WHERE type=0 ORDER BY id"))
+        return out;
     MYSQL_RES* res = mysql_store_result(conn_);
     if (!res) return out;
     MYSQL_ROW row;

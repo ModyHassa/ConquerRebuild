@@ -45,6 +45,66 @@ inline std::map<uint32_t, uint64_t>& levexp_table() {
     return tbl;
 }
 
+// v109: cq_levexp.up_lev_time cache (cell 2 of the same type-0 records).
+inline std::map<uint32_t, uint32_t>& levexp_time_table() {
+    static std::map<uint32_t, uint32_t> tbl;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        if (active_db()) tbl = active_db()->load_levexp_time();
+        std::printf("[xp] levexp up_lev_time: %zu levels loaded\n", tbl.size());
+    });
+    return tbl;
+}
+
+// PORT of FUN_140382f00 (MsgServer.c:634202-634276) — the "exp equivalent of
+// N minutes of play" calculation used by action 1086:
+//   need = exp(level) clamped to >= 1;  up = up_lev_time(level)
+//   rem  = minutes + (int)((float)up * ((float)exp_now / (float)need))
+//   walk levels from `level` upward while level < cap:
+//     cost = up_lev_time(level);
+//     if ((int)rem < cost) { acc += (long long)((float)exp(level) *
+//                                              ((float)rem / (float)max(cost,1)));
+//                            break; }
+//     rem -= cost; acc += exp(level); ++level;
+//   if (acc < exp_now) acc = exp_now;
+//   result = acc - exp_now
+// All intermediate math is single-precision float exactly as in the original
+// (the casts are part of the semantics, not an optimisation).
+inline int64_t exp_from_minutes(const Player& p, uint32_t minutes) {
+    auto& et = levexp_table();
+    auto& tt = levexp_time_table();
+    int32_t lvl = (int32_t)p.level;
+    int64_t cur_exp = (int64_t)p.exp;
+    auto e0 = et.find((uint32_t)lvl);
+    if (e0 == et.end()) return 0;              // null record -> helper returns 0
+    int64_t need = (int64_t)e0->second;
+    if (need < 1) need = 1;
+    int32_t up = 0;
+    auto t0 = tt.find((uint32_t)lvl);
+    if (t0 != tt.end()) up = (int32_t)t0->second;
+    uint32_t rem = (uint32_t)((int32_t)minutes +
+        (int32_t)(int64_t)((float)up * ((float)cur_exp / (float)need)));
+    int64_t acc = 0;
+    while (lvl < (int32_t)MAX_LEVEL_CAP) {
+        auto e = et.find((uint32_t)lvl);
+        if (e == et.end()) break;
+        int32_t cost = 0;
+        auto t = tt.find((uint32_t)lvl);
+        if (t != tt.end()) cost = (int32_t)t->second;
+        if ((int32_t)rem < cost) {
+            int32_t den = cost < 1 ? 1 : cost;
+            int64_t gain = (int64_t)e->second;
+            acc += (int64_t)((float)gain * ((float)rem / (float)den));
+            break;
+        }
+        rem = rem - (uint32_t)cost;
+        acc += (int64_t)e->second;
+        ++lvl;
+    }
+    if (acc < cur_exp) acc = cur_exp;
+    return acc - cur_exp;
+}
+
 // exp granted for one monster kill (approximation documented above)
 inline uint64_t kill_exp(const Monster& m) {
     uint64_t base = (uint64_t)m.max_hp + (uint64_t)m.level * m.level;

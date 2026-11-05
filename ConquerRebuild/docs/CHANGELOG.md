@@ -1453,3 +1453,24 @@ guessed:
 - NOT PORTED yet: 1040 needs four more helper reads (the attrib cases it writes,
   `FUN_1401abdf0`, `FUN_140173790`, `FUN_1401715d0`). Everything above is recorded in
   `docs/worker_rebirth_apply2.md` so the next wave ports 1040 (668 rows) mechanically.
+
+## v109 (Nov 5, 2026) — action type 1086 PORTED (640 rows) + levexp type-0 bug fixed
+- **1086 ported** (new-engine case 0x4C): `sscanf "%u %u"` (minutes, var index) ->
+  `var[idx] = exp_from_minutes(player, minutes)`, idx > 7 logs and writes nothing,
+  any token-count mismatch takes `id_nextfail`.
+- `exp_from_minutes` is a line-by-line port of `FUN_140382f00` (MsgServer.c:634202-634276):
+  `need = exp(level)` clamped to >= 1, `rem = minutes + (int)((float)up_lev_time *
+  ((float)exp_now / (float)need))`, then it walks `cq_levexp` levels accumulating
+  `exp(level)` while `rem >= up_lev_time(level)` and finally prorates the partial level
+  with single-precision float math exactly as the original does.
+- **REAL BUG FIXED in the XP layer**: `load_levexp` selected `level,exp FROM cq_levexp`
+  with no type filter and kept the first row per level, but the table holds rows for
+  types 0..5 (type 0 is the real curve). Level-up thresholds could therefore come from a
+  mentor/other curve. Now `WHERE type=0 ORDER BY id`, and a new `load_levexp_time()`
+  provides the `up_lev_time` column the same way.
+- Tests: `tests/test_actions_v109.py` with its own probe character (account 100096 /
+  cq_user 96, level 130 exp 0) asserts the exact computed value (201,887,472 for 2400
+  minutes, verified against the live cq_levexp rows with float32 rounding), the idx>7
+  no-write path and the bad-param fail branch. Fixtures live in the repo-verified-free
+  band 99020000+/99020100+ after two earlier bands turned out to be owned by v74/v76.
+- Suite: **78 tests, 78 green**.

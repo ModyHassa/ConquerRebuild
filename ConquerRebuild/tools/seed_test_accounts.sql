@@ -1514,3 +1514,30 @@ INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
   (99001095,101,'v106fail112',0,0,0);
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99001810,'Npc112',0,5000,1002,417,313,99001093,'');
+
+-- v109: action type 1086 (exp equivalent of N minutes) — dedicated probe char
+INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
+  (100096,'V108Probe','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (96,100096,'V108Probe',100003,15,2000,1500,1002,400,300,130,10)
+  ON DUPLICATE KEY UPDATE level=VALUES(level), exp=0;
+DELETE FROM cq_user_script_var WHERE player_id=96;
+-- v109 fixtures: band 99020000 verified free across the whole repo
+-- clean every stale v109 fixture npc by name (earlier band attempts)
+DELETE FROM cq_npc WHERE name IN ('Npc1086a','Npc1086b','Npc1086c');
+DELETE FROM cq_action WHERE id BETWEEN 99020000 AND 99020009;
+DELETE FROM cq_npc WHERE id BETWEEN 99020100 AND 99020103;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99020000,1086,'2400 5',99020001,99020009),
+  (99020001,101,'v108ok1086',0,0),
+  (99020003,1086,'600 9',99020004,99020009),
+  (99020004,101,'v108ok1086b',0,0),
+  (99020006,1086,'notanumber',99020009,99020007),
+  (99020007,101,'v108fail1086',0,0),
+  (99020009,101,'v108tail1086',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020100,'Npc1086a',0,5000,1002,420,313,99020000,''),
+  (99020101,'Npc1086b',0,5000,1002,421,313,99020003,''),
+  (99020102,'Npc1086c',0,5000,1002,422,313,99020006,'');

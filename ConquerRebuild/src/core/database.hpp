@@ -187,6 +187,10 @@ public:
     virtual std::vector<GeneratorRecord> load_generators(uint32_t map_id) = 0;
     // xp system (cq_levexp + cq_user.exp persistence)
     virtual std::map<uint32_t, uint64_t> load_levexp() = 0;
+    // v109: cq_levexp.up_lev_time per level (type 0 rows). The original's
+    // 1086 walks both columns (FUN_140382f00 reads cell 1 = exp and
+    // cell 2 = up_lev_time of the same level record).
+    virtual std::map<uint32_t, uint32_t> load_levexp_time() = 0;
     virtual void save_exp_level(uint32_t user_id, uint64_t exp, uint32_t level) = 0;
     // v27: user script vars (stc counters + dataN/var(N)); keys are
     // "stc:a:b", "stcd:a:b", or plain var names. Sidecar table
@@ -343,6 +347,9 @@ public:
     std::map<uint32_t, uint64_t> load_levexp() override {
         // dev subset mirroring the real cq_levexp head rows
         return {{1,120},{2,180},{3,250},{4,320},{5,400},{6,550},{7,700}};
+    }
+    std::map<uint32_t, uint32_t> load_levexp_time() override {
+        return {{1,2},{2,4},{3,6},{4,8},{5,10},{6,12},{7,14}};
     }
     void save_exp_level(uint32_t, uint64_t, uint32_t) override {}
     std::map<std::string, int64_t> load_user_vars(uint32_t pid) override {

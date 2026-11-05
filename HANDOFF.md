@@ -628,3 +628,11 @@ the exact FUN_1401a6420 calls. Remaining for 1040: read FUN_1401a2660's cases 2/
 0x16/0x32/0x33, FUN_1401abdf0, FUN_140173790, FUN_1401715d0 - all listed in
 docs/worker_rebirth_apply2.md sections G/H.
 
+## v109 (Nov 5, 2026) — 1086 ported, levexp curve fixed, suite 78/78
+action 1086 (640 rows) = "exp equivalent of N minutes": var[idx] = walk of cq_levexp with
+the original's float32 arithmetic, ported as exp_from_minutes() in src/systems/xp.hpp.
+load_levexp now filters type=0 (it was mixing the type 1..5 mentor curves into the level-up
+thresholds) and load_levexp_time() exposes up_lev_time. Fixture bands for new waves: use
+99020000+ (actions) / 99020100+ (npcs) - 99001100, 99001200 and 99001300 are owned by
+v74/v74/v76.
+

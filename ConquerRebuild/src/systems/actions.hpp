@@ -22,12 +22,14 @@
 #include "world.hpp"
 #include "chat.hpp"
 #include "usereffect.hpp"
-#include <sstream>\n#include <cstring>
+#include <sstream>
+#include <cstring>
 #include <strings.h>
 #include "npc.hpp"
 #include "action.hpp"
 #include "combat.hpp"
 #include "drops.hpp"
+#include "xp.hpp"
 #include "../protocol/spawn_10014.hpp"
 #include "dynanpc.hpp"
 #include "weaponskills.hpp"
@@ -1703,6 +1705,32 @@ case 121: {  // random check (ProcessAction case 0x79:
             std::printf("[action] %u: 402 %s %s %s %d -> count %d %s\n",
                         p.id, subj, nm, op, val, count, pass ? "pass" : "fail");
             cur = pass ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 1086: {  // "minutes var" -> exp equivalent into var[idx]
+            // (new-engine case 0x4C, msgserver_gameaction.c:16114).
+            // VERIFIED: sscanf "%u %u" needs exactly 2 tokens;
+            //   v39 = FUN_140382f00(user, minutes)   (ported as exp_from_minutes)
+            //   FUN_140164520(user, idx, v39)        = var64[idx] = v39, idx > 7
+            //                                          logs and writes nothing
+            // The case returns 1 either way once both tokens parsed, so the
+            // chain always continues at id_next on success.
+            unsigned int minutes = 0, idx = 0;
+            int n = std::sscanf(a->param.c_str(), "%u %u", &minutes, &idx);
+            if (n == 2) {
+                int64_t v = exp_from_minutes(p, minutes);
+                if (idx < 8) {
+                    p.vars.var[idx] = v;
+                } else {
+                    std::printf("[action] %u: 1086 var index %u > 7 "
+                                "(logged, no write)\n", p.id, idx);
+                }
+                cur = a->id_next;
+            } else {
+                std::printf("[action] %u: 1086 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+            }
             break;
         }
         case 506: {  // take N item copies (case 0x1fa ~213915):
