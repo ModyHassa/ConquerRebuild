@@ -1540,3 +1540,17 @@ guessed:
   and the 401/402/403/498 subtract-compare dispatch chain is verified.
 - All of the above is in docs/worker_rebirth_apply2.md (sections I/J/K) and
   docs/decode_401_family.md.
+
+## v113 (Nov 5, 2026) — dispatch ladder mapped, rebirth call site resolved (docs)
+- New `docs/old_engine_dispatch_ladder.md`: the complete `ProcessAction` range ladder of the
+  old engine (every 98-wide block with its handler function, including 3701's two-call
+  branch), plus the verified new-engine byte-map reads (1040 -> 0x22, 1083 -> 0x49,
+  1095 -> 0x54, 1651 -> 0xA6). Any action type can now be located with one byte read.
+- Rebirth apply call site resolved from the disassembly (0x1401c376d): `param_4` of
+  `FUN_1401b9d70` is `cq_rebirth` **cell 2 = new_prof** (r12d is set to 2 at 0x1401c3213),
+  `param_5` is **cell 4 = new_level**, `param_7` is the metepsychosis tier - so attrib 7 gets
+  the new profession, attrib 0xc the new level and attrib 0x16 the tier.
+- Recorded the remaining structural blocker for 1040: this rebuild has no five-base-stat
+  model (user+0xed8..0xee2) and the cq_user stat columns are only partly identified
+  (`strength`, `strength_value`), so there is nowhere faithful to store the distributed
+  stats yet. 1083's flags 0x1b/0x1c and 1651's faction-state byte remain BLOCKED.

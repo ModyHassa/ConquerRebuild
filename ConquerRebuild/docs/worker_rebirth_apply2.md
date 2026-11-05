@@ -212,3 +212,31 @@ and the persisted per-user record field **5** is set to `iVar3` (FUN_14008a880).
 2. The meaning of the five u16 stats at `user+0xed8..0xee2` and their DB columns.
 3. attrib ids 13/14/15/16 vs this rebuild's Player fields, and what the persisted
    record field 5 (FUN_14008a880) maps to.
+
+## L. THE APPLY CALL SITE RESOLVED (coordinator, disassembly of FUN_1401c3180)
+
+`FUN_1401c3180` = 0x1401c3180..0x1401c2abc (2364 bytes). The flag-OFF path calls
+`FUN_1401b9d70` at **0x1401c376d** with:
+
+| arg | register | value |
+|---|---|---|
+| 1 | rcx = rbp | user |
+| 2 | r13d | the apply's level/tier input |
+| 3 | edi | a value computed just above (0x1401c36c3 `mov edi,eax`) |
+| 4 | r9d | `GetField(r12d)` and **r12d = 2** (0x1401c3213) => **cq_rebirth cell 2 = new_prof** |
+| 5 | [rsp+0x20] = ebx | `GetField(4)` => **cell 4 = new_level** |
+| 6 | [rsp+0x28] = [rsp+0x44] | the action's 2nd field (v2) |
+| 7 | [rsp+0x30] = r15d | the action's 3rd field (v3 = metepsychosis tier) |
+
+So inside `FUN_1401b9d70`: `param_4` (which drives the look/profile switch and attrib 7) is
+**new_prof**, `param_5` (attrib 0xc) is **new_level**, and `param_7` (attrib 0x16) is the
+metepsychosis tier - consistent with the 0-based cq_rebirth map proven earlier.
+
+Also confirmed here: `FUN_140163e10(user, GetField(2))` = the unequip-all-except helper runs
+just before the apply.
+
+### Remaining for a faithful 1040 port (unchanged)
+Our Player model still needs the five base stats (u16 at user+0xed8..0xee2), the lookface
+recompute helper FUN_1401715d0 and the attrib 13/14/15/16 targets. cq_user carries
+`strength`/`strength_value` but the other stat columns are not identified yet, so the port
+would currently have nowhere faithful to store the distributed stats.

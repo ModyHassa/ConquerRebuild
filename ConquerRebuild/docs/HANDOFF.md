@@ -657,3 +657,9 @@ user flag queries 0x1b/0x1c; 403 parses the ITEM accept string (pszAccept), not 
 param. Remaining for 1040: the FUN_1401c3180 -> FUN_1401b9d70 argument mapping, the five
 u16 stats at user+0xed8..0xee2 with their columns, and the persisted-record field 5 target.
 
+## v113 (Nov 5, 2026) — dispatch ladder + rebirth call site (docs)
+docs/old_engine_dispatch_ladder.md now lists EVERY ProcessAction range with its handler, and
+the new-engine byte map answers "which case handles type N" in one read. The rebirth apply
+call site is resolved (cell 2 = new_prof, cell 4 = new_level, v3 = metepsychosis tier), but
+1040 still needs the five-base-stat model (user+0xed8..0xee2) that this rebuild does not have.
+
