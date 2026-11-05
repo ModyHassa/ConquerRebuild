@@ -96,6 +96,28 @@ inline Packet build_map_item_1101(const GroundItem& g, uint8_t action) {
     return p;
 }
 
+// ---- 1101 builder for action 1072 (body 0x14012d507) -----------------------
+// The original puts the action's `data` column in the identity slot, zeroes
+// `data`/`ext`, and places the marker on the PLAYER's own cell (CUser vt +0x40
+// = X, +0x48 = Y). Action byte 0x0D, sent to the executing player only.
+inline Packet build_map_item_1101_1072(uint32_t gid, uint16_t x, uint16_t y) {
+    Packet p(MSG_MAP_ITEM_1101);
+    p.write<uint32_t>((uint32_t)::time(nullptr));  // +0  time
+    p.write<uint32_t>(gid);                         // +4  identity (cq_action.data)
+    p.write<uint32_t>(0);                           // +8  data   (original: 0)
+    p.write<uint16_t>(x);                           // +0xC x (player cell)
+    p.write<uint16_t>(y);                           // +0xE y (player cell)
+    p.write<uint16_t>((uint16_t)0);                 // +0x10 color
+    p.write<uint8_t>((uint8_t)0x0D);                // +0x12 action 0x0D
+    p.write<uint8_t>((uint8_t)0);                   // +0x13 sort flag
+    p.write<uint8_t>(0); p.write<uint8_t>(0);        // +0x14..0x17 pad
+    p.write<uint8_t>(0);
+    p.write<uint32_t>(0);                           // +0x18 dropper (unused)
+    for (size_t i = 32; i < 61; i++) p.write<uint8_t>(0);
+    p.finalize();
+    return p;
+}
+
 // ---- CMsgItemInfo 1008 (0x3F0): full item info -----------------------------
 // Server builder FUN_1404587d0 + CItem::SaveInfo FUN_140101cb0, VERIFIED
 // against the client parser FUN_00820fb7 (client buffer = wire; case 1 =

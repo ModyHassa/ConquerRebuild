@@ -725,4 +725,10 @@ writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows)
 - v122: test_drops deadline 240s + 300s suite timeout, test_weaponskill carry-over
   assertion widened to the legal 0..33 range. Four decode workers launched for 1082,
   1096/1098, 1072/1043 and the 1650 family; their write-ups land in docs/worker_v122_*.md.
+- v122b: **1072 ported and tested** (1101 action 0x0D marker at the player's own cell,
+  identity from cq_action.data, player-only send, data=0 no-op). 1043's wire format is now
+  settled (10010 action 110 + the element layout) but the port stays BLOCKED on the element
+  type. 1096/1098 decoded; 1082 and the 1650 family have write-ups in docs/worker_v122_*.
+  Remaining to port: 1043 (needs container type), 1082 (6 unknown helpers), 1096/1098
+  (provider naming), 1650/1651/1654 (named subsystem, texts live in a client table).
 

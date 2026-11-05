@@ -2054,6 +2054,23 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_next;
             break;
         }
+        case 1072: {  // v122: 1101 marker on the player's own cell (case 0x48? no: 0x14012d507)
+            // Body 0x14012d507. Identity = the action's `data` column
+            // (pAction->vt[0x10](4)); SetInfo() returns false for id 0, in
+            // which case nothing is sent. Coordinates are the player's own
+            // (CUser vt +0x40 = X, +0x48 = Y), the packet is CMsgMapItem 1101
+            // with action 0x0D, data/ext zeroed, and it goes to the executing
+            // player only (vt +0x350). The body returns true -> id_next.
+            uint32_t gid = (uint32_t)a->data;
+            if (gid != 0 && p.session) {
+                p.session->send(
+                    build_map_item_1101_1072(gid, p.pos.x, p.pos.y));
+            }
+            std::printf("[action] %u 1072 data=%u at (%u,%u)\n",
+                        p.id, gid, p.pos.x, p.pos.y);
+            cur = a->id_next;
+            break;
+        }
         case 1048: {  // v121: attribute timer (20 rows, new-engine case 0x2a)
             // 0x14012eb6e: sscanf(param, "%d %u", &v1, &v2) must return
             // exactly 2 (cmp $2 at 0x14012eba4, else the shared fail

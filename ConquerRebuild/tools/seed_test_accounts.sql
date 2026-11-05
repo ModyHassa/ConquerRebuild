@@ -1703,3 +1703,30 @@ INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020180,'MagicSage',0,5000,1002,437,319,99020200,''),
   (99020181,'TimerSage',0,5000,1002,437,320,99020210,'');
+
+-- ===========================================================================
+-- v122: action 1072 (1101 marker at the player's own cell).
+-- Fixture band: chains 99020300-99020319, npc 99020184, char cq_user 94 /
+-- acc 100094 (independent of every other wave so re-login collisions and
+-- overwritten character state cannot happen again).
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020300 AND 99020319;
+DELETE FROM cq_npc WHERE id BETWEEN 99020184 AND 99020189;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100094,'V122MapItem','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (94,100094,'V122MapItem',100003,15,2000,1500,1002,437,321,130,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=321, level=130, profession=10,
+    metempsychosis=0, exp=0;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020300,1072,99001330,'',99020301,0),
+  (99020301,101,0,'v122-1072-ok',0,0),
+  -- data=0 must be a silent no-op that still takes id_next
+  (99020310,1072,0,'',99020311,0),
+  (99020311,101,0,'v122-1072-zero',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020184,'MarkerSage',0,5000,1002,437,321,99020300,''),
+  (99020185,'MarkerSage2',0,5000,1002,437,322,99020310,'');

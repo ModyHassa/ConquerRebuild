@@ -1750,3 +1750,16 @@ the source instead of being re-explained every run.
   now asserts the legal range 0..33 plus level 1 and next_req 68000. The invariant (overflow
   is carried, never lost) is unchanged; only the false precision is gone.
 
+### v122b — 1072 ported (ground-item marker at the player's own cell)
+- **1072** closes completely: identity = the action's `data` column, coordinates =
+  the player's own cell, packet = CMsgMapItem **1101 action 0x0D** with data/ext zeroed,
+  sent to the executing player only, always `id_next`. `data=0` is a silent no-op
+  (`SetInfo` returns false for id 0) but still advances the chain. New builder
+  `build_map_item_1101_1072`, test `tests/test_actions_v122.py` (chain 99020300 +
+  zero-data 99020310, char V122MapItem = cq_user 94).
+- **Docs**: `docs/worker_v122_1072_1043.md` (1072 CLOSED; 1043 half closed — the packet
+  is 10010 action 110, not 10017, element stride/keys mapped, only the container element
+  type stays UNKNOWN), `docs/worker_v122_1096_1098.md` (both decoded, provider objects
+  still unnamed), `docs/worker_v122_1082.md`, `docs/worker_v122_1650.md`.
+- Suite: green including test_drops (deadline fix held) and the new test_actions_v122.
+
