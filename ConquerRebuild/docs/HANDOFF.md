@@ -740,3 +740,26 @@ writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows)
   1043/1082/1096/1098. 1096's exact flow documented. ONE remaining unknown unblocks all
   four: **component id 20**.
 
+## 7. v123 wave plan (10 decode workers + the row-count truth table)
+
+Measured 2026-11-05 against the live DB (216 distinct types in cq_action):
+**77 types are still unported, 1,278 rows total (0.66% of 193,511).** Sorted by rows:
+
+```
+   532 252 | 3701 122 | 1083 121 | 1651 95 | 403 93 | 1043 65 | 1096 62 | 1082 52
+  1098  38 | 1046  37 | 1650 34 | 802 31 | 1654 28 | 1029 25 | 1028 16 | 1053 14
+  1508  13 | 1511  13 | 1094 11 | 1041 11 | 1107 9 | 1509 9 | 1078 7 | 224 7
+  ... then 6 rows and fewer (52 types)
+```
+
+Ten workers were dispatched against this list (each capped at ~12 tool calls, each
+writing `docs/worker_v123_*.md` incrementally): component id 20, `user+0x1110` element
+type, 1082 helpers, 512 packet (FUN_1403873d0), 542-544, 218/219, 2009 map-spawn,
+2007 guild domain, 3701 quota, 3501+ family.
+
+CHECK NEXT WAVE: **1651 and 403 show as unported here**, but v117 notes claim 1651 was
+implemented and v48 notes claim 403 is default-routing. Verify against
+`git log -S'case 1651'` before touching either: if the case exists under a combined
+label (`case 1650: case 1651:`) this row-count script under-counts, and the script (not
+the port) is what needs fixing.
+
