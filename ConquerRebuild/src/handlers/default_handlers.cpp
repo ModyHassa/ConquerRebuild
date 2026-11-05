@@ -847,6 +847,8 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
             // v94: keys 1010/1011/1014/1015/1045/1046
             p.virtue     = rec.virtue;
             p.meto       = rec.meto;
+            p.old_prof   = rec.old_prof;
+            p.first_prof = rec.first_prof;
             p.home_id    = rec.home_id;
             p.account_id = rec.account_id;   // already loaded
             p.nobility   = rec.nobility;

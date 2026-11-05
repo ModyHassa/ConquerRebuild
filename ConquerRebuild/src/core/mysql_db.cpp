@@ -101,7 +101,8 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         "(SELECT syn_id FROM cq_synattr WHERE id=u.id LIMIT 1), "
         "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair,"
         "u.virtue,u.metempsychosis,u.home_id,u.nobility,u.business,"
-        "u.strength,u.Speed,u.health,u.soul,u.additional_point "
+        "u.strength,u.Speed,u.health,u.soul,u.additional_point,"
+        "u.old_prof,u.first_prof "
         "FROM cq_user u LEFT JOIN accounts a "
         "ON a.id=u.account_id WHERE u.account_id=%u LIMIT 1", account_id);
     if (!exec(sql)) return out;
@@ -129,6 +130,8 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         // v94: keys 1010/1011/1014/1015/1045/1046 read these columns
         if (row[18]) out.virtue     = strtoul(row[18], nullptr, 10);
         if (row[19]) out.meto       = strtoul(row[19], nullptr, 10);
+        if (row[28]) out.old_prof   = strtoul(row[28], nullptr, 10);
+        if (row[29]) out.first_prof = strtoul(row[29], nullptr, 10);
         if (row[20]) out.home_id    = strtoul(row[20], nullptr, 10);
         if (row[21]) out.nobility   = strtoul(row[21], nullptr, 10);
         if (row[22]) out.business   = strtoul(row[22], nullptr, 10);
@@ -969,6 +972,33 @@ std::vector<IDatabase::MagicTypeRecord> MySQLDatabase::load_magictypes() {
         r.need_exp= row[7] ? (uint32_t)std::strtoul(row[7], nullptr, 10) : 0;
         r.distance= row[8] ? (uint32_t)std::strtoul(row[8], nullptr, 10) : 0;
         r.crime   = row[9] ? (uint32_t)std::strtoul(row[9], nullptr, 10) : 0;
+        out.push_back(r);
+    }
+    mysql_free_result(res);
+    return out;
+}
+
+// v121: cq_magictypeop - the 1095 rebirth skill sets. SELECT * order:
+// id,rebirth_time,profession_ago,profession_now,magictype_op,skill_1..60
+std::vector<IDatabase::MagicTypeOpRecord>
+MySQLDatabase::load_magictypeop() {
+    std::vector<MagicTypeOpRecord> out;
+    // ORDER BY id mirrors the original: the manager keeps these rows in a
+    // tree keyed by id (loader FUN_1402f0ab0), so the 1095 grant walks them
+    // in ascending id order - an op=0 (clear) row only clears what an
+    // earlier-id op=1/2 row granted.
+    if (!exec("SELECT * FROM cq_magictypeop ORDER BY id")) return out;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return out;
+    MYSQL_ROW row;
+    while ((row = mysql_fetch_row(res))) {
+        MagicTypeOpRecord r;
+        r.rebirth_time = row[1] ? strtoul(row[1], nullptr, 10) : 0;
+        r.prof_ago     = row[2] ? strtoul(row[2], nullptr, 10) : 0;
+        r.prof_now     = row[3] ? strtoul(row[3], nullptr, 10) : 0;
+        r.op           = row[4] ? strtoul(row[4], nullptr, 10) : 0;
+        for (int i = 0; i < 60; ++i)
+            r.skills[i] = row[5 + i] ? strtoul(row[5 + i], nullptr, 10) : 0;
         out.push_back(r);
     }
     mysql_free_result(res);

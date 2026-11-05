@@ -26,3 +26,54 @@ sub-functions it selects. The body does NOT read cq_action data/param and does N
 branch on id_next/id_nextfail (see section 6).
 Note: `0x140137f06` (the code that follows) is the NEXT case body (not 1095): it starts
 `mov rax,[r13]; call [rax+0x108]; cmp eax,2; jb -> return false`, i.e. a different action.
+
+## 3. FUN_1401763f0 — the real handler (decompiled lines 258228-258260)
+```c
+ulonglong FUN_1401763f0(longlong *param_1 /*player*/, char param_2 /*bool bMode*/)
+{
+  lVar6 = FUN_140008520((int)param_1[0x246]);   // param_1[0x246] = dword at +0x1230 = user db id
+  lVar6 = *(longlong *)(lVar6 + 0x100);          // +0x100 = m_pMagicManager (CMagicManager*)
+  if (lVar6 == 0) { log_InlineLogERROR(...); return 0; }   // CHECKF(...,"m_pMagicManager") !assert
+  uVar1 = *(u8*)((longlong)param_1 + 0xeda);   // profession-stage-1 (first prof / "prof_ago")
+  uVar2 = *(u8*)((longlong)param_1 + 0xedb);   // profession-stage-2 (second prof / "prof_now")
+  uVar3 = *(u8*)((longlong)param_1 + 0xeee);   // profession now (current, live)
+  uVar4 = (*(code**)(*param_1 + 0x108))(param_1);   // vfunc +0x108 = GetLevel()
+  if (param_2 == 0) {                            // 1095 passes param_2 = 1, so NOT taken
+     uVar4 = (*(code**)(*param_1 + 8))(param_1);        // vfunc +8 = GetID()
+     uVar7 = FUN_1402f47a0(lVar6, uVar4, uVar1, uVar2, uVar3);   // RESET/RECALC path
+  } else {                                       // <<< 1095 TAKES THIS BRANCH
+     uVar5 = (*(code**)(*param_1 + 8))(param_1);        // GetID()
+     uVar7 = FUN_1402f16c0(lVar6, uVar5, uVar1, uVar2, uVar3, uVar4);  // GRANT path (mode=level)
+  }
+  return uVar7;
+}
+```
+CONFIRMED offsets on the CUser object: +0x1230 = db user id (u32), +0xeda = u8 prof#1, +0xedb = u8 prof#2,
++0xeee = u8 current profession. Vtable slots: +0x08 = GetID, +0x108 = GetLevel.
+CONFIRMED: FUN_1401763f0 is also called with param_2=0 from decompiled line 783304 (`FUN_1401763f0(plVar7,0)`) — a second
+caller (UNKNOWN which action/logic that is, not part of 1095).
+CONFIRMED: the manager (CMagicManager) pointer lives at userObject+0x100 (checked with CHECKF "m_pMagicManager",
+__FILE__ "mapgroupkernel\mapgroup.h", line 0x144 = 324).
+
+## 4. Record-field index convention (PROVEN, needed for the table data)
+DB record objects expose columns 0-based in `SELECT *` order via vfunc +0x10(index)->field, +0x48 = as int, +0x58 = as longlong.
+Proof: cq_magictype loader FUN_1402f04a0 builds its map key as `(field(1)<<32)|field(8)`. cq_magictype column order is
+id(0),type(1),sort(2),name(3),...,level(8) -> key = (type<<32)|level == the magic "type,level" pair. CONFIRMED.
+
+Therefore for **cq_magictypeop** (columns: id,rebirth_time,profession_ago,profession_now,magictype_op,skill_1..skill_60):
+  field 0 = id, 1 = rebirth_time, 2 = profession_ago, 3 = profession_now, 4 = magictype_op, 5..64 = skill_1..skill_60
+
+## 5. THE DATA SOURCE — CONFIRMED: DB table cq_magictypeop (NOT a static table, NOT Lua)
+Loaders (all inside CMagicManager::Create / member init, caller FUN_1402f1c50 at 0x1402f1c50):
+  FUN_1402f04a0(mgr)  : "SELECT * FROM cq_magictype"                    -> mgr+0x200 tree (key=(type<<32)|level)  [type/level master]
+  FUN_1402f06c0(mgr)  : "SELECT * FROM cq_magictype_ex"                 -> mgr+0x108 tree (key=type)
+  FUN_1402f08b0(mgr)  : "SELECT * FROM cq_magictype WHERE auto_learn!=0"-> mgr+0x148 set (key=type)
+  FUN_1402f0ab0(mgr)  : "SELECT * FROM cq_magictypeop"                  -> mgr+0x188 tree (key=id)  <<< THE 1095 DATA SOURCE
+(mgr+0x1c8 = "server/db instance id" passed to FUN_140008520 before each load; the SQL goes through InstanceGet()->vfunc+0x10,
+i.e. the shared DB layer, NOT a per-user query.)
+SQL text VAs (verified): 0x140749370 "SELECT * FROM cq_magictype", 0x140749390 "...auto_learn!=0",
+0x1407493c0 "SELECT * FROM cq_magictypeop", 0x1407493e0 "SELECT * FROM cq_magictype_ex"; code refs at
+0x1402f04dd / 0x1402f08ed / 0x1402f0aed / 0x1402f06fd. All four live in magicmanager.cpp (0x1407498c0).
+Ruled out: no static magic-id table exists in .rdata/.data for this path; the only magic SQL in the binary that touches a
+per-player table is "SELECT * FROM cq_magic WHERE ownerid=%u" (0x1406db028) and "INSERT cq_magic SET ownerid=%u, type=%u"
+(0x1406f0a18) — used by player-magic loading/creation, not by the 1095 action.

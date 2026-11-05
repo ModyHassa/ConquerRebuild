@@ -706,3 +706,20 @@ docs/worker_rebirth_apply2.md is the full 1040 recipe (requirement match -> uneq
 look tuple -> point budget str+Speed+health+soul+additional_point-3*level-7 -> ordered attrib
 writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows).
 
+## v121 (current) - 1095 + 1048 live, case-body mapping proven
+- Ported: **1095** (cq_magictypeop rebirth skill sets, 245 rows) and **1048** (attribute
+  timer, 20 rows). New DB loader `load_magictypeop()` (ORDER BY id, mirrors the manager's
+  id-keyed tree), `Player::old_prof/first_prof` (cq_user.old_prof/first_prof) and
+  `Player::attr_timer_id/secs/start` (user+0xb74/+0xb78/+0xb7c).
+- Test: `tests/test_actions_v121.py` (V121Magic = cq_user 95 / acc 100095, MagicSage grant +
+  TimerSage fail branch). Suite is green apart from the two known flakes (drops RNG,
+  weaponskill exp), and every earlier wave still passes.
+- Decoded but NOT ported, with the reasons recorded in docs/worker_v121_a.md,
+  docs/worker_v121_c.md and docs/v121_dispatch_and_1650.md: 1043 (container at user+0x1110
+  has an UNKNOWN element type), 1072 (CMsgMapItem 1101 action 0xD, id comes from an
+  unidentified global getter), 1082 ("%s %s %u %d %d %d" self/mate/couple/team add|chk),
+  1650/1651/1654 (state machine on CUser+0x968, subsystem unnamed), 1096/1098 (still
+  undisassembled).
+- Next: 1082 then 1043 (needs the container type), then 1650-family once the subsystem is
+  identified; remaining unknown flags stay flagged, never guessed.
+

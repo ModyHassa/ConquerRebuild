@@ -1522,7 +1522,9 @@ INSERT INTO accounts (id,name,password,banned,type,vip) VALUES
 INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
                      recordx,recordy,level,profession) VALUES
   (96,100096,'V108Probe',100003,15,2000,1500,1002,400,300,130,10)
-  ON DUPLICATE KEY UPDATE level=VALUES(level), exp=0;
+  ON DUPLICATE KEY UPDATE level=VALUES(level), exp=0, profession=10,
+    metempsychosis=0, old_prof=0, first_prof=0, recordmap_id=1002,
+    recordx=400, recordy=300, life=2000, mana=1500;
 DELETE FROM cq_user_script_var WHERE player_id=96;
 -- v109 fixtures: band 99020000 verified free across the whole repo
 -- clean every stale v109 fixture npc by name (earlier band attempts)
@@ -1665,3 +1667,39 @@ INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020160,'RebirthSage',0,5000,1002,437,315,99020080,''),
   (99020161,'RebirthSage2',0,5000,1002,437,316,99020083,'');
+
+-- ===========================================================================
+-- v121: action 1095 (cq_magictypeop rebirth skill set) + 1048 (attr timer).
+-- Fixture band: chains 99020200-99020219, npc 99020180-99020189,
+-- cq_magictypeop 9900001/2, char cq_user 95 / acc 100095.
+-- Char is metempsychosis 1 with first_prof 10 and profession 11 so the
+-- grant matches (rebirth_time 1, profession_ago 10, profession_now 11).
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020200 AND 99020219;
+DELETE FROM cq_npc WHERE id BETWEEN 99020180 AND 99020189;
+DELETE FROM cq_magictypeop WHERE id IN (9900001,9900002);
+DELETE FROM cq_magic WHERE ownerid=95;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100095,'V121Magic','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession,strength,Speed,health,soul,
+                     additional_point,metempsychosis,exp,old_prof,first_prof) VALUES
+  (95,100095,'V121Magic',100003,15,2000,1500,1002,437,319,15,11,0,0,0,0,0,1,0,0,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=319, level=15, profession=11,
+    metempsychosis=1, old_prof=0, first_prof=10, exp=0;
+-- row 1 (lower id): learn 1015 + 1115 ; row 2: clear 1115 -> both branches
+INSERT INTO cq_magictypeop (id,rebirth_time,profession_ago,profession_now,
+                            magictype_op,skill_1,skill_2) VALUES
+  (9900001,1,10,11,1,1015,1115),
+  (9900002,1,10,11,0,1115,0);
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99020200,1095,'',99020201,0),
+  (99020201,101,'v121-1095-ok',0,0),
+  (99020210,1048,'300 60',99020211,99020212),
+  (99020211,101,'v121-1048-next',0,0),
+  (99020212,101,'v121-1048-fail',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020180,'MagicSage',0,5000,1002,437,319,99020200,''),
+  (99020181,'TimerSage',0,5000,1002,437,320,99020210,'');

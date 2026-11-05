@@ -74,6 +74,12 @@ struct Player {
     uint32_t health   = 0;               // cq_user.health          (user+0xede)
     uint32_t soul     = 0;               // cq_user.soul            (user+0xee0)
     uint32_t add_point = 0;              // cq_user.additional_point(user+0xee2)
+    // v121 (1095): the two profession history bytes the magic grant reads.
+    uint32_t old_prof = 0;                // cq_user.old_prof   (user+0xedb)
+    uint32_t first_prof = 0;              // cq_user.first_prof (user+0xeda)
+    // v121 (1048): attribute-timer state the original keeps at
+    // user+0xb74/+0xb78/+0xb7c (key, seconds, time(NULL)/1000).
+    uint32_t attr_timer_id = 0, attr_timer_secs = 0, attr_timer_start = 0;
     uint32_t home_id = 0;                 // 1014 HomeID
     uint32_t account_id = 0;              // 1015 AccountId
     uint32_t nobility = 0;                // 1045 Peerage

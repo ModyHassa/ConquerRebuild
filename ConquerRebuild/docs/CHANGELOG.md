@@ -1681,3 +1681,58 @@ reading the code, not by guessing:
   process vanished mid-suite — no OOM record in dmesg, no crash trace in the server log — and all
   three pass both standalone and in the re-run, so it was an environment flake, not a regression.
 
+## v121 (Nov 5, 2026) — 1095 (rebirth skill set, 245 rows) + 1048 (attr timer, 20 rows), and the case-body convention finally proven
+Two more new-engine action types are live, and the wave also closed a decoding gap that had
+been costing whole sub-agent runs.
+
+- **The case-body address convention is now proof, not guesswork.** The dispatcher itself
+  (`FUN_14012a6e0` at 0x14012a815) reads `rdx = 0x140000000`, `eax = byte_map[0x13aa9c+type-1001]`,
+  `ecx = [rdx+rax*4+0x13a7ac]`, `add rcx,rdx; jmp rcx`, i.e.
+  **body = 0x140000000 + u32[0x14013a7ac + case*4]**. Anchored against the known port
+  1075 -> 0x14012c33f. Every earlier variant that added the table or entry address produced
+  targets in 0x14026xxxx that only *looked* aligned (one was verified to be the tail of an
+  unrelated function). `tools/newengine_map.py::body_of` is fixed, and
+  `docs/v121_dispatch_and_1650.md` records the disassembly.
+- **1095 = CUser::grant the rebirth skill set** (case 0x54, body 0x140137ef7 = a single
+  `FUN_1401763f0(user, true)`). The manager pointer is `user+0x100`; the data source is
+  **cq_magictypeop** (`FUN_1402f0ab0` runs "SELECT * FROM cq_magictypeop" into the tree at
+  +0x188). The grant (`FUN_1402f16c0`) walks every row and matches
+  `rebirth_time == metempsychosis` (only 1 and 2 reach the compares),
+  `profession_ago == user+0xeda` when meto==1 else `user+0xedb`, and
+  `profession_now == user+0xeee` (profession); it then applies skill_1..skill_60 with
+  `magictype_op` 0 -> `FUN_140482c80` (full remove), 1 -> learn flag 0, 2 -> learn flag 1,
+  any other value skips the row. The helper returns true when the walk ends, so the chain
+  takes id_next. New: `load_magictypeop()`, `Player::old_prof/first_prof` (cq_user.old_prof /
+  first_prof, the two bytes the grant reads), 1103 per granted magic, delete_magic on the
+  clear path. FLAGGED (not guessed): the original then reconciles each learned magic's level
+  from cq_magictype inside FUN_140493f70 (fields 3/6 compare at 0x140493fcc); we reuse the
+  already-ported 1020 "learn" semantics (create at level 0), and the flag 0 vs flag 1
+  difference is not modelled.
+- **1048 = attribute timer** (case 0x2a): `sscanf(param,"%d %u")` must return exactly 2;
+  `FUN_140382c50` clamps v1 at 0, stores `user+0xb74 = v1`, `user+0xb78 = v2`,
+  `user+0xb7c = time(NULL)/1000`, and sends ONE CMsgUserAttrib 10017 with key v1 and value v2.
+  The body then jumps to the shared fail epilogue, so this type **always** takes id_nextfail.
+  Player now keeps attr_timer_id/seconds/start.
+- **Test (`tests/test_actions_v121.py`)**: V121Magic (cq_user 96, profession 11,
+  metempsychosis 1, first_prof 10) clicks MagicSage -> two matching cq_magictypeop rows prove
+  both paths in one action (op 1 learns 1015 + 1115 with 1103, op 0 then clears 1115, final
+  cq_magic = {1015}); clicks TimerSage -> the fail marker only, never the id_next marker, and
+  a 10017 carrying key 300 = 60.
+- Also decoded this wave and documented but NOT ported (flagged in
+  `docs/worker_v121_a.md` / `docs/worker_v121_c.md` / `docs/v121_dispatch_and_1650.md`):
+  1043 (0x140135433, iterates `user+0x1110`, sends 10017 via FUN_140162620 - the container
+  type is UNKNOWN), 1072 (0x14012d507, one CMsgMapItem 1101 action 0xD at the player's own
+  position, but the id it carries comes from an unidentified global getter),
+  1082 (0x14012f025, `"%s %s %u %d %d %d"` self/mate/couple/team add|chk), 1650/1651/1654
+  (a three-step state machine on `CUser+0x968` whose subsystem is still unnamed).
+- Suite: 82 passes with the two known flakes only (test_drops RNG hunt: no drop in 208 kills;
+  test_weaponskill carried exp). Everything else green, including the new test_actions_v121,
+  transport_login and lua_unit.
+- FIXTURE ID LESSON (cost a suite run): cq_user 96 was already V108Probe's (v109 wave), so
+  the first v121 seed silently rewrote that character (level 130 -> 15, profession 10 -> 11,
+  metempsychosis 0 -> 1) and broke test_actions_v109/v111. v121 now owns cq_user 95 /
+  account 100095, and V108Probe's ON DUPLICATE clause restores profession/metempsychosis/
+  old_prof/first_prof/position/life/mana so no later wave can leave it half-written.
+  Also proven: cq_magictypeop must be walked in ASCENDING id order (the original's tree is
+  keyed by id), otherwise an op=0 clear row can run before the op=1 grant row that feeds it.
+

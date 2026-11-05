@@ -83,6 +83,7 @@ public:
     // ---- v24: weapon skill (proficiency) ----
     std::vector<WeaponSkillUpRecord> load_weapon_skill_up() override;
     std::vector<MagicTypeRecord> load_magictypes() override;
+    std::vector<MagicTypeOpRecord> load_magictypeop() override;  // v121
     std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t player_id) override;
     void save_weapon_skill(uint32_t player_id,
                            const WeaponSkillRecord& r) override;

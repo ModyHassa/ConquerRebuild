@@ -49,6 +49,8 @@ struct UserRecord {
     // v94: the rest of the pinned GetUserInt keys that have a real cq_user column
     uint32_t virtue       = 0;  // cq_user.virtue        (key 1010)
     uint32_t meto         = 0;  // cq_user.metempsychosis(key 1011)
+    uint32_t old_prof     = 0;  // cq_user.old_prof  (CUser +0xedb, v121)
+    uint32_t first_prof   = 0;  // cq_user.first_prof (CUser +0xeda, v121)
     uint32_t home_id      = 0;  // cq_user.home_id       (key 1014)
     uint32_t nobility     = 0;  // cq_user.nobility      (key 1045)
     uint32_t business     = 0;  // cq_user.business      (key 1046)
@@ -259,6 +261,22 @@ public:
         uint32_t distance = 0, crime = 0;
     };
     virtual std::vector<MagicTypeRecord> load_magictypes() = 0;
+    // ---- v121: cq_magictypeop (the 1095 rebirth skill sets) ----------
+    // Loader FUN_1402f0ab0 runs "SELECT * FROM cq_magictypeop" into the
+    // manager's tree at +0x188 (keyed by id); the 1095 grant
+    // FUN_1402f16c0 walks EVERY row and matches
+    //   rebirth_time == metempsychosis (only 1 or 2 branch)
+    //   profession_ago == user+0xeda when meto==1, user+0xedb when meto==2
+    //   profession_now == user+0xeee (profession)
+    // then acts on skill_1..skill_60 by magictype_op (0 clear, 1 learn
+    // flag 0, 2 learn flag 1, anything else skips the row).
+    // Column order (SELECT *): 0 id, 1 rebirth_time, 2 profession_ago,
+    // 3 profession_now, 4 magictype_op, 5..64 skill_1..skill_60.
+    struct MagicTypeOpRecord {
+        uint32_t rebirth_time = 0, prof_ago = 0, prof_now = 0, op = 0;
+        uint32_t skills[60] = {0};
+    };
+    virtual std::vector<MagicTypeOpRecord> load_magictypeop() = 0;
     // per player: "SELECT type,level,exp FROM cq_weapon_skill
     // WHERE owner_id=%u"
     virtual std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t player_id) = 0;
@@ -425,6 +443,7 @@ public:
     std::vector<EquipTypeRecord> load_equip_types() override { return {}; }
     std::vector<WeaponSkillUpRecord> load_weapon_skill_up() override { return {}; }
     std::vector<MagicTypeRecord> load_magictypes() override { return {}; }
+    std::vector<MagicTypeOpRecord> load_magictypeop() override { return {}; }
     std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t) override { return {}; }
     void save_weapon_skill(uint32_t, const WeaponSkillRecord&) override {}
     std::vector<MagicRecord> load_player_magics(uint32_t) override { return {}; }

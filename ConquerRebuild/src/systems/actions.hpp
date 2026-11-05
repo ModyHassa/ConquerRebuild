@@ -1992,6 +1992,94 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = full ? a->id_next : a->id_nextfail;
             break;
         }
+        case 1095: {  // v121: rebirth skill set from cq_magictypeop (case 0x54)
+            // Body 0x140137ef7 is exactly one call: FUN_1401763f0(user, true)
+            // -> FUN_1402f16c0(mgr, userid, +0xeda, +0xedb, +0xeee, meto).
+            // That helper walks the whole cq_magictypeop tree and, for every
+            // row with  rebirth_time == metempsychosis (only 1 and 2 reach the
+            // comparisons, 0x1402f17d7-0x1402f17ed)
+            //   && profession_ago == (+0xeda when meto==1, else +0xedb)
+            //   && profession_now == +0xeee (profession)
+            // runs the 60 skill slots through FUN_140493f70 with
+            // magictype_op 0 -> flag 2 (FUN_140482c80 = full remove),
+            // 1 -> flag 0, 2 -> flag 1. Any other op value is skipped
+            // (0x1402f1835: test/sub 2/cmp 1 chain, else -> next row).
+            // FUN_1402f16c0 returns true once the walk finishes, and the case
+            // body returns that value, so the chain takes id_next.
+            static std::vector<IDatabase::MagicTypeOpRecord> s_ops;
+            static bool s_loaded = false;
+            if (!s_loaded) {
+                s_ops = active_db()->load_magictypeop();
+                s_loaded = true;
+                std::printf("[action] cq_magictypeop rows: %zu\n", s_ops.size());
+            }
+            const uint32_t prof_ago_arg = (p.meto == 2) ? p.old_prof : p.first_prof;
+            int granted = 0, cleared = 0, skipped = 0;
+            for (const auto& row : s_ops) {
+                if (row.rebirth_time != p.meto) continue;
+                if (row.prof_ago != prof_ago_arg) continue;
+                if (row.prof_now != p.profession) continue;
+                int flag = (row.op == 0) ? 2 : (row.op == 1) ? 0
+                                                    : (row.op == 2) ? 1 : -1;
+                if (flag < 0) { ++skipped; continue; }
+                for (int i = 0; i < 60; ++i) {
+                    uint32_t sk = row.skills[i];
+                    if (!sk) continue;
+                    if (flag == 2) {  // FUN_140482c80: drop the magic entirely
+                        if (p.magics.erase(sk) > 0) {
+                            active_db()->delete_magic(p.id, sk);
+                            ++cleared;
+                        }
+                        continue;
+                    }
+                    // flag 0/1 both learn; the original then reconciles the
+                    // level from cq_magictype inside FUN_140493f70 (fields
+                    // 3/6 compare at 0x140493fcc) - our 1020-ported "learn"
+                    // semantics are reused (create at level 0 if unknown).
+                    if (p.magics.find(sk) != p.magics.end()) continue;
+                    Player::MagicSkillState ms;
+                    ms.level = 0; ms.exp = 0; ms.dirty = false;
+                    p.magics[sk] = ms;
+                    IDatabase::MagicRecord mr;
+                    mr.type = sk; mr.level = 0; mr.exp = 0;
+                    active_db()->save_magic(p.id, mr);
+                    if (p.session) p.session->send(build_magic_1103(p.id, sk, 0, 0));
+                    ++granted;
+                }
+            }
+            std::printf("[action] %u 1095 meto=%u prof=%u ago=%u -> "
+                        "granted %d cleared %d skipop %d\n",
+                        p.id, p.meto, p.profession, prof_ago_arg,
+                        granted, cleared, skipped);
+            cur = a->id_next;
+            break;
+        }
+        case 1048: {  // v121: attribute timer (20 rows, new-engine case 0x2a)
+            // 0x14012eb6e: sscanf(param, "%d %u", &v1, &v2) must return
+            // exactly 2 (cmp $2 at 0x14012eba4, else the shared fail
+            // epilogue). Then FUN_140382c50(user, v1, v2): v1 clamped at 0
+            // (cmovs), stored at user+0xb74, v2 at user+0xb78, and
+            // user+0xb7c = time(NULL)/1000 (0x10624dd3>>6). It then builds
+            // one CMsgUserAttrib 10017 whose key is user+0xb74 and whose
+            // value is v2. The case then jumps to the FAIL epilogue
+            // (0x14012ebc4 -> 0x14013a784), so the chain ALWAYS takes
+            // id_nextfail.
+            int v1 = 0; unsigned v2 = 0;
+            int got = std::sscanf(a->param.c_str(), "%d %u", &v1, &v2);
+            if (got == 2) {
+                if (v1 < 0) v1 = 0;
+                p.attr_timer_id    = (uint32_t)v1;
+                p.attr_timer_secs  = v2;
+                p.attr_timer_start = (uint32_t)(std::time(nullptr) / 1000);
+                if (p.session)
+                    p.session->send(
+                        build_user_attrib_10017(p.id, {{(uint32_t)v1, v2}}));
+            }
+            std::printf("[action] %u 1048 '%s' -> fail branch\n",
+                        p.id, a->param.c_str());
+            cur = a->id_nextfail;
+            break;
+        }
         case 1510: {  // "percent" life drain (new-engine case 0x8C).
             // VERIFIED (msgserver_gameaction.c:18350-18386):
             //   sscanf "%d" (>= 1 token); v <= 0 -> id_nextfail (falls through)
