@@ -680,3 +680,10 @@ is the one global gap these two types touch.
 exactly (that case clamps against +0x88 and reads +0x80). Today's ports: 1084, 1203, 1510,
 1204 = 222 rows, plus the levexp type-0 fix.
 
+## v117 (Nov 5, 2026) — rebirth points traced, 532 ruled out
+Attrib 10 in the rebirth apply is FUN_140173790's return value (proven from the disassembly),
+so the point budget comes from the CUserData cache; its byte offsets are now mapped
+(record 0x76 -> profession, slot 0xD -> lookface, 0x18/0x19/0x1A/0x66/0x6A -> +0xed8..+0xee2)
+and only the column adapter is missing. 532 is not an action at all (data-only item-attribute
+definitions). Everything left is written down in docs/decode_remaining_subsystems.md.
+

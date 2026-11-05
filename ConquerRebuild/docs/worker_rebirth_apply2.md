@@ -240,3 +240,39 @@ Our Player model still needs the five base stats (u16 at user+0xed8..0xee2), the
 recompute helper FUN_1401715d0 and the attrib 13/14/15/16 targets. cq_user carries
 `strength`/`strength_value` but the other stat columns are not identified yet, so the port
 would currently have nowhere faithful to store the distributed stats.
+
+## M. THE POINT BUDGET IS COMPUTED, NOT A PARAMETER (coordinator, disassembly)
+
+`[rsp+0xc4]` - the value written to **attrib 10** (additional points) - is the RETURN VALUE of
+`FUN_140173790` (disassembly `0x1401b9ee2 call 0x140173790` / `0x1401b9ee7 mov [rsp+0xc4],eax`).
+That call is made with FIVE arguments:
+
+```
+mov [rsp+0x20],r13d        ; arg5 = r13d
+mov r9d,[rsp+0x590]        ; arg4
+mov r8d,[rsp+0xa0]         ; arg3   <-- this is FUN_140173790's mode selector (param_5)
+mov edx,r15d               ; arg2
+mov rcx,r14                ; user
+call 0x140173790
+```
+Immediately after, `FUN_1401715d0(user, [rsp+0x598])` rewrites the lookface, so `[rsp+0x598]` is
+the same value FUN_140173790 received as `param_3`.
+
+Therefore 1040's point budget and its level/stat formula come from the actor's **CUserData
+cache**, not from the action string. Cracking that cache would open 1040 at once.
+
+### CUserData byte offsets recovered from CUser::LoadFromRecord (MsgServer.c:249255-249300)
+| user field | source (record byte offset) |
+|---|---|
+| `+0xed8` | record `0x18` (u16) |
+| `+0xeda` | record `0x62` (u8) |
+| `+0xedb` | record `0x63` (u8) |
+| `+0xedc` | record `0x19` (u16) |
+| `+0xede` | record `0x66` (u16) |
+| `+0xee0` | record `0x1a` (u16) |
+| `+0xee2` | record `0x6a` (u16) |
+| `+0xeee` | record `0x76` (u8) = **profession** (pinned by the rebirth requirement match) |
+| `+0xeac` | record slot `[0xd]` = **lookface** |
+The struct is byte-packed (0x19 and 0x1a are read as u16 and overlap), so it is NOT the raw
+cq_user row - it is a compact CUserData cache whose filler/adapter has not been located yet.
+Finding the adapter (one store per column) is the single highest-value decode left.

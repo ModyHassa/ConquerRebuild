@@ -1591,3 +1591,19 @@ guessed:
 - Tests: `tests/test_actions_v116.py` asserts exactly one branch on the current state and
   that 1002 "mana" flips it to the full branch; fixtures 99020070-76 / npcs 99020140-41.
 - Suite: **82 tests, 82 green**.
+
+## v117 (Nov 5, 2026) — rebirth point budget traced, 532 ruled out (docs)
+- Traced the last unknown of the rebirth apply: **attrib 10 (additional points) is the RETURN
+  VALUE of `FUN_140173790`**, not an action parameter (disassembly `0x1401b9ee2` call,
+  `0x1401b9ee7` store into `[rsp+0xc4]`). The lookface rewrite right after it uses
+  `[rsp+0x598]`, the same value the formula received as `param_3`.
+- Recovered the CUserData byte offsets that `CUser::LoadFromRecord` (MsgServer.c:249255-249300)
+  copies into `+0xed8..+0xeee`, including `record 0x76 -> +0xeee = profession` (pinned by the
+  rebirth requirement match) and `slot 0xD -> +0xeac = lookface`. The struct is byte-packed
+  (0x19/0x1A are read as overlapping u16s), so it is a compact cache, not the SQL row: the
+  filler/adapter is the one decode that still blocks 1040 (668 rows).
+- **532 (252 rows) ruled OUT as an action**: the 501-598 dispatcher has no `0x214` at all, and
+  its 252 rows are pure data (DATA 304-319, params like `"1 10 0 604800 500 0 0"` = 7-day
+  item-attribute definitions) read by the item-attribute subsystem.
+- 1650/1651 gated on the faction state byte `user+0x12D`; 1082/1096/1098/1072 each need their
+  named subsystem - all recorded in docs/decode_remaining_subsystems.md.

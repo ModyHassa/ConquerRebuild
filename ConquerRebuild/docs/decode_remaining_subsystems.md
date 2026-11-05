@@ -44,3 +44,22 @@ NEEDS: the `FUN_1403a5840`/`FUN_1403a5ce0` packet family layout.
 * 1083 (121) - needs user flags 0x1B/0x1C (`vtable+0x2D8`).
 * 403 (93) - parses the ITEM accept string; body still being decoded.
 * 532 (252) - not in the old dispatch ladder; dispatched from the item-attribute path.
+
+## 532 (252 rows) - NOT an action case at all
+The 501-598 dispatcher (`FUN_140123590`, MsgServer.c:213576-215035) contains NO `0x214`
+anywhere, and the whole type range 501-598 switches on the action type. The 252 type-532 rows
+are pure DATA: DATA = 304..319 and every param is a 7-number list such as
+`"1 10 0 604800 500 0 0"` (604800 = 7 days in seconds). They are item-attribute definitions
+read by the item/attribute subsystem, not an executable action. Porting them means finding
+that reader, not adding a case.
+
+## 1650 (34) / 1651 (95) - the faction state machine
+Both are gated on `(char)user[0x12D]` (1651 requires == 2, 1650 requires == 0) and both talk to
+the world manager object fetched through `FUN_1400875F0(...)+0x20` by id, with the 1651 branch
+comparing a name against the object's `0x1040` property. Needs the faction subsystem.
+
+## 1082 (52) / 1096 (62) / 1098 (38) / 1072 (68)
+1082 `sscanf "%s %s %u %d %d %d"` (6 tokens, first token `self`); 1096 `sscanf` of 6 ints then
+`(*FUN_1401181A0 vtbl+0xD8)(obj, DATA)`, a 16-byte record and `FUN_140165E10`; 1098 a 15-field
+sscanf into a 0x38 struct; 1072 the `FUN_1403A5840`/`FUN_1403A5CE0` packet family with the
+constant `0xD`. Each needs its named subsystem decoded first.
