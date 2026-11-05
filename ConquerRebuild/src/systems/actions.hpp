@@ -1801,6 +1801,35 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1084: {  // "amount varA varB" -> var[A] = new level, var[B] = percent
+            // (new-engine case 0x4A, msgserver_gameaction.c:16076-16088).
+            // VERIFIED: sscanf "%I64d %u %u" needs EXACTLY 3 tokens;
+            //   FUN_140382d20(user, amount, &lv, &pct)   -> exp_split()
+            //   FUN_140164520(user, varA, lv)            -> var64[varA] = lv
+            //   FUN_140164520(user, varB, pct)           -> var64[varB] = pct
+            // var indices above 7 log and write nothing; the case then
+            // returns 1, so a well-formed row always continues at id_next.
+            long long amount = 0;
+            unsigned int va = 0, vb = 0;
+            int n = std::sscanf(a->param.c_str(), "%lld %u %u",
+                                &amount, &va, &vb);
+            if (n == 3) {
+                int lv = 0, pct = 0;
+                exp_split(p, (int64_t)amount, lv, pct);
+                if (va < 8) p.vars.var[va] = lv;
+                else std::printf("[action] %u: 1084 var %u > 7 (no write)\n",
+                                 p.id, va);
+                if (vb < 8) p.vars.var[vb] = pct;
+                else std::printf("[action] %u: 1084 var %u > 7 (no write)\n",
+                                 p.id, vb);
+                cur = a->id_next;
+            } else {
+                std::printf("[action] %u: 1084 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+            }
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the

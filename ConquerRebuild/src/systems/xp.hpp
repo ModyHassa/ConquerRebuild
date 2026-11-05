@@ -105,6 +105,43 @@ inline int64_t exp_from_minutes(const Player& p, uint32_t minutes) {
     return acc - cur_exp;
 }
 
+// PORT of FUN_140382d20 (MsgServer.c:634133-634200) — "given an exp amount,
+// what level does the player reach and how far into it": used by action 1084.
+//   total = amount + current exp
+//   walk the type-0 cq_levexp rows from the current level:
+//     need = exp(level); if (total < need) break;
+//     total -= need; ++level; ++gained;
+//   level_out = current_level + gained        (ABSOLUTE new level)
+//   pct_out   = (int)((double)total * 100.0 / (double)max(last_need, 1))
+// NOTE the percentage uses DOUBLE math here (not the float32 used by 1086);
+// the truncation is part of the original behaviour.
+inline void exp_split(const Player& p, int64_t amount,
+                      int& level_out, int& pct_out) {
+    auto& et = levexp_table();
+    int32_t start_lvl = (int32_t)p.level;
+    auto first = et.find((uint32_t)start_lvl);
+    if (first == et.end()) {            // null record -> both outputs are 0
+        level_out = 0; pct_out = 0;
+        return;
+    }
+    int64_t total = amount + (int64_t)p.exp;
+    int32_t cur = start_lvl;
+    uint32_t gained = 0;
+    int64_t last_need = (int64_t)first->second;
+    while (cur < (int32_t)MAX_LEVEL_CAP) {
+        auto e = et.find((uint32_t)cur);
+        if (e == et.end()) break;       // missing row keeps the previous need
+        last_need = (int64_t)e->second;
+        if (total < last_need) break;
+        total -= last_need;
+        ++cur;
+        ++gained;
+    }
+    level_out = (int)(gained + (uint32_t)start_lvl);
+    int64_t den = last_need > 0 ? last_need : 1;
+    pct_out = (int)(((double)total * 100.0) / (double)den);
+}
+
 // exp granted for one monster kill (approximation documented above)
 inline uint64_t kill_exp(const Monster& m) {
     uint64_t base = (uint64_t)m.max_hp + (uint64_t)m.level * m.level;

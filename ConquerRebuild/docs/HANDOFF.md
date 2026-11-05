@@ -643,3 +643,10 @@ cq_achievement row (point + achieve1..13), loaded at login and saved on disconne
 Watch out for IDatabase: any new method that calls query_string must NOT take mtx_
 itself (non-recursive -> deadlock, which cost a whole suite run today).
 
+## v111 (Nov 5, 2026) — 1084 ported, suite 80/80
+1084 = "exp amount -> absolute level + percent into it" via exp_split(), a literal port
+of FUN_140382d20 (double math, unlike 1086's float32). Next: 1083 (case 0x49, 121 rows,
+needs FUN_140382960 getter + FUN_140382b00 add-hours + the two chk predicates) and then the
+rebirth 1040 pipeline (668 rows) whose remaining helpers are listed in
+docs/worker_rebirth_apply2.md sections G/H.
+

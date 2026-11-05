@@ -1501,3 +1501,22 @@ guessed:
   that reloads the row, clear-then-check, and the persisted
   `point`/`achieve1` values (25 -> 0) read straight out of cq_achievement.
 - Suite: **79 tests, 79 green**.
+
+## v111 (Nov 5, 2026) — action type 1084 PORTED (99 rows)
+- **1084 ported** (new-engine case 0x4A, msgserver_gameaction.c:16076-16088):
+  `sscanf "%I64d %u %u"` needs EXACTLY 3 tokens -> exp amount, varA, varB;
+  `var64[varA] = new level`, `var64[varB] = percent into that level`; a var index
+  above 7 logs and writes nothing, and a well-formed row always continues at
+  id_next while a short param takes id_nextfail.
+- `exp_split` in src/systems/xp.hpp is a line-by-line port of `FUN_140382d20`
+  (MsgServer.c:634133-634200): it adds the amount to the current exp, walks the
+  type-0 cq_levexp rows while `total >= exp(level)`, reports
+  `level_out = current_level + gained` (ABSOLUTE) and
+  `pct_out = (int)((double)total * 100.0 / (double)max(last_need, 1))`.
+  NOTE this helper uses DOUBLE math, unlike 1086's float32 walk - both are kept
+  exactly as the original does them.
+- Tests: `tests/test_actions_v111.py` (probe char 96, level 130 exp 0): 1e10 exp
+  must land on level 131 with 5% (verified against the live cq_levexp rows),
+  plus the 2-token fail branch and the var-index > 7 no-write path.
+  Fixtures live in the reserved band 99020030+/99020120.
+- Suite: **80 tests, 80 green**.

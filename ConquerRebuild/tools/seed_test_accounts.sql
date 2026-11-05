@@ -1565,3 +1565,24 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020110,'Npc1554a',0,5000,1002,423,313,99020010,''),
   (99020111,'Npc1554b',0,5000,1002,424,313,99020013,''),
   (99020112,'Npc1554c',0,5000,1002,425,313,99020017,'');
+
+-- v111: action type 1084 (exp amount -> level + percent into it)
+DELETE FROM cq_action WHERE id BETWEEN 99020030 AND 99020049;
+DELETE FROM cq_npc WHERE id BETWEEN 99020120 AND 99020129;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99020030,1084,'10000000000 0 1',99020031,99020039),
+  (99020031,1060,'var(0) == 131',99020032,99020038),
+  (99020032,1060,'var(1) == 5',99020033,99020037),
+  (99020033,101,'v111-ok',0,0),
+  (99020037,101,'v111-badpct',0,0),
+  (99020038,101,'v111-badlevel',0,0),
+  (99020039,101,'v111-fail',0,0),
+  (99020040,1084,'12 0',99020041,99020042),
+  (99020041,101,'v111-short-ok',0,0),
+  (99020042,101,'v111-short-fail',0,0),
+  (99020043,1084,'10000000000 9 1',99020044,0),
+  (99020044,101,'v111-idx-ok',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020120,'Npc1084a',0,5000,1002,426,313,99020030,''),
+  (99020121,'Npc1084b',0,5000,1002,427,313,99020040,''),
+  (99020122,'Npc1084c',0,5000,1002,428,313,99020043,'');
