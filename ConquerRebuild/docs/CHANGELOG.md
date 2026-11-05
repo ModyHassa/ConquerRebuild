@@ -1563,3 +1563,20 @@ guessed:
   constant 0xD). Each entry names the exact subsystem that still blocks a faithful port, so
   the next waves start from a known boundary instead of re-reading the decompile.
 - Faction-match handler identified: `FUN_14011bfa0` handles only 3801-3805 and 3806.
+
+## v115 (Nov 5, 2026) — action types 1203 and 1510 PORTED (69 rows)
+- **1203** (case 0x6F, msgserver_gameaction.c:17661-17665): a pure life comparison. The
+  branch is `max_life <= life` read through the actor's +0x10 sub-object getters +0x78
+  (current life) and +0x80 (max life) - the same pair FUN_1401a2660 uses when it clamps
+  attrib 0, which is what pins their meaning.
+- **1510** (case 0x8C, :18350-18386): `sscanf "%d"`; the DATA column picks the base
+  (**0 = max life, 1 = current life**), `x = base*v/100`, clamped to the current life, then
+  `FUN_140177000(user,x)` subtracts it (+0x2E0 "add life (-x)") and runs a death flow at 0.
+  Our engine has no player-death flow anywhere yet (documented global gap), so reaching 0
+  clamps the life and still sends the 10017 life update; a DATA value above 1 has no branch
+  in the original and takes id_nextfail.
+- Tests: `tests/test_actions_v115.py` proves the state sequence on one character -
+  1002 full-heal makes 1203 pass, 1510 at 50% of current life makes it fail, and it flips
+  back only after another heal; plus the non-numeric param fail branch.
+  Fixtures 99020050-63 / npcs 99020130-33.
+- Suite: **81 tests, 81 green**.

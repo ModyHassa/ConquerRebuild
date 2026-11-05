@@ -1830,6 +1830,53 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1203: {  // life comparison (new-engine case 0x6F).
+            // VERIFIED (msgserver_gameaction.c:17661-17665):
+            //   a = user[2] getter +0x78 (current life)
+            //   b = user[2] getter +0x80 (max life)
+            //   return (b <= a)  -> branch on "life is at full"
+            bool full = (p.max_hp <= p.hp);
+            cur = full ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 1510: {  // "percent" life drain (new-engine case 0x8C).
+            // VERIFIED (msgserver_gameaction.c:18350-18386):
+            //   sscanf "%d" (>= 1 token); v <= 0 -> id_nextfail (falls through)
+            //   DATA column selects the base: 0 = max life, 1 = current life
+            //   x = base * v / 100;  if (life < x) x = life;
+            //   FUN_140177000(user, x): only while alive, life = life - x via the
+            //   +0x2E0 "add life (-x)" call, and a death flow when it reaches 0.
+            // Our engine models life/max_life and the 10017 life update; the
+            // player-death flow does not exist anywhere in this rebuild yet, so
+            // reaching 0 only clamps the value (documented global gap).
+            int v = 0;
+            int n = std::sscanf(a->param.c_str(), "%d", &v);
+            if (n > 0 && v > 0) {
+                uint32_t base = 0;
+                if (a->data == 0) base = p.max_hp;
+                else if (a->data == 1) base = p.hp;
+                if (a->data <= 1) {
+                    uint32_t x = (uint32_t)((uint64_t)base * (uint32_t)v / 100u);
+                    if (p.hp < x) x = p.hp;
+                    if (p.hp > x) p.hp -= x; else p.hp = 0;
+                    if (p.session) {
+                        Packet hp = build_user_attrib_10017(p.id,
+                            {{ATTRIB_LIFE, p.hp}});
+                        p.session->send(hp);
+                    }
+                    cur = a->id_next;
+                } else {
+                    std::printf("[action] %u: 1510 data %u has no branch\n",
+                                p.id, a->data);
+                    cur = a->id_nextfail;
+                }
+            } else {
+                std::printf("[action] %u: 1510 bad param '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+            }
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the

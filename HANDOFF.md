@@ -669,3 +669,9 @@ subsystem blocks it: 3701 needs FUN_140164e30 + the 0x56 notification, 1043 need
 user+0x1110 container type, 1651 needs the faction state at user+0x12D, 1072 needs the
 FUN_1403a5840 packet family, 1040 needs the five base stats, 1083 the 0x1B/0x1C flags.
 
+## v115 (Nov 5, 2026) — 1203 + 1510 ported, suite 81/81
+1203 = `max_life <= life` (getters +0x78/+0x80, the same pair the attrib-0 clamp uses) and
+1510 = drain v% of life with DATA 0 = max base / 1 = current base via FUN_140177000. The
+player-death flow FUN_140177000 triggers at 0 is still absent from the whole rebuild - that
+is the one global gap these two types touch.
+

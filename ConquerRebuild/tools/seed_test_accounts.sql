@@ -1586,3 +1586,27 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020120,'Npc1084a',0,5000,1002,426,313,99020030,''),
   (99020121,'Npc1084b',0,5000,1002,427,313,99020040,''),
   (99020122,'Npc1084c',0,5000,1002,428,313,99020043,'');
+
+-- v115: types 1203 (max_life <= life) and 1510 (percent life drain)
+DELETE FROM cq_action WHERE id BETWEEN 99020050 AND 99020069;
+DELETE FROM cq_npc WHERE id BETWEEN 99020130 AND 99020139;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
+  (99020050,1002,'life',99020051,0,0),
+  (99020051,1203,'',99020052,99020053,0),
+  (99020052,101,'v115-full-after-heal',0,0,0),
+  (99020053,101,'v115-still-notfull',0,0,0),
+  (99020054,1510,'50',99020055,0,1),
+  (99020055,1203,'',99020056,99020057,0),
+  (99020056,101,'v115-unexpected-full',0,0,0),
+  (99020057,101,'v115-halved',0,0,0),
+  (99020058,1203,'',99020059,99020060,0),
+  (99020059,101,'v115-init-full',0,0,0),
+  (99020060,101,'v115-init-notfull',0,0,0),
+  (99020061,1510,'abc',99020062,99020063,1),
+  (99020062,101,'v115-badparam-ok',0,0,0),
+  (99020063,101,'v115-badparam-fail',0,0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020130,'Npc1203heal',0,5000,1002,430,313,99020050,''),
+  (99020131,'Npc1510half',0,5000,1002,431,313,99020054,''),
+  (99020132,'Npc1203plain',0,5000,1002,432,313,99020058,''),
+  (99020133,'Npc1510bad',0,5000,1002,433,313,99020061,'');
