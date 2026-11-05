@@ -694,3 +694,11 @@ cq_magictype / _ex / auto_learn (as a map<id,magic> set) / cq_magictypeop, but t
 per-level container the action walks is built by code not yet found. A narrowly-scoped worker
 is decoding the CUserData column adapter for 1040.
 
+## v119 (Nov 5, 2026) — 1040 recipe COMPLETE (docs)
+The CUserData adapter is solved (FUN_1403744b0 fills it from the cq_user row, columns are
+literal): +0xed8 strength, +0xedc Speed, +0xede health, +0xee0 soul, +0xee2 additional_point,
++0xeee profession, +0xeda first_prof, +0xedb old_prof. Section N of
+docs/worker_rebirth_apply2.md is the full 1040 recipe (requirement match -> unequip-all ->
+look tuple -> point budget str+Speed+health+soul+additional_point-3*level-7 -> ordered attrib
+writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows).
+

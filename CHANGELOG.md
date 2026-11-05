@@ -1621,3 +1621,21 @@ guessed:
 - Also started a narrowly-scoped worker (per the owner's instruction to keep workers to ONE
   task because of their tool cap) on the CUserData column adapter, the single decode that
   still blocks 1040 (668 rows).
+
+## v119 (Nov 5, 2026) — 1040 (Rebirth, 668 rows) FULLY DE-RISKED (docs)
+A narrowly-scoped worker (one question only, per the owner's instruction about the worker
+tool cap) found the CUserData adapter: `FUN_1403744b0` (MsgServer.c:624108) fills the struct
+from the row built by `SELECT cq_user.* ... WHERE cq_user.id=%u` (:624561), so every column is
+literal and no index arithmetic is needed:
+`+0xed8=strength, +0xeda=first_prof, +0xedb=old_prof, +0xedc=Speed, +0xede=health,
++0xee0=soul, +0xee2=additional_point, +0xee4=auto_allot, +0xeee=profession`.
+With that, the rebirth argument chain closes: `r15 = movsxd(r8d)` = the v3 tier, `r12d = 2`
+inside the apply pins `GetField(2) = new_prof`, `GetField(4) = new_level`, and attrib 10
+(additional points) is `strength+Speed+health+soul+additional_point - 3*new_level - 7`
+clamped at 0 - the classic "3 points per level + 7" budget, which is what finally confirms
+that `[rsp+0xa0]` is the new level.
+`docs/worker_rebirth_apply2.md` section N is now the complete, address-backed recipe for
+1040: requirement match, unequip-all-except, look tuple, point budget, the ordered attrib
+writes, the lookface rewrite and the refresh/broadcast. Only the `v2 == 2` branch of the
+point formula remains UNKNOWN (its body continues past the readable window) and is flagged as
+such rather than guessed. Implementation is the next wave.

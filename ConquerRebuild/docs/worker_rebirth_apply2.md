@@ -276,3 +276,59 @@ cache**, not from the action string. Cracking that cache would open 1040 at once
 The struct is byte-packed (0x19 and 0x1a are read as u16 and overlap), so it is NOT the raw
 cq_user row - it is a compact CUserData cache whose filler/adapter has not been located yet.
 Finding the adapter (one store per column) is the single highest-value decode left.
+
+## N. FINAL RECIPE for action 1040 (all unknowns closed)
+
+**Column map proven by the CUserData adapter** (`FUN_1403744b0`, MsgServer.c:624108; row is
+`SELECT cq_user.*, b.name AS mate_name FROM cq_user LEFT JOIN cq_user b ON cq_user.mateid=b.id
+WHERE cq_user.id=%u LIMIT 1` at :624561):
+
+| user field | cq_user column |
+|---|---|
+| +0xed8 | **strength** |
+| +0xeda | **first_prof** |
+| +0xedb | **old_prof** |
+| +0xedc | **Speed** |
+| +0xede | **health** |
+| +0xee0 | **soul** |
+| +0xee2 | **additional_point** |
+| +0xee4 | **auto_allot** |
+| +0xeee | **profession** |
+
+**Argument chain, fully resolved (disassembly):**
+`FUN_1401c3180(user, row, v3, v2)` calls at 0x1401c376d
+`FUN_1401b9d70(user, r13d, edi, GetField(2)=new_prof, GetField(4)=new_level, v2, r15d=v3)`
+(`r15 = movsxd(r8d)` = the v3 tier; `r12d = 2` at 0x1401c3213 pins the GetField index).
+
+**The steps a port must take**
+1. `sscanf "%d %d %d"`; fewer than 2 tokens -> id_nextfail. `v1` = new profession,
+   `v2` = the mode/level used by the lookface and the point formula, `v3` = metepsychosis
+   tier (default 1).
+2. Requirement lookup in `cq_rebirth` (0-based cells, all proven):
+   `cell1(need_prof)==p.profession && cell2(new_prof)==v1 && cell5(metepsychosis)==v3 &&
+    cell3(need_level) <= p.level && (p.level < v3 || p.level > 2)`; no row -> id_nextfail.
+3. `FUN_140163e10(user, new_prof)` = unequip every slot except 10, 11 and 0x13.
+4. Look tuple from **new_prof** (case 0x22 body):
+   `prof==0 -> 0x14`; `prof<100 -> prof/10`: 4 -> (i8,i7,i9,i11)=(0,1,2,7),
+   5 -> (0,1,1,8), 6 -> (2,4,3,1), 7 -> (0,3,4,3); `prof>=100 -> (5,3,0,2)`;
+   default tuple (5,3,0,2) otherwise.
+   `max_life = (i8 + i7*8 + i11 + i9)*3`, `max_mana = i8*5`.
+5. `points = FUN_140173790(user, v3, new_level, new_prof, v2)`:
+   `v2 == 1` -> `n = min(0x82, new_level); v3 == 0x87 ? ((n-0x6e+1)*n)/2+0x48
+   : ((n-0x78)*(n-0x77))/2+0x48`; otherwise
+   `points = strength + Speed + health + soul + additional_point - 3*new_level - 7`
+   clamped at 0 (`v2 == 2` additionally shifts the level by -0x78 - body continues past the
+   read window, so a v2==2 row must be treated as UNKNOWN rather than guessed).
+6. Writes, in this order (all through `FUN_1401a6420(user, attrib, value, send)`):
+   `0x33`/`0x32` per `v3` (`1`: 0x33=v2; `2`: 0x32=v2; `>2`: 0x33=old_prof, 0x32=v2),
+   `0xb` = current value (refresh, flag 2), `7` = new_prof, `0xc` = new_level, `5` = 0 (exp),
+   `0` = max_life, `2` = max_mana, `0x16` = v3,
+   `0xf` = i9, `0x10` = i11, `0xe` = i7, `0xd` = i8, `10` = points
+   (that last group is `FUN_1401abdf0`, proven from its call-site disassembly).
+7. `FUN_1401715d0(user, new_level)`: `lookface = (lookface/1000 - new_level/1000)*1000 +
+   new_level`, then persist the record field 5.
+8. Refresh the actor (`(*(user[2]+0x338))()`), broadcast a `10017` with attrib `0xc` when it
+   changed (`old != new`), and write the `gmlog/rebirth` line.
+
+STATUS: every step is address-backed. The only value that must stay UNKNOWN is the
+`v2 == 2` branch of the point formula (body continues beyond the read window).
