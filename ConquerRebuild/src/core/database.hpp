@@ -18,6 +18,13 @@
 
 namespace conquer {
 
+// v120: one cq_rebirth row (schema: id, need_prof, new_prof, need_level,
+// new_level, metepsychosis - read 0-based by FUN_140163c90, proven).
+struct RebirthRow {
+    uint32_t id = 0, need_prof = 0, new_prof = 0;
+    uint32_t need_level = 0, new_level = 0, meta = 0;
+};
+
 struct UserRecord {
     uint32_t id           = 0;   // cq_user.id
     uint32_t account_id   = 0;
@@ -45,6 +52,12 @@ struct UserRecord {
     uint32_t home_id      = 0;  // cq_user.home_id       (key 1014)
     uint32_t nobility     = 0;  // cq_user.nobility      (key 1045)
     uint32_t business     = 0;  // cq_user.business      (key 1046)
+    // v120: the CUserData stat block (see docs/worker_cuserdata.md)
+    uint32_t strength     = 0;  // cq_user.strength
+    uint32_t speed        = 0;  // cq_user.Speed
+    uint32_t health       = 0;  // cq_user.health
+    uint32_t soul         = 0;  // cq_user.soul
+    uint32_t add_point    = 0;  // cq_user.additional_point
 };
 
 // Combat stats derived from equipped items (cq_item joined cq_itemtype) plus
@@ -209,6 +222,23 @@ public:
     virtual std::map<std::string, int64_t> load_user_vars(uint32_t player_id) = 0;
     virtual void save_user_vars(uint32_t player_id,
                                 const std::map<std::string, int64_t>& vars) = 0;
+    // ---- v120: rebirth (action 1040) ----
+    // FUN_140163c90 requirement scan: need_prof == profession,
+    // new_prof == v1, metepsychosis == v3, need_level <= level.
+    virtual bool load_rebirth(uint32_t need_prof, uint32_t new_prof,
+                              uint32_t meta, RebirthRow& out) = 0;
+    // FUN_14008afb0 cap read from the mapgroup config (cq_config type
+    // 139494 field 2; the ctor default is 0x352 = 850, MsgServer.c:147734).
+    virtual uint32_t rebirth_point_cap() = 0;
+    // one row write for the whole rebirth apply (FUN_1401715d0 persists
+    // the lookface on record field 5, the attrib writes persist the rest).
+    virtual void save_user_rebirth(uint32_t id, uint32_t profession,
+                                   uint32_t level, uint64_t exp,
+                                   uint32_t strength, uint32_t speed,
+                                   uint32_t health, uint32_t soul,
+                                   uint32_t add_point, uint32_t life,
+                                   uint32_t mana, uint32_t meta,
+                                   uint32_t lookface) = 0;
     // drops system (v19)
     virtual std::vector<EquipTypeRecord> load_equip_types() = 0; // equip families
     // ---- v24: weapon skill (proficiency) system ----
@@ -301,6 +331,9 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     // delete one cq_item row by id (action 502 "take item"); true if a
     // row was actually removed
     virtual bool delete_item(uint32_t item_id) = 0;
+    // v120: rebirth unequips every slot (FUN_140163e10 moves the item to the
+    // inventory container, i.e. cq_item.position = 0)
+    virtual bool update_item_position(uint32_t item_id, uint16_t position) = 0;
     // v35: action 509/510 item attribute ops
     virtual bool update_item(uint32_t item_id, uint32_t type,
                              uint32_t amount) = 0;
@@ -375,6 +408,19 @@ public:
                        const std::map<std::string, int64_t>& vars) override {
         script_vars_[pid] = vars;
     }
+    bool load_rebirth(uint32_t need_prof, uint32_t new_prof,
+                      uint32_t meta, RebirthRow& out) override {
+        for (const auto& r : rebirth_rows_) {
+            if (r.need_prof == need_prof && r.new_prof == new_prof &&
+                r.meta == meta) { out = r; return true; }
+        }
+        return false;
+    }
+    uint32_t rebirth_point_cap() override { return 850; }
+    void save_user_rebirth(uint32_t, uint32_t, uint32_t, uint64_t, uint32_t,
+                           uint32_t, uint32_t, uint32_t, uint32_t, uint32_t,
+                           uint32_t, uint32_t, uint32_t) override {}
+    std::vector<RebirthRow> rebirth_rows_;
     std::map<uint32_t, std::map<std::string, int64_t>> script_vars_;
     std::vector<EquipTypeRecord> load_equip_types() override { return {}; }
     std::vector<WeaponSkillUpRecord> load_weapon_skill_up() override { return {}; }
@@ -390,6 +436,7 @@ public:
                                const ItemAttrs&) override { return 0; }
     bool delete_item(uint32_t) override { return false; }
     bool update_item(uint32_t, uint32_t, uint32_t) override { return false; }
+    bool update_item_position(uint32_t, uint16_t) override { return false; }
     void update_user_lookface(uint32_t, uint32_t) override {}
     void update_user_hair(uint32_t, uint32_t) override {}
     void update_user_profession(uint32_t, uint32_t) override {}

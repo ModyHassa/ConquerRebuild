@@ -1625,3 +1625,43 @@ INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020140,'Npc1204plain',0,5000,1002,434,313,99020070,''),
   (99020141,'Npc1204fill',0,5000,1002,435,313,99020073,'');
+
+-- ===========================================================================
+-- v120: rebirth (action 1040). Fixture band: chains 99020080-99020099,
+-- npc 99020160-99020169, cq_rebirth 990001, char cq_user 97 / acc 100097.
+-- Char state is reset every run: the rebirth itself rewrites level/profession/
+-- stats, so the seed MUST restore them or the second suite run has nothing to
+-- rebirth from (need_prof 10 + level 130).
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020080 AND 99020099;
+DELETE FROM cq_npc WHERE id BETWEEN 99020160 AND 99020169;
+DELETE FROM cq_rebirth WHERE id=990001;
+DELETE FROM cq_user_script_var WHERE player_id=97;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100097,'V120Reborn','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession,strength,Speed,health,soul,
+                     additional_point,metempsychosis,exp) VALUES
+  (97,100097,'V120Reborn',100003,15,2000,1500,1002,437,313,130,10,0,0,0,0,0,0,0)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=313, level=130, profession=10,
+    strength=0, Speed=0, health=0, soul=0, additional_point=0,
+    metempsychosis=0, exp=0;
+-- one equipped item (slot 4) so the unequip step (FUN_140163e10) is provable
+DELETE FROM cq_item WHERE id=990120;
+INSERT INTO cq_item (id,player_id,owner_id,type,amount,amount_limit,position)
+  VALUES (990120,97,97,900999,1,1,4);
+-- need_prof 10 -> new_prof 11, level 130 -> 15, metepsychosis 1
+INSERT INTO cq_rebirth (id,need_prof,new_prof,need_level,new_level,metepsychosis)
+  VALUES (990001,10,11,1,15,1);
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail) VALUES
+  (99020080,1040,'11 004',99020081,99020082),
+  (99020081,101,'v120-rebirth-ok',0,0),
+  (99020082,101,'v120-rebirth-fail',0,0),
+  -- no cq_rebirth row for need_prof 11 -> the gate must take id_nextfail
+  (99020083,1040,'11 002',99020081,99020084),
+  (99020084,101,'v120-rebirth-norow',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020160,'RebirthSage',0,5000,1002,437,315,99020080,''),
+  (99020161,'RebirthSage2',0,5000,1002,437,316,99020083,'');

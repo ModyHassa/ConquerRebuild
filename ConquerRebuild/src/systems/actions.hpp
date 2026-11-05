@@ -1830,6 +1830,159 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1040: {  // Rebirth (new-engine case 0x22 -> FUN_1401c3180 ->
+            // FUN_1401b9d70). Full address-backed recipe:
+            // docs/worker_rebirth_apply2.md section N + docs/worker_cuserdata.md.
+            int v1 = 0, v2 = 0, v3 = 1;
+            int ntok = std::sscanf(a->param.c_str(), "%d %d %d", &v1, &v2, &v3);
+            if (ntok < 2) {
+                std::printf("[action] %u: 1040 needs >= 2 numbers, got '%s'\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail; break;
+            }
+            RebirthRow row;
+            bool have_row = active_db()->load_rebirth(p.profession,
+                                                     (uint32_t)v1,
+                                                     (uint32_t)v3, row);
+            // FUN_140163c90 gates: (level < v3 || 2 < level) and need_level <= level
+            bool level_gate = ((int)p.level < v3) || (p.level > 2u);
+            if (!have_row || !level_gate || row.need_level > p.level) {
+                std::printf("[action] %u: 1040 no cq_rebirth row (prof %u -> %d, "
+                            "meta %d) or gate failed (level %u, need %u)\n",
+                            p.id, p.profession, v1, v3, p.level, row.need_level);
+                cur = a->id_nextfail; break;
+            }
+            const uint32_t old_prof = p.profession, old_level = p.level;
+            const uint32_t new_prof = row.new_prof, new_level = row.new_level;
+            const int tier = v3;
+
+            // step 1 - FUN_140163e10: unequip every slot except 10, 11, 0x13
+            {
+                uint32_t moved = 0;
+                for (const auto& it : active_db()->load_player_items(p.id)) {
+                    uint16_t sl = it.position;
+                    if (sl < 1 || sl == 10 || sl == 11 || sl == 0x13) continue;
+                    if (!active_db()->update_item_position(it.id, 0)) continue;
+                    ++moved;
+                    if (p.session)
+                        p.session->send(build_item_info_1008(it.id, it.type,
+                                                            it.amount, 0, 1));
+                }
+                if (moved) {
+                    CombatStats cs = active_db()->load_combat_stats(p.id);
+                    p.combat = CombatActorStats{cs.atk_min, cs.atk_max, cs.extra,
+                                                cs.defense, cs.dodge,
+                                                cs.weapon_type};
+                }
+            }
+            // step 2 - the look tuple (FUN_1401b9d70 head)
+            uint32_t lp = new_prof;
+            if (lp == 0) lp = 0x14;
+            int i9 = 5, i7 = 3, i8 = 0, i10 = 2, i11 = 2;
+            if (lp < 100) {
+                switch (lp / 10) {
+                    case 4: i7 = 1; i11 = 7; i9 = i10; break;
+                    case 5: i7 = 1; i11 = 8; i9 = 1; break;
+                    case 6: i7 = 4; i11 = 1; i9 = 3; i8 = i10; break;
+                    case 7: i9 = 4; i11 = 3; break;
+                    default: break;   // 1/2/3/8/9 keep the entry defaults
+                }
+            } else { i9 = i8; i7 = 3; i8 = 5; i11 = i10; }
+            const uint32_t life_calc = (uint32_t)(i8 + i7 * 8 + i11 + i9) * 3u;
+            const uint32_t mana_calc = (uint32_t)i8 * 5u;
+
+            // step 3 - point budget (FUN_140173790(user, old_prof, old_level,
+            // new_level, v2)): mode 1 = level formula, otherwise the stat sum
+            // minus 3*old_level-7 plus 3*new_level-3 (mode 2 adds the 11-band
+            // table), finally capped at rebirth_point_cap()-10.
+            long long pts;
+            if (v2 == 1) {
+                long long lv = (old_level < 0x83u) ? (long long)old_level : 0x82;
+                if (old_prof == 0x87) {
+                    long long k = (lv - 0x6e) / 2;
+                    pts = ((k + 1) * k) / 2 + 0x48;
+                } else {
+                    pts = ((lv - 0x78) * (lv - 0x77)) / 2 + 0x48;
+                }
+            } else {
+                pts = (long long)p.add_point + p.soul + p.health + p.speed +
+                      p.strength - 3LL * (long long)old_level - 7LL;
+                if (pts < 0) pts = 0;
+                if (v2 == 2) {
+                    static const int band[11] = {0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55};
+                    long long d = (long long)old_level - 0x78;
+                    int idx = d < 0 ? 0 : (d > 10 ? 10 : (int)d);
+                    pts += band[idx] + 3LL * (long long)new_level - 3LL;
+                } else {
+                    pts += 3LL * (long long)new_level - 3LL;
+                }
+            }
+            {
+                long long capv = (long long)active_db()->rebirth_point_cap() - 10;
+                if (pts > capv) pts = capv;
+            }
+            if (pts < 0) pts = 0;
+            const uint32_t points = (uint32_t)pts;
+
+            // step 4 - FUN_1401715d0(user, v2): lookface rewrite
+            const uint32_t new_look = (uint32_t)(
+                ((long long)p.lookface / 1000 - (long long)v2 / 1000) * 1000 + v2);
+
+            // step 5 - the state writes the attrib calls perform
+            p.profession = new_prof;
+            p.level      = new_level;
+            p.exp        = 0;
+            p.strength   = (uint32_t)i8;
+            p.speed      = (uint32_t)i7;
+            p.health     = (uint32_t)i9;
+            p.soul       = (uint32_t)i11;
+            p.add_point  = points;
+            p.hp = p.max_hp = life_calc;
+            p.mana = p.max_mana = mana_calc;
+            p.meto       = (uint32_t)tier;
+            p.lookface   = new_look;
+            active_db()->save_user_rebirth(p.id, p.profession, p.level, p.exp,
+                                           p.strength, p.speed, p.health,
+                                           p.soul, p.add_point, p.hp, p.mana,
+                                           p.meto, p.lookface);
+
+            // step 6 - attrib report (order from FUN_1401b9d70)
+            if (p.session) {
+                Packet at = build_user_attrib_10017(p.id, {
+                    {ATTRIB_LIFE, p.hp}, {2, p.mana}, {7, new_prof},
+                    {0xC, new_level}, {0xD, p.strength}, {0xE, p.speed},
+                    {0xF, p.health}, {0x10, p.soul}, {10, points},
+                    {0x16, (uint32_t)tier}});
+                p.session->send(at);
+                p.session->send(build_user_attrib_10017_u64(p.id, {{5, 0}}));
+                if (tier == 1) {
+                    p.session->send(build_user_attrib_10017(p.id, {{0x33, old_prof}}));
+                } else if (tier == 2) {
+                    p.session->send(build_user_attrib_10017(p.id, {{0x32, old_prof}}));
+                } else {
+                    std::printf("[action] %u: 1040 tier %d writes attrib 0x33 "
+                                "from cq_user.old_prof (not modelled) - "
+                                "0x32=%u only\n", p.id, tier, old_prof);
+                    p.session->send(build_user_attrib_10017(p.id, {{0x32, old_prof}}));
+                }
+                // refresh + broadcast the new level attrib 0xc (the apply does
+                // this when old_level != new_level)
+                GameMap& m = w.get_or_create_map(p.map_id);
+                SpawnInfo si; si.id = p.id; si.name = p.name;
+                si.x = p.pos.x; si.y = p.pos.y; si.lookface = p.lookface;
+                w.broadcast_to_screen(m, p.pos, build_spawn_10014(si), nullptr);
+                if (old_level != new_level) {
+                    w.broadcast_to_screen(m, p.pos,
+                        build_user_attrib_10017(p.id, {{0xC, new_level}}), nullptr);
+                }
+            }
+            std::printf("[action] %u 1040 rebirth prof %u -> %u, level %u -> %u, "
+                        "stats %d/%d/%d/%d, points %u, life %u, look %u\n",
+                        p.id, old_prof, new_prof, old_level, new_level,
+                        i8, i7, i9, i11, points, life_calc, new_look);
+            cur = a->id_next;
+            break;
+        }
         case 1203: {  // life comparison (new-engine case 0x6F).
             // VERIFIED (msgserver_gameaction.c:17661-17665):
             //   a = user[2] getter +0x78 (current life)

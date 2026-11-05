@@ -851,6 +851,12 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
             p.account_id = rec.account_id;   // already loaded
             p.nobility   = rec.nobility;
             p.business   = rec.business;
+            // v120: the CUserData stat block (rebirth reads/writes these)
+            p.strength   = rec.strength;
+            p.speed      = rec.speed;
+            p.health     = rec.health;
+            p.soul       = rec.soul;
+            p.add_point  = rec.add_point;
             p.record_map = rec.recordmap_id;
             p.record_pos = Position{(uint16_t)rec.recordx, (uint16_t)rec.recordy};
             // hp from cq_user.life; combat stats from equipped items

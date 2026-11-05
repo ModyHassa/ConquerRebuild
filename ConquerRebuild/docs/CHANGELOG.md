@@ -1639,3 +1639,44 @@ that `[rsp+0xa0]` is the new level.
 writes, the lookface rewrite and the refresh/broadcast. Only the `v2 == 2` branch of the
 point formula remains UNKNOWN (its body continues past the readable window) and is flagged as
 such rather than guessed. Implementation is the next wave.
+
+## v120 (Nov 5, 2026) — action 1040 (Rebirth, 668 rows) IMPLEMENTED + live-verified
+`1040` is now a real port, not a recipe. Everything the recipe had left open was closed by
+reading the code, not by guessing:
+
+- **Requirement scan (FUN_140163c90):** `need_prof == cq_user.profession`, `new_prof == v1`,
+  `metepsychosis == v3` (cq_rebirth read 0-based: 1=need_prof, 2=new_prof, 3=need_level,
+  4=new_level, 5=metepsychosis) plus the level gate `(level < v3 || level > 2)` and
+  `need_level <= level`. Any miss takes `id_nextfail`.
+- **Apply core (FUN_1401b9d70):** current profession is `r13d`, current level comes from the
+  `+0x70` getter, and `FUN_1401abdf0(user, health, soul, speed, strength, points)` was
+  disassembled to prove the 5th argument (`[rsp+0x28]`) is the computed point budget.
+- **Point budget (FUN_140173790):** mode `v2 == 1` is the level curve
+  (`((lv-0x78)*(lv-0x77))/2 + 0x48`, profession 0x87 uses `((k+1)*k)/2 + 0x48` with
+  `k = (min(130,level)-0x6e)/2`); every other mode is
+  `add_point+soul+health+speed+strength - 3*current_level - 7` (clamped at 0) plus
+  `3*new_level - 3`, and `v2 == 2` inserts the 11-band table `0 1 3 6 10 15 21 28 36 45 55`
+  indexed by `clamp(current_level-120, 0, 10)`. The result is capped at
+  `rebirth_point_cap() - 10`; the cap is `*(mgr+0x844)`, default `0x352` = **850** (ctor at
+  MsgServer.c:147734), overridden by cq_config row 0x222E6 field 2 when that row exists (it
+  does not in this DB), so the effective cap is **840**. All four modes really are in use —
+  the DB has 167 rows for each of v2 = 1/2/3/4.
+- **Look face (FUN_1401715d0):** `(lookface/1000 - v2/1000)*1000 + v2`, persisted.
+- **Unequip (FUN_140163e10):** every equip slot except 10, 11 and 0x13 is moved to the
+  inventory (`cq_item.position = 0`) with a 1008 action-1 notify, then combat is reloaded.
+- New engine state: `Player`/`UserRecord` gained the CUserData stat block
+  (`strength`, `speed`, `health`, `soul`, `add_point`) loaded from the four cq_user columns;
+  new DB APIs `load_rebirth`, `rebirth_point_cap`, `save_user_rebirth` (single-row UPDATE) and
+  `update_item_position`.
+- **Test (`tests/test_actions_v120.py`):** V120Reborn (cq_user 97 / acc 100097, level 130,
+  profession 10, all stats 0, one item in slot 4) + cq_rebirth 990001 (10 -> 11, level 1 -> 15,
+  metepsychosis 1) + chains 99020080/83. Asserts the 12 attrib keys the original writes
+  (0=93 life, 2=0 mana, 5=0 exp, 7=11, 0xc=15, 0xd/0xe/0xf/0x10 = 0/3/5/2, 10=42 points,
+  0x16=1, 0x33=10), the whole cq_user row, the unequipped item, and the no-row fail branch.
+- **UNKNOWN (flagged, not guessed):** attrib `0xb` (VP getter `+0x30`) is not modelled by
+  this engine and is not sent; the tier-3+ path reads `cq_user.old_prof` (user+0xedb) which
+  is not loaded yet, so it reports 0x32 only and logs the gap.
+- Suite: 87 green; the only failures in this run were v38/v39/transport_live, all three
+  "connection refused" because the 5816 server process vanished mid-suite (no OOM record in
+  dmesg, no crash trace in the server log). All three pass standalone.
+

@@ -107,6 +107,10 @@ Base44 agent's saved memories — the gotchas below are the distilled version.
   decode formulas all verified), 1105 damage broadcast, cooldowns, learn/uplevel/addexp (1020).
 - **Weapon proficiency:** cq_weapon_skill exp/level, 1025 + 1104 packets, level-up table semantics.
 - **Dyna NPCs:** 201 var ops, 301 create (INSERT + 10014 broadcast), 302 counts, 150 data ops.
+- **Rebirth (1040, 668 rows):** full apply — requirement match on cq_rebirth, unequip-all-except
+  (10/11/0x13), look tuple, the 4-mode point budget (cap 840), lookface rewrite, ordered 10017
+  attrib writes, single-row persist. Test: tests/test_actions_v120.py (V120Reborn = cq_user 97).
+  UNKNOWN: attrib 0xb (VP getter) and cq_user.old_prof for tier 3+, see CHANGELOG v120.
 
 ## 5. What REMAINS (by priority)
 

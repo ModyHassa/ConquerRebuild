@@ -26,6 +26,15 @@ public:
     UserRecord load_user(uint32_t account_id) override;
     CombatStats load_combat_stats(uint32_t user_id) override;
     void update_uin(uint32_t id, uint64_t uin) override;
+    bool load_rebirth(uint32_t need_prof, uint32_t new_prof,
+                      uint32_t meta, RebirthRow& out) override;
+    uint32_t rebirth_point_cap() override;
+    bool update_item_position(uint32_t item_id, uint16_t position) override;
+    void save_user_rebirth(uint32_t id, uint32_t profession, uint32_t level,
+                           uint64_t exp, uint32_t strength, uint32_t speed,
+                           uint32_t health, uint32_t soul, uint32_t add_point,
+                           uint32_t life, uint32_t mana, uint32_t meta,
+                           uint32_t lookface) override;
     void save_user(const UserRecord& r) override;
     AccountRecord load_account(const std::string& name) override;
     std::vector<MonsterTypeRecord> load_monster_types() override;

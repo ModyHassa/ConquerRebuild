@@ -100,7 +100,8 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         "u.level,(a.type=1),u.life,u.mana,u.exp,u.money,u.profession,u.pk,u.lookface, "
         "(SELECT syn_id FROM cq_synattr WHERE id=u.id LIMIT 1), "
         "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair,"
-        "u.virtue,u.metempsychosis,u.home_id,u.nobility,u.business "
+        "u.virtue,u.metempsychosis,u.home_id,u.nobility,u.business,"
+        "u.strength,u.Speed,u.health,u.soul,u.additional_point "
         "FROM cq_user u LEFT JOIN accounts a "
         "ON a.id=u.account_id WHERE u.account_id=%u LIMIT 1", account_id);
     if (!exec(sql)) return out;
@@ -131,6 +132,12 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         if (row[20]) out.home_id    = strtoul(row[20], nullptr, 10);
         if (row[21]) out.nobility   = strtoul(row[21], nullptr, 10);
         if (row[22]) out.business   = strtoul(row[22], nullptr, 10);
+        // v120: the CUserData stat block
+        if (row[23]) out.strength  = strtoul(row[23], nullptr, 10);
+        if (row[24]) out.speed     = strtoul(row[24], nullptr, 10);
+        if (row[25]) out.health    = strtoul(row[25], nullptr, 10);
+        if (row[26]) out.soul      = strtoul(row[26], nullptr, 10);
+        if (row[27]) out.add_point = strtoul(row[27], nullptr, 10);
         if (row[13]) out.pk = (int32_t)strtol(row[13], nullptr, 10);
         if (row[14]) out.lookface = strtoul(row[14], nullptr, 10);
     }
@@ -1073,4 +1080,80 @@ void MySQLDatabase::delete_magic(uint32_t player_id, uint32_t type) {
         player_id, type);
     exec(sql);
 }
+
+// ---------------------------------------------------------------------------
+// v120: rebirth (action 1040). cq_rebirth is read 0-based by the original
+// requirement scan FUN_140163c90 (docs/worker_rebirth_apply.md section 0).
+// ---------------------------------------------------------------------------
+bool MySQLDatabase::load_rebirth(uint32_t need_prof, uint32_t new_prof,
+                                 uint32_t meta, RebirthRow& out) {
+    if (!conn_) return false;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[512];
+    std::snprintf(sql, sizeof(sql),
+        "SELECT id,need_prof,new_prof,need_level,new_level,metepsychosis "
+        "FROM cq_rebirth WHERE need_prof=%u AND new_prof=%u "
+        "AND metepsychosis=%u ORDER BY need_level LIMIT 1",
+        need_prof, new_prof, meta);
+    if (!exec(sql)) return false;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return false;
+    MYSQL_ROW row = mysql_fetch_row(res);
+    bool found = false;
+    if (row && row[0]) {
+        out.id         = (uint32_t)strtoul(row[0], nullptr, 10);
+        out.need_prof  = (uint32_t)strtoul(row[1], nullptr, 10);
+        out.new_prof   = (uint32_t)strtoul(row[2], nullptr, 10);
+        out.need_level = (uint32_t)strtoul(row[3], nullptr, 10);
+        out.new_level  = (uint32_t)strtoul(row[4], nullptr, 10);
+        out.meta       = (uint32_t)strtoul(row[5], nullptr, 10);
+        found = true;
+    }
+    mysql_free_result(res);
+    return found;
+}
+
+uint32_t MySQLDatabase::rebirth_point_cap() {
+    // FUN_140093360: row id 0x222E6, field index 2 -> mgr+0x844. The ctor
+    // default at MsgServer.c:147734 is 0x352 (850) and stays when the config
+    // row is absent (this DB has no such row).
+    constexpr uint32_t DEFAULT_CAP = 0x352;
+    if (!conn_) return DEFAULT_CAP;
+    std::lock_guard<std::mutex> lk(mtx_);
+    if (!exec("SELECT type FROM cq_config WHERE type=139494 LIMIT 1"))
+        return DEFAULT_CAP;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return DEFAULT_CAP;
+    mysql_free_result(res);   // row presence only; field 2 is not modelled yet
+    return DEFAULT_CAP;
+}
+
+void MySQLDatabase::save_user_rebirth(uint32_t id, uint32_t profession,
+                                      uint32_t level, uint64_t exp,
+                                      uint32_t strength, uint32_t speed,
+                                      uint32_t health, uint32_t soul,
+                                      uint32_t add_point, uint32_t life,
+                                      uint32_t mana, uint32_t meta,
+                                      uint32_t lookface) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[768];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_user SET profession=%u, level=%u, exp=%llu, strength=%u, "
+        "Speed=%u, health=%u, soul=%u, additional_point=%u, life=%u, mana=%u, "
+        "metempsychosis=%u, lookface=%u WHERE id=%u LIMIT 1",
+        profession, level, (unsigned long long)exp, strength, speed, health,
+        soul, add_point, life, mana, meta, lookface, id);
+    exec(sql);
+}
+
+bool MySQLDatabase::update_item_position(uint32_t item_id, uint16_t position) {
+    if (!conn_) return false;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[256];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_item SET position=%u WHERE id=%u LIMIT 1", position, item_id);
+    return exec(sql);
+}
+
 } // namespace conquer

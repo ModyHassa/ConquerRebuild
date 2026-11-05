@@ -67,6 +67,13 @@ struct Player {
     // v94: remaining pinned GetUserInt keys backed by cq_user columns
     uint32_t virtue = 0;                  // 1010 Virtue
     uint32_t meto = 0;                    // 1011 Metempsychosis (rebirth)
+    // v120: the CUserData stat block (user+0xed8..+0xee2). Proven column map:
+    // docs/worker_cuserdata.md (FUN_1403744b0 fills it from the cq_user row).
+    uint32_t strength = 0;               // cq_user.strength        (user+0xed8)
+    uint32_t speed    = 0;               // cq_user.Speed           (user+0xedc)
+    uint32_t health   = 0;               // cq_user.health          (user+0xede)
+    uint32_t soul     = 0;               // cq_user.soul            (user+0xee0)
+    uint32_t add_point = 0;              // cq_user.additional_point(user+0xee2)
     uint32_t home_id = 0;                 // 1014 HomeID
     uint32_t account_id = 0;              // 1015 AccountId
     uint32_t nobility = 0;                // 1045 Peerage
