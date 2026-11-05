@@ -66,13 +66,11 @@ def case_of(pe, type_):
 
 
 def body_of(pe, case):
+    # VERIFIED convention (objdump 0x14012a827): the table entry is an RVA-style
+    # addend against the IMAGE BASE (`lea rdx,[rip]=0x140000000; mov ecx,[rdx+rax*4+0x13a7ac];
+    # add rcx,rdx; jmp rcx`), so body = IMAGE_BASE + entry. Anchor check: 1075 -> 0x14012c33f.
     rel = pe.u32(IMAGE_BASE + TABLE_RVA + case * 4)
-    # two candidate bases for a rel32 table; keep the one inside the function
-    for base in (IMAGE_BASE + TABLE_RVA, IMAGE_BASE + TABLE_RVA + case * 4 + 4):
-        va = (base + rel) & 0xFFFFFFFFFFFFFFFF
-        if FUNC_START <= va < FUNC_END:
-            return va
-    return None
+    return (IMAGE_BASE + rel) & 0xFFFFFFFFFFFFFFFF
 
 
 def main(argv):
