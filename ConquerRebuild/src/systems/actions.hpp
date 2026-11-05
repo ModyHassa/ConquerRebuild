@@ -1877,6 +1877,18 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             break;
         }
+        case 1204: {  // mana comparison (new-engine case 0x70).
+            // VERIFIED (msgserver_gameaction.c:17666-17670):
+            //   a = user getter +0x80 (current mana)
+            //   b = user getter +0x88 (max mana)
+            //   return (b <= a)  -> branch on "mana is at full"
+            // The slots are pinned by FUN_1401a2660 case 2 (mana), which clamps
+            // against +0x88 and reads +0x80 for the 10017 entry - the same pair
+            // 1203 uses for life on the +0x10 sub-object.
+            bool full = (p.max_mana <= p.mana);
+            cur = full ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 506: {  // take N item copies (case 0x1fa ~213915):
             // "<t1> <t2> <num> [sync] [flag]": erase num copies of item
             // type t1 (t2 fallback; real rows always t1==t2) from the

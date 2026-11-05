@@ -1610,3 +1610,18 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020131,'Npc1510half',0,5000,1002,431,313,99020054,''),
   (99020132,'Npc1203plain',0,5000,1002,432,313,99020058,''),
   (99020133,'Npc1510bad',0,5000,1002,433,313,99020061,'');
+
+-- v116: type 1204 (max_mana <= mana)
+DELETE FROM cq_action WHERE id BETWEEN 99020070 AND 99020079;
+DELETE FROM cq_npc WHERE id BETWEEN 99020140 AND 99020149;
+INSERT INTO cq_action (id,type,param,id_next,id_nextfail,data) VALUES
+  (99020070,1204,'',99020071,99020072,0),
+  (99020071,101,'v116-mana-full',0,0,0),
+  (99020072,101,'v116-mana-notfull',0,0,0),
+  (99020073,1002,'mana',99020074,0,0),
+  (99020074,1204,'',99020075,99020076,0),
+  (99020075,101,'v116-mana-full-after',0,0,0),
+  (99020076,101,'v116-mana-notfull-after',0,0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020140,'Npc1204plain',0,5000,1002,434,313,99020070,''),
+  (99020141,'Npc1204fill',0,5000,1002,435,313,99020073,'');

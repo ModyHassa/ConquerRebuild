@@ -1580,3 +1580,14 @@ guessed:
   back only after another heal; plus the non-numeric param fail branch.
   Fixtures 99020050-63 / npcs 99020130-33.
 - Suite: **81 tests, 81 green**.
+
+## v116 (Nov 5, 2026) — action type 1204 PORTED (27 rows), life/mana pair complete
+- **1204** (case 0x70, msgserver_gameaction.c:17666-17670) is the mana twin of 1203:
+  `return (get(+0x88) <= get(+0x80))` on the user object.
+- The slots are now PROVEN rather than assumed: `FUN_1401a2660` case 2 (the mana attrib)
+  clamps the incoming value against `(*user+0x88)` and reads `(*user+0x80)` for its 10017
+  entry, so +0x80 = current mana and +0x88 = max mana. (Case 4 uses +0x60 = money and
+  case 5 +0xA0 = exp, which matches the 10017 key semantics already ported.)
+- Tests: `tests/test_actions_v116.py` asserts exactly one branch on the current state and
+  that 1002 "mana" flips it to the full branch; fixtures 99020070-76 / npcs 99020140-41.
+- Suite: **82 tests, 82 green**.

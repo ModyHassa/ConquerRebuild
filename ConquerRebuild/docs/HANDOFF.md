@@ -675,3 +675,8 @@ FUN_1403a5840 packet family, 1040 needs the five base stats, 1083 the 0x1B/0x1C 
 player-death flow FUN_140177000 triggers at 0 is still absent from the whole rebuild - that
 is the one global gap these two types touch.
 
+## v116 (Nov 5, 2026) — 1204 ported, suite 82/82
+1204 = `max_mana <= mana` on the user getters +0x88/+0x80, which FUN_1401a2660 case 2 pins
+exactly (that case clamps against +0x88 and reads +0x80). Today's ports: 1084, 1203, 1510,
+1204 = 222 rows, plus the levexp type-0 fix.
+
