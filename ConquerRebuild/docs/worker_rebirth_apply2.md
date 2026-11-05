@@ -167,3 +167,48 @@ Case `0` (life) PROVEN: clamp to `(*user[2]+0x80)()` = max life, floor at 0, the
 2. Decode `FUN_1401abdf0(user, a, b, c)` = the stat/distribution step.
 3. Decode `FUN_140173790` / `FUN_1401715d0` (the level/tier values written to attribs 0xb/0x16).
 4. Then: `cq_rebirth` lookup (already proven, 0-based columns) + the writes above + 10017 sends.
+
+## I. THE STAT CALL RESOLVED (coordinator, disassembly 0x1401b9f77-0x1401b9f91)
+
+```
+1401b9f77  mov eax,[rsp+0xc4]     ; the action's 5th sscanf field (v5)
+1401b9f7e  mov [rsp+0x28],eax     ; -> 6th argument
+1401b9f82  mov [rsp+0x20],ebx     ; -> 5th argument (the 4th look value, iVar8)
+1401b9f86  mov r9d,edi            ; -> 4th argument (iVar7)
+1401b9f89  mov r8d,r12d           ; -> 3rd argument (iVar11)
+1401b9f8c  mov edx,esi            ; -> 2nd argument (iVar9)
+1401b9f8e  mov rcx,r14            ; user
+1401b9f91  call 0x1401abdf0
+```
+`FUN_1401abdf0` (MsgServer.c:294766-294787) is therefore fully determined:
+
+| attrib id | source |
+|---|---|
+| 13 (`0xd`) | `ebx` = the 4th look value (iVar8) |
+| 14 (`0xe`) | `edi` = iVar7 |
+| 15 (`0xf`) | `esi` = iVar9 |
+| 16 (`0x10`) | `r12d` = iVar11 |
+| 10 (`0xa`) | **the 5th sscanf field (v5)** = the attribute-point budget |
+
+It also zeroes five fields at `user+0xe78` first (FUN_140371f80/372060/3720d0/372140/371ff0
+with `0,0`) and sends every write with flag 1 (to self).
+
+## J. THE TWO OTHER HELPERS (coordinator)
+
+`FUN_140173790(user, v2, v3, param_4, param_5)` (MsgServer.c:256536-256597) computes the
+value written to attrib `0xb`:
+* `param_5 == 1`: `iVar2 = min(0x82, v3)`; if `v2 == 0x87` then
+  `iVar2 = ((iVar2-0x6e+1)*iVar2)/2 + 0x48` else `iVar2 = ((iVar2-0x78)*(iVar2-0x77))/2 + 0x48`.
+* otherwise it starts from the SUM of five u16 fields at `user+0xed8, +0xedc, +0xede,
+  +0xee0, +0xee2` plus `-3*v3 - 7` (clamped at 0), and `param_5 == 2` shifts `v3` by
+  `-0x78` before that. These five u16 fields are the actor's base stats.
+
+`FUN_1401715d0(user, v)` (MsgServer.c:255300-255318) rewrites the lookface:
+`iVar3 = (lookface/1000 - v/1000)*1000 + v`, then `FUN_1403721b0(user+0x1cf, iVar3, 1)`
+and the persisted per-user record field **5** is set to `iVar3` (FUN_14008a880).
+
+## K. STILL OPEN for a faithful 1040 (and who reads it)
+1. Which arguments `FUN_1401c3180` passes into `FUN_1401b9d70` (its param_4/5/6/7 mapping).
+2. The meaning of the five u16 stats at `user+0xed8..0xee2` and their DB columns.
+3. attrib ids 13/14/15/16 vs this rebuild's Player fields, and what the persisted
+   record field 5 (FUN_14008a880) maps to.

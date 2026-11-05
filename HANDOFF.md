@@ -650,3 +650,10 @@ needs FUN_140382960 getter + FUN_140382b00 add-hours + the two chk predicates) a
 rebirth 1040 pipeline (668 rows) whose remaining helpers are listed in
 docs/worker_rebirth_apply2.md sections G/H.
 
+## v112 (Nov 5, 2026) — docs wave: rebirth stat call solved, god-time family mapped
+FUN_1401abdf0's arguments are now proven from the disassembly (attrib 13/14/15/16 =
+iVar8/iVar7/iVar9/iVar11, attrib 10 = the action's 5th field). 1083 is decoded except the
+user flag queries 0x1b/0x1c; 403 parses the ITEM accept string (pszAccept), not the action
+param. Remaining for 1040: the FUN_1401c3180 -> FUN_1401b9d70 argument mapping, the five
+u16 stats at user+0xed8..0xee2 with their columns, and the persisted-record field 5 target.
+

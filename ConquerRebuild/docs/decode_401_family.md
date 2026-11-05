@@ -117,3 +117,31 @@ reply-id slot and left the face at zero. Fixed to
 and `tests/test_actions_v62.py` enshrined the wrong expectation and were corrected
 to assert reply-id 0 and face = DATA. New `tests/test_actions_v106.py` proves the
 three slots directly from the wire.
+
+## 1083 / 1084 / 1086 — the "god exp time" family (v111-v112 findings)
+
+`user+0xf38` holds a **packed date `YYMMDDhh`** (2-digit year), decoded by
+`FUN_140382850` (MsgServer.c:633939-633978): hour = `v%100`, day = digit pair 2,
+month = digit pair 4 minus 1, year = digit pair 6 plus 100, minutes/seconds 0,
+then `_mktime32`.
+
+`FUN_140382960(user, unit, roundUp)` (633979) is the remaining-time getter:
+`t = FUN_140382850(user)`; `t == 0 || t < now` -> 0; else `rem = t - now` and
+unit 0 = seconds, 1 = `(rem + 30*roundUp)/60`, 2 = `(rem + 1800*roundUp)/3600`,
+3 = `(rem + 43200*roundUp)/86400`.
+
+`FUN_140382b00(user, hours)` (634044) adds time: when the current value is 0 or in
+the past it first aligns to the next hour (`((now+0xE0F)/0xE10)*0xE10`, keeping the
+offset `iVar7 = aligned - now`) and calls `FUN_140164ef0(user)`; then it writes the
+persisted per-user record field **0x1c** with `hours*3600 + iVar7`.
+
+1083 = case 0x49: `sscanf "%s %d"` (exactly 2 tokens), then
+`"<"` -> branch on `FUN_140382960(user,2,0) < v`; `"=="` -> branch on
+`FUN_140382960(user,2) == v`; `"+="` -> `FUN_140382b00(user,v)` and continue;
+`"chk"` -> `v != 0 ? FUN_140382350(user) : FUN_140383750(user)`, where
+`FUN_140382350` = user-object flag query for index **0x1b** and `FUN_140383750`
+= flag **0x1c** OR (remaining seconds >= 1). BLOCKED on: the semantics of user
+flags 0x1b/0x1c (vtable slot +0x2D8 with an index) and the DB column behind the
+persisted record field 0x1c.
+
+1084 = case 0x4A (PORTED v111) and 1086 = case 0x4C (PORTED v109).

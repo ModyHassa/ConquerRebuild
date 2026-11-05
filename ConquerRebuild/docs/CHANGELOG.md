@@ -1520,3 +1520,23 @@ guessed:
   plus the 2-token fail branch and the var-index > 7 no-write path.
   Fixtures live in the reserved band 99020030+/99020120.
 - Suite: **80 tests, 80 green**.
+
+## v112 (Nov 5, 2026) — rebirth stat call + god-time family decoded (docs only)
+- `FUN_1401abdf0` is now fully determined from the disassembly of its call site
+  (0x1401b9f77-0x1401b9f91): attrib 13 = the 4th look value, 14 = iVar7,
+  15 = iVar9, 16 = iVar11 and attrib 10 (the point budget) = **the action's 5th
+  sscanf field**. It also zeroes five fields at user+0xe78 first.
+- `FUN_140173790` (the value written to attrib 0xb) and `FUN_1401715d0` (the
+  lookface rewrite `(lookface/1000 - v/1000)*1000 + v` plus persisted record
+  field 5) are decoded and recorded, including the five u16 base stats at
+  user+0xed8..0xee2.
+- The god-exp-time family is documented: `user+0xf38` is a packed **YYMMDDhh**
+  date, `FUN_140382960` converts it to seconds/minutes/hours/days with the exact
+  rounding constants, and `FUN_140382b00` aligns to the next hour before writing
+  persisted record field 0x1c. 1083 (case 0x49) is therefore decoded except the
+  semantics of user flags 0x1b/0x1c - recorded as BLOCKED rather than guessed.
+- 403: the worker established that the old-engine 403 parses `pszAccept` (the
+  item-type accept string, param_7 = [rsp+0x940]) rather than the action param,
+  and the 401/402/403/498 subtract-compare dispatch chain is verified.
+- All of the above is in docs/worker_rebirth_apply2.md (sections I/J/K) and
+  docs/decode_401_family.md.
