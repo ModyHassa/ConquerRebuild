@@ -207,7 +207,11 @@ try:
         return got
 
     hunt = 0
-    deadline = time.time() + 120
+    # 3%/kill needs a real budget: one summon-and-kill round costs about a
+    # second, so 120s only bought ~70 rolls (0.97^70 = 12% dry runs). 240s
+    # puts a dry run under 0.3%, and run_suite.sh gives this test its own
+    # timeout to match.
+    deadline = time.time() + 240
     while not pills and time.time() < deadline:
         got = summon_and_kill()
         hunt += 1

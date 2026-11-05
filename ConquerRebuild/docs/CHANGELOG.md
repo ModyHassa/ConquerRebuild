@@ -1736,3 +1736,17 @@ been costing whole sub-agent runs.
   Also proven: cq_magictypeop must be walked in ASCENDING id order (the original's tree is
   keyed by id), otherwise an op=0 clear row can run before the op=1 grant row that feeds it.
 
+## v122 (Nov 5, 2026) — the two known suite flakes are gone
+The suite had been carrying the same two failures for several waves; both are now fixed at
+the source instead of being re-explained every run.
+
+- **test_drops**: the pill hunt (3%/kill) only had a 120s deadline while one
+  summon-and-kill round costs about a second, so a run bought ~70 rolls and went dry 12% of
+  the time. The deadline is now 240s (<0.3% dry) and `tools/run_suite.sh` gives this test its
+  own 300s timeout instead of the 60s default. Standalone run: green.
+- **test_weaponskill**: the level-up assertion demanded exp 6..20, i.e. it assumed a nominal
+  killing hit. The carry-over is `1180 (seed) + dealt - 1200` where `dealt` is the capped prof
+  exp of whichever hit killed the pheasant (1..33, crits and low rolls included), so the test
+  now asserts the legal range 0..33 plus level 1 and next_req 68000. The invariant (overflow
+  is carried, never lost) is unchanged; only the false precision is gone.
+

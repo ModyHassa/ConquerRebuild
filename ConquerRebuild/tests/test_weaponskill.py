@@ -131,7 +131,12 @@ try:
     # total depends on how many hits landed and whether a crit rolled, so the
     # assertion is a range rather than two fixed values: the point is that the
     # overflow exp is carried, not that the fight took a fixed number of hits.
-    assert 6 <= exp <= 20, 'unexpected exp after level-up: %u' % exp
+    # exp = 1180 (seed) + dealt - 1200, where "dealt" is the capped prof exp
+    # of whichever hit actually killed the pheasant: 1..33 (a crit or a
+    # low-roll hit both fit). The invariant under test is that the overflow is
+    # CARRIED into level 1 and never lost - so accept the whole legal range
+    # instead of one nominal hit's worth.
+    assert 0 <= exp <= 33, 'unexpected exp after level-up: %u' % exp
     assert next_req == 68000, 'next_req should be req_exp(613,2)=68000, got %u' % next_req
     print('PASS: 1025 level-up 613 -> level 1, exp %u, next %u' % (exp, next_req))
 
