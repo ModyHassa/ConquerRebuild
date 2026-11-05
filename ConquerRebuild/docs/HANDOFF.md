@@ -621,3 +621,10 @@ FUN_1403a6400 and the 0x140144007 call site. Fixed, two stale tests corrected, o
 new wire test added. A worker is decoding the rebirth apply (FUN_1401c3180) so
 type 1040 (668 rows) can be ported next.
 
+## v108 (Nov 5, 2026) — rebirth: flag closed, columns mapped, apply core documented
+The shipped server always takes the flag-OFF rebirth core FUN_1401b9d70 (proven three ways),
+cq_rebirth is 0-based (params match new_prof = cell 2), and the apply tail is decoded down to
+the exact FUN_1401a6420 calls. Remaining for 1040: read FUN_1401a2660's cases 2/5/7/0xb/0xc/
+0x16/0x32/0x33, FUN_1401abdf0, FUN_140173790, FUN_1401715d0 - all listed in
+docs/worker_rebirth_apply2.md sections G/H.
+

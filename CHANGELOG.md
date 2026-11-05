@@ -1430,3 +1430,26 @@ guessed:
 - Rebirth worker (1040's apply `FUN_1401c3180`) is running with the
   incremental-write protocol; its deliverable is docs/worker_rebirth_apply.md.
 - Suite: **77 tests, 77 green**.
+
+## v108 (Nov 5, 2026) — rebirth decode: the config flag question is CLOSED
+- The rebirth apply has TWO cores selected by the byte `mgr+0x6a2`. PROVEN: the shipped
+  v6159 server always runs the **flag-OFF core `FUN_1401b9d70`**. Three independent proofs:
+  the object ctor zero-initialises `+0x6a2` (`movb $0x0,0x6a2(%rdi)` at `0x1400c4dfa`), the
+  only writer is `shell.ini [91AuthServerInfo] Is91AccountServer` loaded through a
+  fail-closed `CIniFile::GetInt`, and the shipped `shell.ini` has no such section. The ON
+  core `FUN_1401abab0` is the 91.com portal variant = dead code for us.
+- `cq_rebirth`'s GetCell indexing is settled as **0-based**, confirmed from content (the
+  action param `11 004` matches `new_prof = 11`, which is cell 2): `1 = need_prof`,
+  `2 = new_prof`, `3 = need_level`, `4 = new_level`, `5 = metepsychosis`.
+- Apply-core tail decoded (MsgServer.c:302281-302454): it derives max-life/max-mana from the
+  new profession, then writes attributes through `FUN_1401a6420(user, id, value, send)` with
+  ids `0x33/0x32` (profession pair), `0xb`, `7`, `0xc`, `5` (experience = 0), `0` (life),
+  `2` (mana), `0x16`, refreshes self (`user[2]+0x338`), broadcasts a 10017 when
+  `old != new` for attrib `0xc`, and writes the `gmlog/rebirth` line.
+- `FUN_1401a6420` itself is decoded: `send` 1 = self, 2 = broadcast; attrib 5 is skipped for
+  GM accounts; attrib 0 is mirrored onto the mount/pet when one exists; everything else goes
+  to `FUN_1401a2660` (the 390-line CUser::SetData switch), whose case 0 (life = clamp to max
+  life, floor 0, `FUN_140198760(user,value,0)`) is proven.
+- NOT PORTED yet: 1040 needs four more helper reads (the attrib cases it writes,
+  `FUN_1401abdf0`, `FUN_140173790`, `FUN_1401715d0`). Everything above is recorded in
+  `docs/worker_rebirth_apply2.md` so the next wave ports 1040 (668 rows) mechanically.
