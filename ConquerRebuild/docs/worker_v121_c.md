@@ -8,7 +8,11 @@ Sections: .text VA 0x1000/0x6d619c raw 0x400 ; .rdata VA 0x6d8000 raw 0x6d6600 ;
 FUN_14012a6e0 = action router. Dispatch:
   case   = byte_map[0x13aa9c + (type - 1001)]      (byte table, 0x13aa9c -> raw 0x1396bc)
   body   = 0x140000000 + u32[0x13a7ac + case*4]    (dword table, 0x13a7ac -> raw 0x1393cc)
-Anchor check 1075 -> 0x14012c33f PASSED (recomputed: idx=1075-1001=74, case=0x3e, off=0x39c33f -> 0x14012c33f).
+Anchor check 1075 -> 0x14012c33f PASSED (recomputed: idx=1075-1001=74,
+case=**0x41**, off=0x39c33f -> 0x14012c33f). CORRECTED 2026-11-05: this line
+originally read case=0x3e, which is 1072's label - the body VA was right, the
+label in the narrative was not. `tools/router_audit.py` now recomputes both and
+fails the wave on any such slip.
 
 CONFIRMED: type 1095 -> case 0x54 -> body VA **0x140137ef7**.
 CONFIRMED: next case body 0x140137fa5 belongs to type 1096 (bound for 1095's extent).

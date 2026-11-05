@@ -1763,3 +1763,22 @@ the source instead of being re-explained every run.
   still unnamed), `docs/worker_v122_1082.md`, `docs/worker_v122_1650.md`.
 - Suite: green including test_drops (deadline fix held) and the new test_actions_v122.
 
+### v122c — the router facts are now machine-checked
+- **`tools/router_audit.py`** recomputes BOTH dispatch tables from the binary
+  (`case = byte_map[0x13aa9c + (type-1001)]`, `body = 0x140000000 + u32[0x13a7ac + case*4]`)
+  for the whole 1001..1729 range and then checks every place the same fact was written by
+  hand: `ANCHORS` in `tools/newengine_map.py`, the hex case column of
+  `docs/newengine_router.md`, and every `case N:` in `src/systems/actions.hpp` (each must
+  resolve to a real body inside the router span, and no two types may share a body).
+  Result now: **729 types resolved, 39 ported types, 39 distinct bodies, 52 doc rows, 0
+  problems**. It runs as a preflight step of `tools/run_suite.sh`, so a hand-copied table
+  value can never reach a green suite again.
+- It caught one real slip: `docs/worker_v121_c.md` narrated the 1075 anchor as
+  `case 0x3e` (that is 1072's label) while the body `0x14012c33f` was correct. Fixed, with
+  the recomputation written next to it.
+- 1043's remaining unknown narrowed: the element key getter `0x14039d9d0` is
+  `return *(u32*)(this+8)` (setter `0x14039d9e0`), so the key lives at `+0x08` while the
+  10010 payload field reads `+0x10`; `0x1401cbafc` is a raw `mov [user+0x1110], r12`
+  inside a larger load function, so the container is attached there but its type still
+  needs the allocation site. 1043 stays BLOCKED.
+

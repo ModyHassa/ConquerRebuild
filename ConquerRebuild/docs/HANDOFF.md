@@ -731,4 +731,8 @@ writes -> lookface rewrite -> refresh/10017). Next wave: implement it (668 rows)
   type. 1096/1098 decoded; 1082 and the 1650 family have write-ups in docs/worker_v122_*.
   Remaining to port: 1043 (needs container type), 1082 (6 unknown helpers), 1096/1098
   (provider naming), 1650/1651/1654 (named subsystem, texts live in a client table).
+- v122c: `tools/router_audit.py` machine-checks the two dispatch tables against every
+  hand-written record (newengine_map ANCHORS, newengine_router.md, actions.hpp cases +
+  body uniqueness) and runs as the suite preflight. 729 types / 39 ported / 0 problems.
+  Fixed one narrative slip (1075 case was written 0x3e = 1072's label).
 

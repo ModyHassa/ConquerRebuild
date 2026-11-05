@@ -20,6 +20,7 @@ done
 # ---- wave M-A: transport crypto unit (CAST/token/dh) ----
 if g++ -std=c++17 -O1 -o /tmp/crypto_unit tests/crypto_unit_test.cpp -lcrypto 2>/tmp/crypto_unit.build \
    && /tmp/crypto_unit > /tmp/crypto_unit.out 2>&1; then
+python3 tools/router_audit.py || { echo "FAIL router_audit"; exit 1; }
   echo "PASS crypto_unit"
 else
   echo "FAIL crypto_unit"
