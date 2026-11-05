@@ -663,3 +663,9 @@ the new-engine byte map answers "which case handles type N" in one read. The reb
 call site is resolved (cell 2 = new_prof, cell 4 = new_level, v3 = metepsychosis tier), but
 1040 still needs the five-base-stat model (user+0xed8..0xee2) that this rebuild does not have.
 
+## v114 (Nov 5, 2026) — remaining types bounded (docs)
+docs/decode_remaining_subsystems.md now states, for every large unported type, exactly which
+subsystem blocks it: 3701 needs FUN_140164e30 + the 0x56 notification, 1043 needs the
+user+0x1110 container type, 1651 needs the faction state at user+0x12D, 1072 needs the
+FUN_1403a5840 packet family, 1040 needs the five base stats, 1083 the 0x1B/0x1C flags.
+

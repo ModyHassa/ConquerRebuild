@@ -1554,3 +1554,12 @@ guessed:
   model (user+0xed8..0xee2) and the cq_user stat columns are only partly identified
   (`strength`, `strength_value`), so there is nowhere faithful to store the distributed
   stats yet. 1083's flags 0x1b/0x1c and 1651's faction-state byte remain BLOCKED.
+
+## v114 (Nov 5, 2026) — remaining-type boundaries mapped (docs)
+- New `docs/decode_remaining_subsystems.md`: 3701 (ProcessActionEspecial: dead check,
+  `sscanf "%d %s %d"`, manager 0x56 notifications, CMsgAction action 0xA4 broadcast),
+  1043 (one-line case -> the user+0x1110 container sweep sending 0x6E packets),
+  1651 (faction-state gate on user+0x12D), 1072 (packet family FUN_1403a5840/5ce0 with the
+  constant 0xD). Each entry names the exact subsystem that still blocks a faithful port, so
+  the next waves start from a known boundary instead of re-reading the decompile.
+- Faction-match handler identified: `FUN_14011bfa0` handles only 3801-3805 and 3806.
