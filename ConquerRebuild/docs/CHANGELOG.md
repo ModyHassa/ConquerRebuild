@@ -1866,3 +1866,14 @@ passed, 0 failed** (both preflights green, every live test green including v45 w
   cq_user 93 / acc 100093 (every wave gets its own character id - the cq_user 96 collision of
   v121 must not repeat).
 
+### v124b — decode caveat: SQL text lives in db.dll, so "no SQL string" is not evidence
+`db.dll` builds every statement dynamically (`INSERT INTO %s SET %s`,
+`CRecord cannot insert records without MODE_EDIT for table "%s"`), so no action handler in
+`MsgServer.exe` ever contains a literal `SELECT`/`INSERT`. Recorded in
+`docs/decode_caveat_db_layer.md`. Effect on today's work: **3701's port stands** (its proof is
+call-shape: every call target is the log IAT, `sscanf`, `CurrentInstanceGet()`, the manager vtable
+or the user vtable), but the *string-dump* argument used alongside it is withdrawn; **2007's
+"no INSERT" claim is retracted as unfounded** and needs a `CRecord`/`CDatabase` call check before
+any port change. This caveat invalidates the "zero SQL" phrasing in the v12x worker docs unless
+those argued from call shape.
+
