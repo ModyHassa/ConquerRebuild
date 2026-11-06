@@ -20,6 +20,7 @@ below is the order in the original source.
 | 2101 - 2198 | `FUN_140146a10` (same handler) |
 | 2201 - 2298 | `FUN_140141c80` |
 | 3001 - 3098 | `FUN_14011a7e0` |
+| 3501 - 3598 | `FUN_140140380` (MsgServer.c 223697, `iVar8 - 0xdadU < 0x62`) |
 | 3601 - 3698 | `FUN_14011b5e0` |
 | 3701 + | `FUN_14011dcb0` then `FUN_14011bfa0` (two calls in one branch) |
 | 3901 - 3998 | `FUN_14011c610` |

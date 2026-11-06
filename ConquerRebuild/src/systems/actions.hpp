@@ -3831,7 +3831,7 @@ case 121: {  // random check (ProcessAction case 0x79:
             // Looks the item up at that position; item missing ->
             // return false; then class gate FUN_140106cf0: the
             // item's class must be 1/3/6 and socket in 2..9 (class
-            // 3) or 3..6 (classes 1/6); pass -> CMsgItemInfoEx 1116
+            // 3) or 3..6 (classes 1/6); pass -> CMsgItemInfoEx 1108 (0x454)
             // broadcast to screen (+0x348 flag 1), return true.
             int pos = 0, sock = 0;
             if (sscanf(a->param.c_str(), "%d %d", &pos, &sock) == 2) {
@@ -3849,7 +3849,7 @@ case 121: {  // random check (ProcessAction case 0x79:
                 if (gate) {
                     w.broadcast_to_screen(w.get_or_create_map(p.map_id),
                         p.pos,
-                        build_item_info_ex_1116(fid, p.id,
+                        build_item_info_ex_1108(fid, p.id,
                                                 ftype), nullptr);
                     cur = a->id_next;
                 } else {

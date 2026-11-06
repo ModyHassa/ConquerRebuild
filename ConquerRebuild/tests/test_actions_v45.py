@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Live test: v45 — action type 512 (CMsgItemInfoEx 1116 socket-item
-display): gate by item class {1,3,6} + socket range, 1116 broadcast to
+"""Live test: v45 — action type 512 (CMsgItemInfoEx 1108 (0x454) socket-item
+display): gate by item class {1,3,6} + socket range, 1108 (0x454) broadcast to
 screen, fail/stop branches."""
 import socket, struct, sys, time
 
@@ -72,36 +72,36 @@ print('TestKnight + ChatA logged in')
 
 # --- pass: pos 1 item 90100 (type 900101, class 6), socket 4 in [3,6] ---
 pkts = click_option(a, 99000590, 'sock~ok. 99000590')
-acts = [p for p in pkts if p[1] == 1116]
-check(len(acts) == 1, f'one 1116 to self ({len(acts)})')
+acts = [p for p in pkts if p[1] == 1108]
+check(len(acts) == 1, f'one 1108 to self ({len(acts)})')
 if acts:
     w_ = acts[0][2]
     item_id, uid = struct.unpack_from('<II', w_, 4)
-    check(item_id == 90100, f'1116 item id 90100 (got {item_id})')
-    check(uid == 1, f'1116 uid = knight id 1 (got {uid})')
+    check(item_id == 90100, f'1108 item id 90100 (got {item_id})')
+    check(uid == 1, f'1108 uid = knight id 1 (got {uid})')
     typ, = struct.unpack_from('<I', w_, 0x14)
-    check(typ == 900101, f'1116 type record col1 = 900101 (got {typ})')
+    check(typ == 900101, f'1108 type record col1 = 900101 (got {typ})')
     check(len(acts[0][2]) == 0x52 and struct.unpack_from('<H', acts[0][2], 0)[0] == 0x52,
-          f'1116 wire 0x52 = hdr + size-field 0x4E (got {len(acts[0][2])})')
+          f'1108 wire 0x52 = hdr + size-field 0x4E (got {len(acts[0][2])})')
 s = [x for p in pkts if p[1] == 2032 for x in strings_of_2032(p)]
 check('V45~OK.' in s, f'512 pass chain continued ({s})')
 
-# broadcast: ChatA (same screen) also got the 1116
+# broadcast: ChatA (same screen) also got the 1108
 bp = drain_all(b)
-b_acts = [p for p in bp if p[1] == 1116]
-check(len(b_acts) == 1, f'1116 broadcast reached screen player ({len(b_acts)})')
+b_acts = [p for p in bp if p[1] == 1108]
+check(len(b_acts) == 1, f'1108 broadcast reached screen player ({len(b_acts)})')
 
 # --- gate fail: socket 9 not in [3,6] for class 6 ---
 pkts = click_option(a, 99000592, 'sock~gate. 99000592')
 s = [x for p in pkts if p[1] == 2032 for x in strings_of_2032(p)]
-check('V45~GATE~FAIL.' in s and not any(p[1] == 1116 for p in pkts),
-      f'512 bad socket -> id_nextfail, no 1116 ({s})')
+check('V45~GATE~FAIL.' in s and not any(p[1] == 1108 for p in pkts),
+      f'512 bad socket -> id_nextfail, no 1108 ({s})')
 
 # --- no item at position 7 ---
 pkts = click_option(a, 99000594, 'sock~noitem. 99000594')
 s = [x for p in pkts if p[1] == 2032 for x in strings_of_2032(p)]
-check('V45~NOITEM~STOP.' in s and not any(p[1] == 1116 for p in pkts),
-      f'512 missing item -> id_nextfail, no 1116 ({s})')
+check('V45~NOITEM~STOP.' in s and not any(p[1] == 1108 for p in pkts),
+      f'512 missing item -> id_nextfail, no 1108 ({s})')
 
 a.close(); b.close()
 time.sleep(0.5)

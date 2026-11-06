@@ -762,4 +762,9 @@ implemented and v48 notes claim 403 is default-routing. Verify against
 `git log -S'case 1651'` before touching either: if the case exists under a combined
 label (`case 1650: case 1651:`) this row-count script under-counts, and the script (not
 the port) is what needs fixing.
+- v123: **512 fixed** - the builder stores type 0x454 = 1108 (0x14038767f), v45 had shipped 1116.
+  3501-3598 dispatch branch documented (FUN_140140380) and our no-family-module stub confirmed
+  faithful ("Family module is not loaded!" -> false). 1098 mode = `data` column. 1096/1098/1043
+  all sit on component 20 = `CGame::GetProvider(0x14)` (map at CGame+0x48, filled by the
+  adapter_cfg modules); owner module still UNKNOWN.
 

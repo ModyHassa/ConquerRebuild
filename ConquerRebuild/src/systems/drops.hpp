@@ -149,7 +149,11 @@ inline Packet build_item_info_1008(uint32_t id, uint32_t itemtype,
 }
 
 
-// ---- CMsgItemInfoEx 1116 (0x454) ------------------------------------------
+// ---- CMsgItemInfoEx 1108 (0x454) ------------------------------------------
+// CORRECTED v123: the builder stores `movl $0x454,0x8(obj)` at 0x14038767f and
+// the size `movl $0x4E,0xc(obj)` at 0x140387686, i.e. the wire TYPE is
+// 0x454 = **1108**, not 1116 (v45 shipped 1116 because the comment already read
+// 0x454 but the Packet was constructed with the wrong literal).
 // Builder = FUN_1403873d0 (CMsgItemInfoEx::Create, MsgServer.c 637418):
 // type 0x454, len 0x4E. VERIFIED fields: wire+0x04 = item id
 // (CItem::GetInfo struct[0]), wire+0x08 = CUser::GetID (Create param_3),
@@ -160,9 +164,9 @@ inline Packet build_item_info_1008(uint32_t id, uint32_t itemtype,
 // wire+0x1C = Create param_5 (u1), wire+0x46/+0x4A = FUN_140100320/
 // 140100340(item). Remaining detail fields (gems/sockets) are read
 // from the itemtype record and stay zero here.
-inline Packet build_item_info_ex_1116(uint32_t item_id, uint32_t uid,
+inline Packet build_item_info_ex_1108(uint32_t item_id, uint32_t uid,
                                       uint32_t itemtype) {
-    Packet p(1116);
+    Packet p(1108);   // 0x454 - see 0x14038767f
     p.write<uint32_t>(item_id);   // +0  (wire+0x04) CItem::GetID
     p.write<uint32_t>(uid);       // +4  (wire+0x08) player id
     p.write<uint8_t>(0);          // +8  (wire+0x0C) Create param_4

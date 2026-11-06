@@ -1795,3 +1795,32 @@ the source instead of being re-explained every run.
   (the `user+0x1110` container is very likely a member list of that component, so closing
   component 20 closes 1043 as a side effect).
 
+## v123 (Nov 6, 2026) — WIRE BUG FOUND IN A PORTED TYPE: 512 was sending 1116, the original sends 1108
+Ten decode workers ran against the unported list; the first thing their reports produced was a
+defect in code we had already shipped.
+
+- **512 (CMsgItemInfoEx): the packet type was wrong.** The builder `FUN_1403873d0` stores
+  `movl $0x454,0x8(obj)` at **0x14038767f** and `movl $0x4E,0xc(obj)` at 0x140387686, so the wire
+  type is 0x454 = **1108**. v45 shipped `Packet p(1116)` even though the comment above it already
+  read 0x454 - the literal was never checked against the store. Renamed to
+  `build_item_info_ex_1108`, fixed the caller and `tests/test_actions_v45.py`; the test now
+  asserts a single **1108** carries item id 90100, uid 1, type 900101 and the 0x4E size field.
+- **3501..3598 has its own dispatch branch**: `iVar8 - 0xdadU < 0x62` at MsgServer.c:223697 ->
+  `FUN_140140380`. `docs/old_engine_dispatch_ladder.md` omitted it (now fixed). Every case in
+  that handler first calls `CurrentInstanceGet()->vt[0x20](8)` and, when that returns NULL, logs
+  **"Family module is not loaded!"** and returns false. Our existing stub (3501/3510/3521/3523/3524
+  -> id_nextfail) is therefore **faithful** for a build with no family module registered - it is
+  not the "behaviourally wrong default" the worker suspected.
+- **1098's mode is the `data` column, not the token count**: every row pairs `data` 0/1 with the
+  same 15-id param list (e.g. `1 | 29 30 31 32 33 34 35 36 37 38 45 46 48 111 121`), so `data` is
+  the OR-vs-first selector.
+- **1096's row shape**: `data` = a small catalogue id (29..32) and
+  `param = "<a> <b> <dur> <d> <dur2> <flag>"` with 604800 (7d) / 2419200 (28d) durations, e.g.
+  `30 | 200 0 604800 0 604800 1`. Both 1096 and 1098 read/write the same provider (component 20),
+  so they stay blocked together with 1043 - see `docs/worker_v123_component20.md`.
+- **Component 20 identified structurally**: `FUN_1401181a0()` = `CurrentInstanceGet()` (Root.dll
+  import at IAT 0x1406d8df0) -> `CGame::GetProvider(0x14)`, implemented as a
+  `std::map<unsigned int, void*>` lookup at `CGame+0x48` (no jump table). The map is filled by the
+  DLL modules named in `adapter_cfg.ini` (32 modules, Family.dll among them, which is provider 8
+  as used by 218/219 and the 3501 family). Which module owns id 0x14 is still UNKNOWN.
+
