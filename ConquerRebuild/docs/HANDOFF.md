@@ -767,4 +767,7 @@ the port) is what needs fixing.
   faithful ("Family module is not loaded!" -> false). 1098 mode = `data` column. 1096/1098/1043
   all sit on component 20 = `CGame::GetProvider(0x14)` (map at CGame+0x48, filled by the
   adapter_cfg modules); owner module still UNKNOWN.
+- v123 open item: provider id 0x14 owner module. root.dll exposes no setter, modules register
+  through a CGame vtable slot; Family (id 8) is the only id with a dedicated "module is not
+  loaded" string. See docs/worker_v123_component20.md facts 5-6 for the module RVAs to follow.
 

@@ -99,3 +99,28 @@ Module28=Team.dll    Module29=TeamArenic     Module30=FrontierFlagWar Module31=A
 ```
 (NOTE: index 20 = Trade.dll is a *coincidence candidate only*; the id space must be proven
 from a module, see next.)
+
+## Verified fact 6 — the module registration path (and what is still open)
+
+The provider map at `CGame+0x48` (`std::map<unsigned int, void*>`) is filled by the DLL modules
+listed in `adapter_cfg.ini`, each called as `ModuleCreate(CGame*, ++m_nextModuleId)` where the
+counter starts at **5000** (CGame ctor 0x14167a983) — so the 5000+ ids are module slots, NOT the
+small provider ids (8, 0x14, 0x1e, 0x1f, 0x20) that MsgServer asks for.
+
+`root.dll` exports only three symbols (`CRoot::operator=`, `CurrentInstanceGet`, `GameCreate`), so
+modules cannot register through an exported setter: they go through a **CGame vtable slot**.
+
+Checked `ModuleCreate` entry points of the shipped modules (ImageBase read from each PE):
+Family.dll 0x140d5c300, Trade.dll 0x1419c14f0, Status.dll 0x1416b1490, Storage.dll 0x1416f14e0,
+Booth.dll 0x140acb6b0, Title.dll 0x1419714b0, Relation.dll 0x14163fe10, Wanted.dll 0x141a41450,
+Guide.dll 0x140e16a10. None of them carries the provider id as a plain `mov $imm,%reg` immediate in
+its first 0x120 bytes, so the id is built (or passed) differently.
+
+DECISIVE LEAD ALREADY IN HAND: `strings MsgServer.exe | grep "module is not loaded"` returns
+exactly ONE string — `table:cq_action/cq_newaction, ACTION (id=%u,type=%d): Family module is not
+loaded!` — which is the message the family (id 8) lookups emit. There is **no** per-module message
+for id 0x14, so the id-20 lookup is the generic `CHECKF(pProvider)` in `mapgroup.h:1014`.
+
+Next step to close it: read the CGame vtable slot that Family.dll calls immediately after building
+its object (disassemble 0x140d5c300 for ~0x200 bytes and follow the first virtual call), then find
+every module that calls the same slot with `edx = 0x14`.
