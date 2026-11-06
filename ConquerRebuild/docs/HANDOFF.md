@@ -786,4 +786,9 @@ the port) is what needs fixing.
 - v125b: **1028** (user flag word +0xf24: chk/add/clr) and **1053** (var compare >, >=, ==, +=)
   ported and tested. 1029 partially decoded (format + helper calls), unported. Seed gotcha:
   `cq_user_script_var` is keyed by `player_id`, not `owner_id`.
+- v126b: 1043/1046/1041 re-verified from the binary. 1043: case body is a tail call to 0x140162620;
+  per-element state writes (old_level only when level<old, then setter 0x14039d8f0(elem,1)), erase
+  via container vt+0x28(elem id), CMsgAction action 110 to self - packet field map still UNKNOWN so
+  only the state half is portable. 1046 = action 126 + data cell; 1041 = vt+0x150(2105) on an
+  unidentified object. 1557 blocked on naming CUser+0xe78.
 

@@ -1935,3 +1935,20 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 532+802, 1043's element type, and the 1083/1651/403/1082/544 group); their reports land in
 `docs/worker_v126_*.md`.
 
+### v126b — 1043's real body, the 1046 action word, and why neither is ported yet
+- **1043's case body is a tail call** to `0x140162620`; the iteration the earlier notes attributed to
+  the case lives there. The per-element sequence is now fully verified:
+  `old = elem+0x19` (accessor 0x14039d8e0), `level = elem+0x18` (0x14039d7e0), and **only when
+  `level < old`** `SetOldLevel(level)` (0x14039d960, first store `mov %dl,0x19(%rcx)`), then
+  `0x14039d8f0(elem,1)`, `ebp = elem->NType()` (0x14039d760 over `+0x10`), the erase key is
+  `elem->id` (0x14039d9d0 over `+0x08`), `container->vt[0x28](key)` erases, and one CMsgAction with
+  **action 110 (`mov $0x6e`)** goes to that client only (`user->vt[0x350]`).
+  The packet's internal field mapping is still UNKNOWN, so the port stops at the state changes.
+- **1046 = CMsgAction action 126 (`mov $0x7e`)** with the action's `data` cell read via
+  `call *0x10(...)(4)`. Recipient slot and data placement still UNKNOWN.
+- **1041** calls `vt+0x150(0x839)` = 2105 on an unidentified object plus `0x140173900`; every path
+  returns 1. Not enough to port.
+- **1557** (documented in `docs/worker_v126_g5_1508.md`) is a day-stamp bookkeeping action, but its
+  `edi` comes from `CUser+0xe78` via two thunks and that field's identity is UNKNOWN, so it stays
+  unported too - the predicate itself (`u1 <= today`) is portable once `+0xe78` is named.
+
