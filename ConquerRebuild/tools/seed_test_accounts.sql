@@ -1922,3 +1922,15 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020230,'CooldownSage',0,5000,1002,437,344,99020460,''),
   (99020231,'LinkSage',0,5000,1002,437,345,99020463,'');
+
+-- ===========================================================================
+-- v130: 1041 (single talk line to self, channel 2105)
+-- Fixture band: chains 99020470-99020479, npc 99020232.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020470 AND 99020479;
+DELETE FROM cq_npc WHERE id = 99020232;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020470,1041,0,'v130linkline',99020471,0),
+  (99020471,101,0,'v130-1041-ok',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020232,'TalkSage',0,5000,1002,437,346,99020470,'');

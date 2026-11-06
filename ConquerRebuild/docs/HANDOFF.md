@@ -804,4 +804,8 @@ the port) is what needs fixing.
 - v129: **802 ported** (cooldown on the `lastentertime` keyed stamp, Player::last_enter_time) and
   **1511 ported** (CMsgAction 160 with the npc id at wire+0x14). CUser+0xE78 narrowed to an embedded
   object whose +0x1b0/+0xa8 are read by 1557 and written nowhere in the module -> 1557 stays BLOCKED.
+- v130: **1041 ported** (one CMsgTalk 1004 on channel 2105 carrying the action param). **1083 is
+  decoded but still BLOCKED**: its four branches (`<` / `==` / `+=` / `chk`) all hinge on the packed
+  value at CUser+0xF38, written only by the login loader 0x14016812b from record+0xd8 (DB column
+  UNKNOWN), plus the two `chk` predicates 0x140383750 / 0x140382350.
 

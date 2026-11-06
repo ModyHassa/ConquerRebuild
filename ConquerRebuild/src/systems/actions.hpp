@@ -3288,6 +3288,25 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 1041: {  // v130: one talk line to self on channel 2105
+            // Case 0x23 body 0x14013556b..0x140135585 is four instructions plus the
+            // return: `mov (%r13),%rax ; mov %rsi,%r8 ; mov $0x839,%edx ;
+            // mov %r13,%rcx ; call *0x150(%rax)` then `return 1`.
+            // vt+0x150 is the CUser text-send method: the same slot is called with
+            // 2000/2003/2005 at 0x14011aadc, 0x14013577e, 0x140163274, so edx is
+            // the **CMsgTalk channel/attribute word** and r8 the text. 0x839 = 2105.
+            // No parse, no gate, no state: rsi (the action param) is the text.
+            std::string text = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            if (p.session) {
+                p.session->send(build_talk_1004("SYSTEM", p.name, text, "",
+                                               0xFFFFFF, 2105, 0, 0, 0, 0));
+            }
+            std::printf("[action] %u 1041 talk 2105 \"%s\" -> id_next\n",
+                        p.id, text.c_str());
+            cur = a->id_next;
+            break;
+        }
         case 802: {  // v129: the "lastentertime" cooldown gate
             // Case 0x6e body 0x1401329bf (gameaction.cpp, literal
             // "ACTION_USER_CHECK_ITEM_IN_TRUNCK fail" is only the shared log

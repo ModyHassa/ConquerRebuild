@@ -2011,3 +2011,18 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   gated inside the window, and action 160 carries `(0, npc id)`.
 - Coverage now 156 types / 63 -> 61 unported.
 
+### v130 — 1041 ported; 1083's god-time subsystem bounded
+- **1041 ported**: body 0x14013556b is `user->vt[0x150](0x839, param)` + `return 1` - no parse, no
+  gate, no state. vt+0x150 is the CUser text-send slot (called with 2000/2003/2005 at
+  0x14011aadc / 0x14013577e / 0x140163274), so the port sends ONE CMsgTalk 1004 with channel
+  **2105** carrying the action param as the text. 11 rows.
+- **1083 decode recorded** (still BLOCKED, not guessed): `sscanf "%s %d"` must give 2 tokens, then
+  four branches on the first token (`docs/worker_v130_1083_godtime.md`):
+  `<` -> `0x140382960(user,2,0) < u`; `==` -> `== u`; `+=` -> `0x140382b00(user,u)`, return 1;
+  `chk` -> `u==0 ? 0x140383750(user) : 0x140382350(user)`; anything else -> DBERROR -> 0.
+  The helpers all read the packed value at **CUser+0xF38**, whose only writer is the login loader
+  0x14016812b (`record+0xd8 -> user+0xf38`, alongside record+0xc4/0xc8/0xcc/0xd0/0xdc ->
+  user+0xf24/0xf28/0xf2c/0xf30/0xf3c), and 0x140382850 turns it into a `struct tm`-based
+  second count. The DB column behind `record+0xd8` and the two `chk` predicates are still
+  **UNKNOWN**, so this rebuild cannot carry the value yet.
+
