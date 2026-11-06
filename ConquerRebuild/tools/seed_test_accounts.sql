@@ -1762,3 +1762,52 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020186,'StampSage',0,5000,1002,437,323,99020320,''),
   (99020187,'StampSage2',0,5000,1002,437,324,99020322,''),
   (99020188,'StampSage3',0,5000,1002,437,325,99020324,'');
+
+-- ===========================================================================
+-- v125: status manager family - 1096 (grant) and 1098 (probe / revoke).
+-- Fixture band: chains 99020340-99020359, npc 99020190-99020193,
+-- char cq_user 92 / acc 100092.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020340 AND 99020359;
+DELETE FROM cq_npc WHERE id BETWEEN 99020190 AND 99020196;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100092,'V125Status','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (92,100092,'V125Status',100003,15,2000,1500,1002,437,326,130,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=326, level=130, profession=10,
+    metempsychosis=0, exp=0;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  -- grant status type 29 for 604800s (the real row shape from the live DB)
+  (99020340,1096,29,'200 0 604800 0 604800 1',99020341,99020349),
+  (99020341,101,0,'v125-1096-grant',0,0),
+  -- same status again -> the "already held" apply path
+  (99020342,1096,29,'200 0 604800 0 604800 1',99020343,99020349),
+  (99020343,101,0,'v125-1096-held',0,0),
+  -- bad param: token 2 is negative
+  (99020344,1096,29,'200 -1 604800 0 604800 1',99020349,99020345),
+  (99020345,101,0,'v125-1096-badparam',0,0),
+  -- 1098 mode 0: holds 29 -> true
+  (99020346,1098,0,'29 30 31',99020347,99020349),
+  (99020347,101,0,'v125-1098-holds',0,0),
+  -- 1098 mode 0 on ids it does not hold -> false
+  (99020350,1098,0,'45 46 48',99020349,99020351),
+  (99020351,101,0,'v125-1098-miss',0,0),
+  -- 1098 mode 1: re-apply every held id, always true
+  (99020352,1098,1,'29 45',99020353,99020349),
+  (99020353,101,0,'v125-1098-mode1',0,0),
+  -- 1098 mode 2 -> false
+  (99020354,1098,2,'29',99020349,99020355),
+  (99020355,101,0,'v125-1098-mode2',0,0),
+  (99020349,101,0,'v125-FAILPATH',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020190,'StatusSage',0,5000,1002,437,326,99020340,''),
+  (99020191,'StatusSage2',0,5000,1002,437,327,99020342,''),
+  (99020192,'StatusSage3',0,5000,1002,437,328,99020344,''),
+  (99020193,'StatusSage4',0,5000,1002,437,329,99020346,'');
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020194,'StatusSage5',0,5000,1002,437,330,99020350,''),
+  (99020195,'StatusSage6',0,5000,1002,437,331,99020352,''),
+  (99020196,'StatusSage7',0,5000,1002,437,332,99020354,'');

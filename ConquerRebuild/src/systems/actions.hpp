@@ -29,6 +29,7 @@
 #include "action.hpp"
 #include "combat.hpp"
 #include "drops.hpp"
+#include "statuses.hpp"
 #include "xp.hpp"
 #include "../protocol/spawn_10014.hpp"
 #include "dynanpc.hpp"
@@ -3284,6 +3285,88 @@ case 121: {  // random check (ProcessAction case 0x79:
             }
             std::printf("[action] %u 722 guild %u missing -> id_nextfail\n",
                         p.id, p.guild_id);
+            cur = a->id_nextfail;
+            break;
+        }
+        case 1096: {  // v125: grant a status (provider 0x14 = status::CStatusMgr)
+            // Body 0x140137fa5. sscanf(param,"%d %d %d %d %d %d") must consume
+            // SIX tokens; tokens 2..6 must be >= 0 (token 1 is unchecked).
+            // The status id is the action's `data` column. Then:
+            //   if (mgr->HasStatus(id))  -> the check/apply path (0x140165e10)
+            //   else mgr->AddStatus(id, target, t1, t5, t4, t2, t3,(char)t6,1,0)
+            // and the ADD's return value is the action result.
+            // t3 is the duration in seconds (proven: end = now + t3).
+            int t1 = 0, t2 = 0, t3 = 0, t4 = 0, t5 = 0, t6 = 0;
+            int n = std::sscanf(a->param.c_str(), "%d %d %d %d %d %d",
+                                &t1, &t2, &t3, &t4, &t5, &t6);
+            if (n < 6 || t2 < 0 || t3 < 0 || t4 < 0 || t5 < 0 || t6 < 0) {
+                std::printf("[action] %u 1096 bad param '%s' (n=%d) -> "
+                            "id_nextfail\n", p.id, a->param.c_str(), n);
+                cur = a->id_nextfail;
+                break;
+            }
+            const int sid = (int)a->data;
+            auto& sm = StatusSystem::instance();
+            if (sm.has((int)p.id, sid)) {
+                // already held -> the check/apply path, result true
+                std::printf("[action] %u 1096 status %d already held -> "
+                            "apply path\n", p.id, sid);
+                cur = a->id_next;
+                break;
+            }
+            if (!sm.add((int)p.id, (int)p.id, t1, t5, t4, t2, t3, t6, sid)) {
+                std::printf("[action] %u 1096 add status %d rejected -> "
+                            "id_nextfail\n", p.id, sid);
+                cur = a->id_nextfail;
+                break;
+            }
+            cur = a->id_next;
+            break;
+        }
+        case 1098: {  // v125: status probe (mode 0) / revoke-refresh (mode 1)
+            // Body 0x140138322. 1..15 ints; the action's `data` column is the
+            // MODE. mode 0 = OR reduction ("holds any of these") -> true as
+            // soon as one matches; mode 1 = apply status code (+0x10) for
+            // EVERY listed id the user holds, NO early exit, always true;
+            // mode >= 2 -> false.
+            int ids[15] = {0};
+            int cnt = 0;
+            {
+                const char* q = a->param.c_str();
+                while (cnt < 15) {
+                    int v = 0, used = 0;
+                    if (std::sscanf(q, "%d%n", &v, &used) != 1) break;
+                    ids[cnt++] = v;
+                    q += used;
+                }
+            }
+            if (cnt < 1) {
+                std::printf("[action] %u 1098 no ids in '%s' -> id_nextfail\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            const int mode = (int)a->data;
+            auto& sm = StatusSystem::instance();
+            if (mode == 0) {
+                bool any = false;
+                for (int i = 0; i < cnt; i++) if (sm.has((int)p.id, ids[i])) { any = true; break; }
+                std::printf("[action] %u 1098 mode0 (%d ids) -> %s\n",
+                            p.id, cnt, any ? "true" : "false");
+                cur = any ? a->id_next : a->id_nextfail;
+                break;
+            }
+            if (mode == 1) {
+                int applied = 0;
+                for (int i = 0; i < cnt; i++)
+                    if (sm.has((int)p.id, ids[i])) { sm.apply_code((int)p.id, ids[i]); ++applied; }
+                std::printf("[action] %u 1098 mode1 applied %d of %d -> true\n",
+                            p.id, applied, cnt);
+                cur = a->id_next;   // the original returns true unconditionally
+                break;
+            }
+            std::printf("[action] %u 1098 mode %d unsupported -> id_nextfail\n",
+                        p.id, mode);
             cur = a->id_nextfail;
             break;
         }

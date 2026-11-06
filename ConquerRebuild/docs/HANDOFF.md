@@ -778,4 +778,9 @@ the port) is what needs fixing.
   handler result). Provider 0x14 = status::CStatusMgr (Status.dll) - the object behind
   1043/1096/1098. Next: a minimal status manager model (add/has/hours), then 1096/1098/1043 in
   one wave, then 544 (SuperFlagMgr) and 2009 (AI-NPC spawn).
+- v125: **status manager** (`src/systems/statuses.hpp`) + **1096** and **1098** ported and tested
+  (suite +7 checks). Statuses are in memory only - the `cq_status` column mapping is UNKNOWN.
+  2007's field map is explicitly UNVERIFIED; 544 stays BLOCKED (empty `cq_super_flag`, no loader);
+  2009 needs the `0x14038E270` body. Next: settle 2007's struct fields, then 1043 (needs the
+  `user+0x1110` element type).
 

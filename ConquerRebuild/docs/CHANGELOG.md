@@ -1877,3 +1877,26 @@ or the user vtable), but the *string-dump* argument used alongside it is withdra
 any port change. This caveat invalidates the "zero SQL" phrasing in the v12x worker docs unless
 those argued from call shape.
 
+## v125 (Nov 6, 2026) — status manager ported: 1096 and 1098 are live
+- **New `src/systems/statuses.hpp`** — the port of provider 0x14 (`status::CStatusMgr`,
+  Status.dll). Slots: `+0xd8` HasStatus (record exists AND state == 3, no DB), `+0x8` AddStatus
+  (11 args, t3 is a **duration in seconds** - proven by `end = now + t3`), `+0x10`
+  ApplyUserStatusCode (uid 0 is a silent no-op), `+0x28` types_of, `+0x40` clear. The record
+  layout is transcribed from the argument build. Records live **in memory**: the mapping onto the
+  `cq_status` columns is still UNKNOWN, so nothing writes that table yet (documented, not guessed).
+- **1096 ported**: six tokens required, tokens 2..6 must be >= 0, type = the `data` column; already
+  held -> the check/apply path, otherwise AddStatus and **the add's bool is the action result**.
+- **1098 ported**: 1..15 ids, `data` = mode. 0 = OR probe; 1 = apply the code for **every** held id
+  with **no early exit** and always true (this supersedes v122's "first hit wins / records it");
+  >= 2 = false.
+- New test `tests/test_actions_v125.py` (7 checks, all green): grant, already-held, negative token,
+  mode 0 hit, mode 0 miss, mode 1, mode 2. Fixture V125Status = cq_user 92 / acc 100092.
+- **2007 re-verified**: body is 0x140147808..0x140147B5F, create call
+  `CNpc::Create(pNpc, [rbx+0x48], &info@0x170, 0, name@0x2e0)`; the sscanf→struct **field names are
+  still UNKNOWN**, so the existing port's field map is explicitly marked unverified
+  (`docs/worker_v125_2007.md`).
+- **544 corrected and left BLOCKED**: the pushed id is `param_6` (the +0x18 context byte), not the
+  10th argument; the 0x30 record is 4 CItemData values + a 0x20 string; `cq_super_flag` is empty and
+  has no loader, so a port could only emit empty 2110 packets.
+- **2009 refined**: the exit writes 6 **or** 10, accepted type window 11185761..11285759.
+
