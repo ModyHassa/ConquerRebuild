@@ -1906,3 +1906,19 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020212,'DialogGiver',0,5000,1002,437,342,99020411,''),
   (99020213,'DialogCloser',0,5000,1002,437,343,99020415,'');
+
+-- ===========================================================================
+-- v129: 802 (lastentertime cooldown gate) and 1511 (CMsgAction 160 LinkDialog).
+-- Fixture band: chains 99020460-99020469, npcs 99020230-99020231.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020460 AND 99020469;
+DELETE FROM cq_npc WHERE id BETWEEN 99020230 AND 99020231;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020460,802,0,'5000',99020461,99020462),
+  (99020461,101,0,'v129-802-ok',0,0),
+  (99020462,101,0,'v129-802-cool',0,0),
+  (99020463,1511,0,'',99020464,0),
+  (99020464,101,0,'v129-1511-ok',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020230,'CooldownSage',0,5000,1002,437,344,99020460,''),
+  (99020231,'LinkSage',0,5000,1002,437,345,99020463,'');

@@ -117,6 +117,9 @@ struct Player {
     uint32_t dlg_id = 0;       // +0x96c: the action's `data` column at open time
     uint32_t dlg_target = 0;   // +0x970: the object id being talked to
     uint8_t  dlg_kind = 0;     // +0x974: the object class id (1/2/3)
+    // v129: the "lastentertime" stamp of the keyed store at CUser+0x12c0 (the only
+    // reader/writer pair of that key in the binary is action 802's getter/setter).
+    uint32_t last_enter_time = 0;   // GetTickCount() ms, 0 = never
     // v37: cq_magic rows (spells learned; type -> state)
     struct MagicSkillState {
         uint16_t level = 0; uint32_t exp = 0; bool dirty = false;

@@ -1994,3 +1994,20 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   the object id from it; our ActionRow has one `param`) and 1654 needs the UNKNOWN predicates
   `0x1402bf900` / `0x14038e270`.
 
+### v129 — 802 and 1511 ported; the CUser+0xE78 probe narrowed
+- **802 ported**: it is NOT an item/trunk check (that literal is only the shared log string) but a
+  **cooldown gate** on the keyed stamp **`lastentertime`** of the store at `CUser+0x12c0`
+  (string read out of .rdata; the only reader/writer of that key in the binary is 802's own
+  getter 0x140167070 and setter 0x1401787e0). Pass when `stamp == 0` or
+  `(int32)(GetTickCount() - stamp) >= parsed`, and the stamp is refreshed only on a pass.
+  New `Player::last_enter_time`.
+- **1511 ported**: CMsgAction **160** to self with `npc->[0x60]->GetID()` in the 7th helper slot
+  (**wire+0x0C**, UNKNOWN class -> 0) and the NPC id in the 8th (**wire+0x14**); returns 1 even on
+  the CHECKF path, and fails when there is no NPC context.
+- `docs/worker_v129_802_1511.md` also records the CUser+0xE78 probe: 0x140165970 ->
+  `*(u32*)(user+0x1b0+0xe78)`, 0x140165960 -> `*(u32*)(user+0xa8+0xe78)`, no writer for either
+  field, so **1557 remains BLOCKED**.
+- New test `tests/test_actions_v129.py` (4 checks green): first 802 passes and the second one is
+  gated inside the window, and action 160 carries `(0, npc id)`.
+- Coverage now 156 types / 63 -> 61 unported.
+

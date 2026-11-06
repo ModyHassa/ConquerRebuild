@@ -801,4 +801,7 @@ the port) is what needs fixing.
   CUser+0x968/+0x96c/+0x970/+0x974 and Player::dir. Caller-slot arithmetic of the CMsgAction builder
   corrected in docs/worker_v126_g5_1508.md (CORRECTION section). 1651/1654 still unported (second
   text parameter; UNKNOWN predicates 0x1402bf900 / 0x14038e270).
+- v129: **802 ported** (cooldown on the `lastentertime` keyed stamp, Player::last_enter_time) and
+  **1511 ported** (CMsgAction 160 with the npc id at wire+0x14). CUser+0xE78 narrowed to an embedded
+  object whose +0x1b0/+0xa8 are read by 1557 and written nowhere in the module -> 1557 stays BLOCKED.
 

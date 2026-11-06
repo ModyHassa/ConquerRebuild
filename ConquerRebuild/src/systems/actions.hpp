@@ -3288,6 +3288,65 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 802: {  // v129: the "lastentertime" cooldown gate
+            // Case 0x6e body 0x1401329bf (gameaction.cpp, literal
+            // "ACTION_USER_CHECK_ITEM_IN_TRUNCK fail" is only the shared log
+            // string): sscanf "%d" (>=1 conversions else DBERROR 0x257c),
+            // edi = 0x140167070(user) = the keyed stamp "lastentertime" out of the
+            // store at CUser+0x12c0 (its ONLY reader; the only writers are inside
+            // 0x1401787e0), then
+            //     ecx = GetTickCount() - edi;  cmp parsed,ecx ; jge pass
+            //                                  test edi,edi    ; je  pass
+            //     fail -> 0
+            // and on pass 0x1401787e0(user, now) stores now. No packet, no text.
+            int v = 0;
+            if (std::sscanf(a->param.c_str(), "%d", &v) < 1) {
+                std::printf("[action] %u 802: param \"%s\" is not %%d "
+                            "(DBERROR 0x257c) -> id_nextfail\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            const uint32_t now = (uint32_t)now_ms64();
+            const uint32_t last = p.last_enter_time;
+            const uint32_t elapsed = now - last;   // u32 wrap like GetTickCount
+            if (last != 0 && (int32_t)elapsed < v) {
+                std::printf("[action] %u 802: elapsed %d < %d -> id_nextfail\n",
+                            p.id, (int)elapsed, v);
+                cur = a->id_nextfail;
+                break;
+            }
+            p.last_enter_time = now;
+            std::printf("[action] %u 802: elapsed %d >= %d, stamp refreshed "
+                        "-> id_next\n", p.id, (int)elapsed, v);
+            cur = a->id_next;
+            break;
+        }
+        case 1511: {  // v129: CMsgAction 160 ("LinkDialog") to self, ids only
+            // Case 0x8d body 0x140137177: pRole == NULL -> CHECKF 0x2bb4 -> 0;
+            // pRole->QueryObj(OBJ_NPC, IPP_OF(pNpc)) fails -> CHECKF 0x2bb5 -> 0;
+            // r13d = npc->GetID(), r12d = npc->[0x60]->GetID(); then FUN_140362620
+            // with action 0xa0 (160) at wire+0x18, r12d as the 7th argument
+            // (wire+0x0C) and r13d as the 8th (wire+0x14). Sent to the user only
+            // (vt+0x350) and it returns 1 even when the Create CHECKF fires.
+            // The npc[0x60] sub-object class is UNKNOWN, so that slot is 0.
+            const uint32_t npc_id = p.last_npc_id;
+            if (npc_id == 0) {
+                std::printf("[action] %u 1511: no NPC context (CHECKF 0x2bb4) "
+                            "-> id_nextfail\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (!p.session) { cur = a->id_nextfail; break; }
+            p.session->send(build_action_10010(p.id, 0, 160, (uint16_t)p.dir,
+                                               (uint16_t)p.pos.x, (uint16_t)p.pos.y,
+                                               /*ext=*/0, /*target2=*/-1,
+                                               /*slot14=*/npc_id));
+            std::printf("[action] %u 1511: action 160 sent for npc %u -> id_next\n",
+                        p.id, npc_id);
+            cur = a->id_next;
+            break;
+        }
         case 1650: {  // v128: open a dialog - CMsgAction 171 + state 0 -> 1
             // Body 0x140138724 (docs/worker_v126_g5_1508.md, packet mapping
             // re-verified in docs/cmsgaction_10010_map.md): gate `[user+0x968] == 0`,
