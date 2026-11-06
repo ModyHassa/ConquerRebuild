@@ -1843,3 +1843,26 @@ All 8 match, so 512's 1108 fix was the only wrong literal in the ported builders
 passed, 0 failed** (both preflights green, every live test green including v45 with the corrected
 1108).
 
+## v124 (Nov 6, 2026) — 3701 ported, the 3701..3798 chain rule fixed, and provider 0x14 named
+- **3701 is not a DB quota action.** Handler `FUN_14011dcb0` runs ZERO SQL: `sscanf "%d %s %d"`
+  (exactly 3), int A <= 0 -> nothing; dead (status bit0) -> the STR_DIE notice only; otherwise it
+  clears the `+0x130..+0x140` stamp block (`FUN_140164e30(user,0,...)`), asks the manager for
+  `(uid, 0x56)`, and broadcasts **one CMsgAction 10010 action 0xA4** to the whole map with dir 1,
+  x=y=0, ext 0, `+0x0C` = int B, `+0x24` = int A. Ported exactly, including the empty packed
+  string the original passes (`local_148`, not the parsed `%s`).
+- **The 3701..3798 branch DISCARDS the handler's return value** (`MsgServer.c:223714`) and returns
+  1, so every unsupported sibling in 3702..3798 (`"unsupported ACTION type"` inside the handler)
+  still takes **id_next**. Our `default:` case used to send them to `id_nextfail`; fixed, and the
+  rule now has a live test (`3750` row -> id_next).
+- **Provider 0x14 is `status::CStatusMgr` from Status.dll** (`docs/worker_v124_provider20.md`):
+  registered through `CGame vtable+0x18` (`0x141677e20`), the only `mov edx,0x14` in the 34
+  modules is at `0x1416b1217`. That is the object 1043/1096/1098 all act on, and it matches the
+  1096/1098 row shapes (ids 29..32 with 7-day/28-day durations).
+- Still blocked, with reasons recorded: **544** needs the SuperFlagMgr data model (packet 2110
+  layout is proven: type 0x83E, size 0x4C + 10*0x30, superflag.cpp), **2009** needs the AI-NPC
+  spawn entry `0x14038E270` (`+0x150`=6/10, `+0x154`=seconds, 10010 action 135), **2007** needs its
+  field map re-verified against our existing port, **1043/1096/1098** need the status manager.
+- Fixture band v124: chains 99020320-99020339, npc 99020186-99020188, char V124Stamps =
+  cq_user 93 / acc 100093 (every wave gets its own character id - the cq_user 96 collision of
+  v121 must not repeat).
+

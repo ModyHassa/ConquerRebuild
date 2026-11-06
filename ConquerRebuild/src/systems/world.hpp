@@ -80,6 +80,11 @@ struct Player {
     // v121 (1048): attribute-timer state the original keeps at
     // user+0xb74/+0xb78/+0xb7c (key, seconds, time(NULL)/1000).
     uint32_t attr_timer_id = 0, attr_timer_secs = 0, attr_timer_start = 0;
+    // v124 (3701): the +0x130..+0x140 "stamp" block FUN_140164e30 clears.
+    // Cleared per call; the values the sibling actions write are UNKNOWN.
+    uint8_t stamp_a130 = 0;
+    int32_t stamp_i134 = 0, stamp_i138 = 0, stamp_i13c = 0;
+    std::string stamp_s140;
     uint32_t home_id = 0;                 // 1014 HomeID
     uint32_t account_id = 0;              // 1015 AccountId
     uint32_t nobility = 0;                // 1045 Peerage

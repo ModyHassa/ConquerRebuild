@@ -1730,3 +1730,35 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020184,'MarkerSage',0,5000,1002,437,321,99020300,''),
   (99020185,'MarkerSage2',0,5000,1002,437,322,99020310,'');
+
+-- ===========================================================================
+-- v124: action 3701 (user-state stamp + CMsgAction 10010 action 0xA4) and the
+-- 3701..3798 "unsupported sibling still advances the chain" rule.
+-- Fixture band: chains 99020320-99020339, npc 99020186-99020187,
+-- char cq_user 93 / acc 100093.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020320 AND 99020339;
+DELETE FROM cq_npc WHERE id BETWEEN 99020186 AND 99020189;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100093,'V124Stamps','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (93,100093,'V124Stamps',100003,15,2000,1500,1002,437,323,130,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=323, level=130, profession=10,
+    metempsychosis=0, exp=0;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020320,3701,0,'5 hi 9',99020321,0),
+  (99020321,101,0,'v124-3701-ok',0,0),
+  -- int A <= 0 -> handler does nothing but the chain still advances
+  (99020322,3701,0,'0 hi 9',99020323,0),
+  (99020323,101,0,'v124-3701-zero',0,0),
+  -- 3702..3798 are "unsupported" inside the handler, yet the dispatcher
+  -- discards its result -> the chain must still take id_next
+  (99020324,3750,0,'',99020325,0),
+  (99020325,101,0,'v124-3701-family',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020186,'StampSage',0,5000,1002,437,323,99020320,''),
+  (99020187,'StampSage2',0,5000,1002,437,324,99020322,''),
+  (99020188,'StampSage3',0,5000,1002,437,325,99020324,'');

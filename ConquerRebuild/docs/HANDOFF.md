@@ -773,4 +773,9 @@ the port) is what needs fixing.
 - v123b: `tools/packet_id_audit.py` verifies every hardcoded packet id against the builder's
   `movl $type,0x8(obj)` store (8 builders, all match) and runs as the second suite preflight.
   Suite 85/85 green.
+- v124: **3701 ported** (no SQL; 10010 action 0xA4 map broadcast; sscanf "%d %s %d", A<=0 and
+  STR_DIE gates) and the **3701..3798 -> always id_next** rule fixed (dispatcher discards the
+  handler result). Provider 0x14 = status::CStatusMgr (Status.dll) - the object behind
+  1043/1096/1098. Next: a minimal status manager model (add/has/hours), then 1096/1098/1043 in
+  one wave, then 544 (SuperFlagMgr) and 2009 (AI-NPC spawn).
 

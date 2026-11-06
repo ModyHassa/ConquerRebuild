@@ -3287,6 +3287,59 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 3701: {  // v124: user state stamp + CMsgAction 10010 action 0xA4
+            // Handler FUN_14011dcb0 (ProcessActionEspecial), 3701..3798 branch
+            // (MsgServer.c:223710 `iVar8 - 0xe75U < 0x62`). PARSE:
+            // sscanf(param, "%d %s %d") must consume exactly 3; int A <= 0 ->
+            // nothing happens. Alive gate: user status bit0 = dead -> the
+            // STR_DIE text is sent through user+0x10 vt+0x358 and the handler
+            // returns 0. Otherwise FUN_140164e30(user,0,...) clears the
+            // +0x130..+0x140 stamp block, the manager gets (uid, 0x56)
+            // (provider 0x14 = status::CStatusMgr, i.e. a status refresh
+            // request), and ONE CMsgAction 10010 is broadcast to the whole map
+            // (user+0x10 vt+0x348, flag 1) with action 0xA4, dir 1, x=y=0,
+            // ext 0, +0x08 = int B, +0x24 = int A, +0x14 = now, and an EMPTY
+            // packed string (the original passes local_148, not the parsed %s
+            // - see docs/worker_v124_3701.md 6.4).
+            // CRITICAL: the dispatcher DISCARDS this handler's return value and
+            // unconditionally returns 1 (MsgServer.c:223714), so every type in
+            // 3701..3798 takes id_next no matter what happens inside.
+            int va = 0, vb = 0;
+            char vs[256] = {0};
+            int got = std::sscanf(a->param.c_str(), "%d %255s %d", &va, vs, &vb);
+            if (got != 3 || va <= 0) {
+                std::printf("[action] %u 3701 bad param '%s' (n=%d) -> id_next\n",
+                            p.id, a->param.c_str(), got);
+                cur = a->id_next;   // return value is discarded by the dispatcher
+                break;
+            }
+            if (!p.alive) {
+                // user status bit0 (dead) -> STR_DIE notice, no broadcast
+                send_line(6, 0, 0, 0, 0, "STR_DIE");
+                cur = a->id_next;
+                break;
+            }
+            // FUN_140164e30(user,0,...): clear the stamp block at +0x130..+0x140
+            p.stamp_a130 = 0;      // +0x130 char
+            p.stamp_i134 = 0;      // +0x134 int
+            p.stamp_i138 = 0;      // +0x138 int
+            p.stamp_i13c = 0;      // +0x13C int
+            p.stamp_s140.clear();  // +0x140 std::string
+            // manager notification (uid, 0x56): status refresh via provider 0x14
+            std::printf("[action] %u 3701 status refresh (uid %u, 0x56)\n",
+                        p.id, p.id);
+            Packet pkt = build_action_10010(
+                p.id, (uint32_t)vb, 0xA4, 1, 0, 0, 0, (int32_t)va,
+                (int64_t)::time(nullptr));
+            GameMap& gm = w.get_or_create_map(p.map_id);
+            size_t sent = 0;
+            for (Player* pl : gm.players())
+                if (pl->session) { pl->session->send(pkt); ++sent; }
+            std::printf("[action] %u 3701 A=%d B=%d -> 10010 0xA4 to %zu/%zu\n",
+                        p.id, va, vb, sent, gm.players().size());
+            cur = a->id_next;
+            break;
+        }
         case 2007: {  // 0x7d7: generator / runtime NPC create (54 rows)
             // sscanf("%s %d %d %d %d %u %u %d %d %d %u %u %d %d %d %d %d
             //         %d %d %d %d %d %d %d %s") over 25 fields; fewer than 9
@@ -3936,6 +3989,17 @@ case 121: {  // random check (ProcessAction case 0x79:
             break;
         }
         default:
+            if (a->type >= 3701 && a->type <= 3798) {
+                // v124: the 3701..3798 branch of the ProcessAction ladder
+                // discards the handler's return value and returns 1
+                // (MsgServer.c:223714), so an unsupported sibling type
+                // (3702..3798 - "unsupported ACTION type" DBERROR inside
+                // FUN_14011dcb0) still advances the chain.
+                std::printf("[action] %u: 3701-family type %u unsupported "
+                            "-> id_next\n", p.id, a->type);
+                cur = a->id_next;
+                break;
+            }
             // unhandled action type — VERIFIED: the original logs a
             // DBERROR and returns false, so the chain follows
             // id_nextfail (usually 0 = stop).
