@@ -3288,6 +3288,18 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 1052: {  // v126: the original router sends this type to DEFAULT
+            // PROVEN: byte_map[0x13aa9c + (1052-1001)] = 0xbb, and case 0xbb's body
+            // is 0x14013a751 = the switch default (the same body 1059 resolves to).
+            // The default logs "unsupported" and returns false, i.e. id_nextfail -
+            // exactly what the generic default below does. Declared explicitly so
+            // the coverage report can tell "no case in the original" from "not yet
+            // ported" without re-deriving the table.
+            std::printf("[action] %u: type 1052 is DEFAULT-routed in the original "
+                        "-> id_nextfail\n", p.id);
+            cur = a->id_nextfail;
+            break;
+        }
         case 1028: {  // v125b: user flag word bitset (chk / add / clr)
             // Body 0x14012ef16. sscanf(" %s %d") must be EXACTLY 2 tokens; the
             // index must be <= 0x1F (0x14039a214 `cmp $0x1f` -> CHECKF + false).

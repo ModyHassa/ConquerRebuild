@@ -1913,3 +1913,25 @@ those argued from call shape.
   `cq_user_script_var.player_id` - a bad DELETE there aborts the rest of the seed silently enough
   that the wave's action rows never land (symptom: every dialog assertion empty).
 
+### v126 — CUser getter map extracted; 1052 proven DEFAULT-routed
+- **`docs/cuser_getter_map.md`**: every low vtable slot of CUser (vftable 0x14071ed48) read straight
+  out of the thunks, so future decodes stop guessing field offsets:
+  `+0x10` = role id (`this+8`), `+0x30` = the container pointer at `this+0x1110` (the 1043 source),
+  `+0x48` = `this+0xEA8`, `+0x50` = **lookface** (`this+0xEAC`, which independently confirms the 1026
+  port's `(lookface%10000)/1000`), `+0x58` writes `+0x10EC`, `+0x60/+0x68` read `+0xEB8/+0xEC0`.
+- **1025** = `CUser::vt[0x48]() != 0` i.e. `user+0xEA8 != 0`. A full-binary scan finds exactly ONE
+  reference to `+0xEA8` (that getter), so nothing writes it in code - identity UNKNOWN, not ported.
+- **1024** = family-module work gated on the same `+0xEA8` field, with `GetProvider(8)` and the
+  `Family.dll not load.` log. Not ported.
+- **1023** = bonus claim: bag-full check (`user+0xC28 > 0x28`), then
+  `SELECT * FROM cq_bonus WHERE id_account = %u AND flag = 0 LIMIT 1` built from `user+0xF10`.
+  The table exists in the schema but has **0 rows** and the per-row grant is undecoded. Not ported.
+- **1052 is DEFAULT-routed in the original** (`byte_map[...] = 0xbb`, body 0x14013a751 = the switch
+  default, identical to 1059). Declared as an explicit case so the coverage report can distinguish
+  "the original has no case" from "not yet ported".
+
+Nine decode workers were dispatched to close the remaining 72 types (701-714, the 1023/1029/1031
+family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/3907/8007/8011,
+532+802, 1043's element type, and the 1083/1651/403/1082/544 group); their reports land in
+`docs/worker_v126_*.md`.
+
