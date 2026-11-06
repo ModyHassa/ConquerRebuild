@@ -1811,3 +1811,52 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020194,'StatusSage5',0,5000,1002,437,330,99020350,''),
   (99020195,'StatusSage6',0,5000,1002,437,331,99020352,''),
   (99020196,'StatusSage7',0,5000,1002,437,332,99020354,'');
+
+-- ===========================================================================
+-- v125b: 1028 (user flag word at CUser+0xf24: chk/add/clr) and 1053
+-- ("var(%d) <op> <int64>" with >, >=, ==, +=).
+-- Fixture band: chains 99020360-99020389, npc 99020200-99020205,
+-- char cq_user 91 / acc 100091.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020360 AND 99020389;
+DELETE FROM cq_npc WHERE id BETWEEN 99020200 AND 99020205;
+DELETE FROM cq_user_script_var WHERE player_id=91;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100091,'V125Flags','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (91,100091,'V125Flags',100003,15,2000,1500,1002,437,334,130,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=334, level=130, profession=10,
+    metempsychosis=0, exp=0;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  -- 1028 flag word: bit 5 must start clear, add, chk true, clr, chk false
+  (99020360,1028,0,'chk 5',99020362,99020361),
+  (99020361,101,0,'v125-chk5-clear',0,0),
+  (99020362,1028,0,'add 5',99020363,99020361),
+  (99020363,1028,0,'chk 5',99020364,99020361),
+  (99020364,1028,0,'clr 5',99020365,99020361),
+  (99020365,1028,0,'chk 5',99020361,99020366),
+  (99020366,101,0,'v125-chk5-after-clr',0,0),
+  -- out-of-range index -> fail path
+  (99020367,1028,0,'chk 40',99020361,99020368),
+  (99020368,101,0,'v125-idx-guard',0,0),
+  -- 1053: set var(0) = 7, then compare
+  (99020370,1064,0,'var(0) += 7',99020371,99020361),
+  (99020371,1053,0,'var(0) > 5',99020372,99020361),
+  (99020372,1053,0,'var(0) > 9',99020361,99020373),
+  (99020373,101,0,'v125-gt-false',0,0),
+  (99020374,1053,0,'var(0) >= 7',99020375,99020361),
+  (99020375,1053,0,'var(0) == 7',99020376,99020361),
+  (99020376,1053,0,'var(0) == 8',99020361,99020377),
+  (99020377,101,0,'v125-eq-false',0,0),
+  (99020378,1053,0,'var(1) += 4',99020379,99020361),
+  (99020379,1053,0,'var(1) == 4',99020380,99020361),
+  (99020380,101,0,'v125-plus-eq',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020200,'FlagSage1',0,5000,1002,437,334,99020360,''),
+  (99020201,'FlagSage2',0,5000,1002,437,335,99020367,''),
+  (99020202,'FlagSage3',0,5000,1002,437,336,99020370,''),
+  (99020203,'FlagSage4',0,5000,1002,437,337,99020374,''),
+  (99020204,'FlagSage5',0,5000,1002,437,338,99020378,'');

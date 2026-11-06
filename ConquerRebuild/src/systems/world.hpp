@@ -82,6 +82,9 @@ struct Player {
     uint32_t attr_timer_id = 0, attr_timer_secs = 0, attr_timer_start = 0;
     // v124 (3701): the +0x130..+0x140 "stamp" block FUN_140164e30 clears.
     // Cleared per call; the values the sibling actions write are UNKNOWN.
+    // v125b: the 32-bit user flag word at CUser+0xf24 (action 1028 "chk/add/clr"
+    // uses `bt idx,[user+0xf24]` with idx <= 0x1F; larger indices hit a CHECKF).
+    uint32_t user_flags = 0;
     uint8_t stamp_a130 = 0;
     int32_t stamp_i134 = 0, stamp_i138 = 0, stamp_i13c = 0;
     std::string stamp_s140;

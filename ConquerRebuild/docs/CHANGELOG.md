@@ -1900,3 +1900,16 @@ those argued from call shape.
   has no loader, so a port could only emit empty 2110 packets.
 - **2009 refined**: the exit writes 6 **or** 10, accepted type window 11185761..11285759.
 
+### v125b — 1028 (flag word) and 1053 (var compare) ported
+- **1028** = the 32-bit user flag word at `CUser+0xf24`: `sscanf "%s %d"` (exactly 2 tokens), index
+  guard `<= 0x1F` (CHECKF above it), ops `chk` (`bt`/`setb`, clear bit -> fail branch), `add` (set),
+  `clr` (clear). New `Player::user_flags`. Ported + tested (5 checks).
+- **1053** = `"var(%d) <op> <int64>"` on the same store as 1060/1061/1064, ops `>` (setg),
+  `>=` (setge), fallthrough `sete` (`==`) and `+=` (second parse block); the comparison result IS
+  the action result. Ported + tested.
+- **1029** decoded as far as the format (`"%s %s %hu %hu %u"`, first token `play`, then a helper
+  0x14037dfb0 + 0x14037e0a0(obj,0x14,name,u32)) and left **UNPORTED** with its unknowns listed.
+- Seed bug found and fixed: the var-table cleanup used `owner_id`, the real column is
+  `cq_user_script_var.player_id` - a bad DELETE there aborts the rest of the seed silently enough
+  that the wave's action rows never land (symptom: every dialog assertion empty).
+

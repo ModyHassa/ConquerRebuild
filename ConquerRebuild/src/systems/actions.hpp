@@ -3288,6 +3288,81 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 1028: {  // v125b: user flag word bitset (chk / add / clr)
+            // Body 0x14012ef16. sscanf(" %s %d") must be EXACTLY 2 tokens; the
+            // index must be <= 0x1F (0x14039a214 `cmp $0x1f` -> CHECKF + false).
+            //   "chk" -> 0x14039a210: `bt idx,[user+0xf24]` -> the bit, and a
+            //            clear bit takes the fail branch;
+            //   "add" -> 0x14039a150: set the bit, always true;
+            //   "clr" -> 0x14039a1b0: clear the bit, always true;
+            //   anything else / parse != 2 -> shared DBERROR fail path.
+            char op[64] = {0};
+            int idx = 0;
+            int n = std::sscanf(a->param.c_str(), "%63s %d", op, &idx);
+            if (n != 2 || idx < 0 || idx > 0x1F) {
+                std::printf("[action] %u 1028 bad param '%s' (n=%d, idx=%d)"
+                            " -> id_nextfail\n", p.id, a->param.c_str(), n, idx);
+                cur = a->id_nextfail;
+                break;
+            }
+            const uint32_t bit = 1u << idx;
+            if (!std::strcmp(op, "chk")) {
+                bool set = (p.user_flags & bit) != 0;
+                std::printf("[action] %u 1028 chk %d -> %s\n", p.id, idx,
+                            set ? "true" : "false");
+                cur = set ? a->id_next : a->id_nextfail;
+            } else if (!std::strcmp(op, "add")) {
+                p.user_flags |= bit;
+                std::printf("[action] %u 1028 add %d -> flags %#x\n",
+                            p.id, idx, p.user_flags);
+                cur = a->id_next;
+            } else if (!std::strcmp(op, "clr")) {
+                p.user_flags &= ~bit;
+                std::printf("[action] %u 1028 clr %d -> flags %#x\n",
+                            p.id, idx, p.user_flags);
+                cur = a->id_next;
+            } else {
+                std::printf("[action] %u 1028 unknown op '%s' -> id_nextfail\n",
+                            p.id, op);
+                cur = a->id_nextfail;
+            }
+            break;
+        }
+        case 1053: {  // v125b: "var(%d) <op> <int64>" compare/accumulate
+            // Body 0x14012e4f5. sscanf("var(%d) %s %I64d") == 3, same var store
+            // as 1060/1061/1064 (get FUN_1401644d0, set FUN_140164520).
+            // Ops proven by the compare+setcc pairs at 0x14012e57b..0x14012e5ec:
+            //   ">"  -> setg  (var >  v)
+            //   ">=" -> setge (var >= v)
+            //   fallthrough -> sete (var == v)
+            // and the second parse block (0x14012e61f) handles "+=" via the
+            // 0x14070d54c literal: var = var + v.
+            int idx = 0; char op[16] = {0}; long long vv = 0;
+            int n = std::sscanf(a->param.c_str(), "var(%d) %15s %lld",
+                                &idx, op, &vv);
+            if (n != 3 || idx < 0 || idx >= 8) {
+                std::printf("[action] %u 1053 bad param '%s' (n=%d, idx=%d) "
+                            "-> id_nextfail\n", p.id, a->param.c_str(), n, idx);
+                cur = a->id_nextfail;
+                break;
+            }
+            int64_t old = p.vars.var[idx];
+            bool res = false;
+            if (!std::strcmp(op, ">"))       res = old >  vv;
+            else if (!std::strcmp(op, ">=")) res = old >= vv;
+            else if (!std::strcmp(op, "==")) res = old == vv;
+            else if (!std::strcmp(op, "+=")) { p.vars.var[idx] = old + vv; res = true; }
+            else {
+                std::printf("[action] %u 1053 unknown op '%s' -> id_nextfail\n",
+                            p.id, op);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::printf("[action] %u 1053 var(%d) %s %lld : %lld -> %s\n",
+                        p.id, idx, op, vv, (long long)old, res ? "true" : "false");
+            cur = res ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 1096: {  // v125: grant a status (provider 0x14 = status::CStatusMgr)
             // Body 0x140137fa5. sscanf(param,"%d %d %d %d %d %d") must consume
             // SIX tokens; tokens 2..6 must be >= 0 (token 1 is unchecked).

@@ -783,4 +783,7 @@ the port) is what needs fixing.
   2007's field map is explicitly UNVERIFIED; 544 stays BLOCKED (empty `cq_super_flag`, no loader);
   2009 needs the `0x14038E270` body. Next: settle 2007's struct fields, then 1043 (needs the
   `user+0x1110` element type).
+- v125b: **1028** (user flag word +0xf24: chk/add/clr) and **1053** (var compare >, >=, ==, +=)
+  ported and tested. 1029 partially decoded (format + helper calls), unported. Seed gotcha:
+  `cq_user_script_var` is keyed by `player_id`, not `owner_id`.
 
