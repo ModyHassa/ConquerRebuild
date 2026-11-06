@@ -5,6 +5,7 @@
 cd "$(dirname "$0")/.."
 # preflight: the router tables must still match every hand-written record
 python3 tools/router_audit.py || { echo "FAIL router_audit"; exit 1; }
+python3 tools/packet_id_audit.py || { echo "FAIL packet_id_audit"; exit 1; }
 pkill -x conquer_server 2>/dev/null; sleep 0.5
 mysql --default-character-set=utf8mb4 cq < tools/seed_test_accounts.sql 2>/dev/null
 ./tools/reset_positions.sh 2>/dev/null

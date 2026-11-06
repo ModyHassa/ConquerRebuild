@@ -770,4 +770,7 @@ the port) is what needs fixing.
 - v123 open item: provider id 0x14 owner module. root.dll exposes no setter, modules register
   through a CGame vtable slot; Family (id 8) is the only id with a dedicated "module is not
   loaded" string. See docs/worker_v123_component20.md facts 5-6 for the module RVAs to follow.
+- v123b: `tools/packet_id_audit.py` verifies every hardcoded packet id against the builder's
+  `movl $type,0x8(obj)` store (8 builders, all match) and runs as the second suite preflight.
+  Suite 85/85 green.
 

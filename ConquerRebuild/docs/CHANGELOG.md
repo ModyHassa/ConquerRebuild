@@ -1824,3 +1824,22 @@ defect in code we had already shipped.
   DLL modules named in `adapter_cfg.ini` (32 modules, Family.dll among them, which is provider 8
   as used by 218/219 and the 3501 family). Which module owns id 0x14 is still UNKNOWN.
 
+### v123b — packet ids are machine-checked too (`tools/packet_id_audit.py`)
+Every CMsg* builder in the original stores its type as `movl $<type>,0x8(obj)` right
+before the size store, so a hardcoded wire id can be verified from ONE instruction.
+The new tool reads that store out of the binary and compares it with the id our C++ sends,
+then runs as a second suite preflight next to `router_audit.py`:
+
+```
+ok   1004 CMsgTalk (world)       stores 0x3ec
+ok   1008 CMsgItemInfo           stores 0x3f0
+ok   1025 CMsgWeaponSkill        stores 0x401
+ok   1101 CMsgMapItem            stores 0x44d
+ok   1104 CMsgWeaponSkillExp     stores 0x450
+ok   1108 CMsgItemInfoEx         stores 0x454
+ok   2077 CMsgItemStatus         stores 0x81d
+```
+All 8 match, so 512's 1108 fix was the only wrong literal in the ported builders. Suite: **85
+passed, 0 failed** (both preflights green, every live test green including v45 with the corrected
+1108).
+
