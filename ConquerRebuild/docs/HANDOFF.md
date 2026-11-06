@@ -796,4 +796,9 @@ the port) is what needs fixing.
   `docs/cmsgaction_10010_map.md` (6th arg = action -> wire+0x18, 5th = "field 38" -> wire+0x1A,
   7th -> wire+0x0C, 8th -> wire+0x14). `cq_weapon_skill.old_level` now loads into the player and
   `mark_weapon_skill_unlearned` retires a skill row.
+- v128: **1650 + 1652 ported** (dialog open -> CMsgAction 171 with the index at wire+0x0C;
+  close -> action 174 then state reset), with a new Player dialog block mirroring
+  CUser+0x968/+0x96c/+0x970/+0x974 and Player::dir. Caller-slot arithmetic of the CMsgAction builder
+  corrected in docs/worker_v126_g5_1508.md (CORRECTION section). 1651/1654 still unported (second
+  text parameter; UNKNOWN predicates 0x1402bf900 / 0x14038e270).
 

@@ -1889,3 +1889,20 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020210,'SkillSage',0,5000,1002,437,340,99020390,''),
   (99020211,'SkillSage2',0,5000,1002,437,341,99020392,'');
+
+-- ===========================================================================
+-- v128: 1650 (open dialog -> CMsgAction 171) and 1652 (close -> 174).
+-- Fixture band: chains 99020410-99020419, npcs 99020212-99020213.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020410 AND 99020419;
+DELETE FROM cq_npc WHERE id BETWEEN 99020212 AND 99020213;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020410,101,0,'v128-1650-first-ok',0,0),
+  (99020411,1650,5,'7',99020412,99020413),
+  (99020412,101,0,'v128-1650-ok',0,0),
+  (99020413,101,0,'v128-1650-gated',0,0),
+  (99020414,101,0,'v128-1652-ok',0,0),
+  (99020415,1652,0,'',99020414,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020212,'DialogGiver',0,5000,1002,437,342,99020411,''),
+  (99020213,'DialogCloser',0,5000,1002,437,343,99020415,'');

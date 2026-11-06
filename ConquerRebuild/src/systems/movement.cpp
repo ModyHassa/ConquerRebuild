@@ -25,6 +25,7 @@ bool MovementSystem::process_walk(Player& p, const std::vector<uint8_t>& payload
     }
 
     const uint32_t dir = w.direction_steps & 7;
+    p.dir = (uint16_t)dir;   // v128: remember the facing for CMsgAction packets
     const uint32_t steps = w.direction_steps >> 3;
     (void)steps;
 

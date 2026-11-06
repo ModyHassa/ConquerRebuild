@@ -1973,3 +1973,24 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   and action 126 carrying data 777. Fixture V127Skills = cq_user 90 / acc 100090 with skills 421
   (level 5, old 9) and 422 (level 7, old 7); after the run both rows have `unlearn=1`.
 
+### v128 — 1650 and 1652 ported (dialog open/close), packet mapping corrected
+- **1650 ported**: gate `dlg_state == 0`, `sscanf "%u"` (>=1 conversions), then ONE CMsgAction
+  **action 171** with the parsed index in the payload dword at **wire+0x0C**, x/y = the player's
+  position, dir = the player's facing; on send success `dlg_state=1`, `dlg_id = the action's
+  `data` column`, `dlg_target = dlg_kind = 0`.
+- **1652 ported**: no gate; sends **action 174** and only on a successful send resets
+  `dlg_state / dlg_target / dlg_kind` to 0.
+- New Player dialog block (`dlg_state`, `dlg_id`, `dlg_target`, `dlg_kind`) mirroring
+  `CUser+0x968/+0x96c/+0x970/+0x974`, plus `Player::dir` (last facing, updated by the walk path) so
+  CMsgAction packets can carry the same direction the original sends.
+- **Correction to `docs/worker_v126_g5_1508.md`**: its caller-slot arithmetic was off by one
+  argument. The builder's stack slots are `+0x20/+0x28/+0x30/+0x38` for args 5..8, so the action
+  word is the **6th** argument at **wire+0x18** and the payload dword is the **7th** at
+  **wire+0x0C**. The old "field 38 at +0x14" reading is superseded (see the CORRECTION section
+  appended to that file, and `docs/cmsgaction_10010_map.md`).
+- New test `tests/test_actions_v128.py` (6 checks green): action 171 carries index 7, a second 1650
+  is gated while `dlg_state != 0`, 1652 sends action 174, and the reset lets 1650 open again.
+- **1651/1654 remain unported**: 1651 needs the router's *second* text parameter (the original reads
+  the object id from it; our ActionRow has one `param`) and 1654 needs the UNKNOWN predicates
+  `0x1402bf900` / `0x14038e270`.
+

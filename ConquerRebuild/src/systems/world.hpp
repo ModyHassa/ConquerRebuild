@@ -28,6 +28,7 @@ struct Player {
     ClientSession* session = nullptr;
     uint32_t id = 0;
     std::string name;
+    uint16_t dir = 0;   // v128: last facing (CUser vt+0x50); 0 until the first walk
     uint32_t level = 1;
     uint32_t map_id = 0;
     Position pos;
@@ -109,6 +110,13 @@ struct Player {
         bool    dirty = false;
     };
     std::unordered_map<uint32_t, WeaponSkillState> weapon_skills;
+    // v128: the original's dialog state block (CUser+0x968/+0x96c/+0x970/+0x974),
+    // driven by action types 1650 (open, action 171), 1651 (answer) and
+    // 1652 (close, action 174). See docs/worker_v126_g5_1508.md.
+    uint8_t  dlg_state = 0;    // +0x968: 0 idle, 1 opened, 2 awaiting, 3 answered
+    uint32_t dlg_id = 0;       // +0x96c: the action's `data` column at open time
+    uint32_t dlg_target = 0;   // +0x970: the object id being talked to
+    uint8_t  dlg_kind = 0;     // +0x974: the object class id (1/2/3)
     // v37: cq_magic rows (spells learned; type -> state)
     struct MagicSkillState {
         uint16_t level = 0; uint32_t exp = 0; bool dirty = false;

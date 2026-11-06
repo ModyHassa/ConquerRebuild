@@ -3288,6 +3288,59 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 1650: {  // v128: open a dialog - CMsgAction 171 + state 0 -> 1
+            // Body 0x140138724 (docs/worker_v126_g5_1508.md, packet mapping
+            // re-verified in docs/cmsgaction_10010_map.md): gate `[user+0x968] == 0`,
+            // sscanf "%u" (>=1 conversions accepted, else log 0x2dcc), then ONE
+            // CMsgAction built by FUN_140362620 with `mov $0xab` = **action 171**
+            // at wire+0x18, the parsed index as the 7th argument -> wire+0x0C,
+            // x/y = the user's position and dir = the user's direction. On send
+            // success only: +0x968=1, +0x96c = the action's `data` column (the
+            // `ctx->vt[0x10](4)+0x48` idiom), +0x970=0, +0x974=0 -> return 1.
+            if (p.dlg_state != 0) {
+                std::printf("[action] %u 1650: dialog state %u != 0 -> id_nextfail\n",
+                            p.id, (unsigned)p.dlg_state);
+                cur = a->id_nextfail;
+                break;
+            }
+            unsigned idx = 0;
+            if (std::sscanf(a->param.c_str(), "%u", &idx) < 1) {
+                std::printf("[action] %u 1650: param \"%s\" is not %%u "
+                            "(original logs 0x2dcc) -> id_nextfail\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            if (!p.session) { cur = a->id_nextfail; break; }
+            p.session->send(build_action_10010(p.id, idx, 171, (uint16_t)p.dir,
+                                               (uint16_t)p.pos.x,
+                                               (uint16_t)p.pos.y));
+            p.dlg_state  = 1;
+            p.dlg_id     = (uint32_t)a->data;
+            p.dlg_target = 0;
+            p.dlg_kind   = 0;
+            std::printf("[action] %u 1650: dialog index %u sent (action 171), "
+                        "state -> 1 -> id_next\n", p.id, idx);
+            cur = a->id_next;
+            break;
+        }
+        case 1652: {  // v128: close the dialog - CMsgAction 174, then reset state
+            // Body 0x140138e49: `0x140165b50(user)` builds the same CMsgAction with
+            // `mov r13d,0xae` = **action 174** and returns the send result; only a
+            // successful send runs `0x140165a10` = `+0x968=0; +0x970=0; +0x974=0`.
+            // There is NO state gate on this type.
+            if (!p.session) { cur = a->id_nextfail; break; }
+            p.session->send(build_action_10010(p.id, 0, 174, (uint16_t)p.dir,
+                                               (uint16_t)p.pos.x,
+                                               (uint16_t)p.pos.y));
+            p.dlg_state  = 0;
+            p.dlg_target = 0;
+            p.dlg_kind   = 0;
+            std::printf("[action] %u 1652: close sent (action 174), state reset "
+                        "-> id_next\n", p.id);
+            cur = a->id_next;
+            break;
+        }
         case 1043: {  // v127: reset the player's weapon-skill unlearn flags
             // Case 0x25 body 0x140135433 is a TAIL CALL into 0x140162620; every
             // fact below was read there (docs/worker_v126_1043_1041_1046.md):
