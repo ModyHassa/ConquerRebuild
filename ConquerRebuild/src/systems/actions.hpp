@@ -3288,6 +3288,64 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_nextfail;
             break;
         }
+        case 1043: {  // v127: reset the player's weapon-skill unlearn flags
+            // Case 0x25 body 0x140135433 is a TAIL CALL into 0x140162620; every
+            // fact below was read there (docs/worker_v126_1043_1041_1046.md):
+            //   per element (reverse walk of the CUser+0x1110 CGameObjSet of
+            //   CUserWeaponSkill):  old = elem+0x19, level = elem+0x18;
+            //   ONLY when level < old  -> SetOldLevel(level)  (0x14039d960,
+            //   first store `mov %dl,0x19(%rcx)`); then unconditionally
+            //   0x14039d8f0(elem,1) (the byte flag at +0x1a); read nType
+            //   (0x14039d760 over +0x10) and id (0x14039d9d0 over +0x08);
+            //   erase via container->vt[0x28](id); then ONE CMsgAction:
+            //   action 110 (`mov $0x6e`) at wire+0x18 with the element nType in
+            //   the dword7 slot (wire+0x0C) and the remaining helper slots 0.
+            // The packet's arg->offset map was re-derived from FUN_140362620
+            // this wave: body+0x04=edx(id) wire+0x08, body+0x08=7th arg
+            // wire+0x0C, body+0x14=6th arg wire+0x18 (the action word),
+            // body+0x16=5th arg wire+0x1A, body+0x18=r8d wire+0x1C,
+            // body+0x1A=r9d wire+0x1E.
+            // The container is walked in REVERSE, so collect the types first.
+            std::vector<uint32_t> order;
+            for (const auto& kv : p.weapon_skills) order.push_back(kv.first);
+            std::reverse(order.begin(), order.end());
+            int reset = 0;
+            for (uint32_t wt : order) {
+                auto it = p.weapon_skills.find(wt);
+                if (it == p.weapon_skills.end()) continue;
+                Player::WeaponSkillState& sk = it->second;
+                if (sk.level < sk.old_level) sk.old_level = sk.level;  // only then
+                const bool was_unlearn = (sk.old_level != 0);          // +0x1a flag
+                (void)was_unlearn;
+                active_db()->mark_weapon_skill_unlearned(p.id, wt);    // unlearn=1
+                // wire+0x1C/+0x1E (r8d/r9d) and wire+0x1A (5th arg) are NOT
+                // resolved at the call site, so they are written 0 rather than
+                // filled with a guess.
+                Packet pk = build_action_10010(p.id, wt, 110, 0, 0, 0);
+                if (p.session) p.session->send(pk);
+                std::printf("[action] %u 1043 skill %u level %u old %u -> "
+                            "erase + 10010 action 110\n",
+                            p.id, wt, (unsigned)sk.level, (unsigned)sk.old_level);
+                p.weapon_skills.erase(it);
+                ++reset;
+            }
+            std::printf("[action] %u 1043 reset %d weapon skill(s) -> id_next\n",
+                        p.id, reset);
+            cur = a->id_next;
+            break;
+        }
+        case 1046: {  // v127: CMsgAction 126 to self carrying the `data` column
+            // Body 0x140135599: 0x140362560 ctor, `call *0x10(%rax)` with edx=4
+            // (the action's data cell - the same idiom as 1096), then
+            // `mov $0x7e,%eax` (0x140135601) = action 126 into FUN_140362620, and
+            // the data value lands in the dword7 slot = wire+0x0C.
+            Packet pk = build_action_10010(p.id, a->data, 126, 0, 0, 0);
+            if (p.session) p.session->send(pk);
+            std::printf("[action] %u 1046 10010 action 126 data %u -> id_next\n",
+                        p.id, a->data);
+            cur = a->id_next;
+            break;
+        }
         case 1052: {  // v126: the original router sends this type to DEFAULT
             // PROVEN: byte_map[0x13aa9c + (1052-1001)] = 0xbb, and case 0xbb's body
             // is 0x14013a751 = the switch default (the same body 1059 resolves to).

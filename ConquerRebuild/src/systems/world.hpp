@@ -105,6 +105,7 @@ struct Player {
         uint32_t type = 0;
         uint8_t  level = 0;
         uint32_t exp = 0;
+        uint8_t  old_level = 0;   // v127: cq_weapon_skill.old_level (1043)
         bool    dirty = false;
     };
     std::unordered_map<uint32_t, WeaponSkillState> weapon_skills;

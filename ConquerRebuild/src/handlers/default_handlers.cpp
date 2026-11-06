@@ -908,6 +908,7 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
                 for (const auto& wsr : active_db()->load_weapon_skills(rec.id)) {
                     Player::WeaponSkillState ws;
                     ws.type = wsr.type; ws.level = wsr.level; ws.exp = wsr.exp;
+                    ws.old_level = wsr.old_level;
                     p.weapon_skills[wsr.type] = ws;
                 }
                 // v110: cq_achievement row (point + the 13 bitmask fields)

@@ -791,4 +791,9 @@ the port) is what needs fixing.
   via container vt+0x28(elem id), CMsgAction action 110 to self - packet field map still UNKNOWN so
   only the state half is portable. 1046 = action 126 + data cell; 1041 = vt+0x150(2105) on an
   unidentified object. 1557 blocked on naming CUser+0xe78.
+- v127: **1043 and 1046 ported** (action 110 per weapon skill with nType at wire+0x0C; action 126
+  with the data column). The CMsgAction builder map is now proven in
+  `docs/cmsgaction_10010_map.md` (6th arg = action -> wire+0x18, 5th = "field 38" -> wire+0x1A,
+  7th -> wire+0x0C, 8th -> wire+0x14). `cq_weapon_skill.old_level` now loads into the player and
+  `mark_weapon_skill_unlearned` retires a skill row.
 

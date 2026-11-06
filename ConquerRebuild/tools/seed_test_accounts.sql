@@ -1860,3 +1860,32 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020202,'FlagSage3',0,5000,1002,437,336,99020370,''),
   (99020203,'FlagSage4',0,5000,1002,437,337,99020374,''),
   (99020204,'FlagSage5',0,5000,1002,437,338,99020378,'');
+
+-- ===========================================================================
+-- v127: 1043 (weapon-skill unlearn reset) and 1046 (CMsgAction 126).
+-- Fixture band: chains 99020390-99020409, npc 99020210-99020211,
+-- char cq_user 90 / acc 100090, weapon skills 421 (level<old) and 422.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020390 AND 99020409;
+DELETE FROM cq_npc WHERE id BETWEEN 99020210 AND 99020211;
+DELETE FROM cq_weapon_skill WHERE owner_id=90;
+INSERT INTO accounts (id,name,password,type,enabled,banned) VALUES
+  (100090,'V127Skills','test123',0,0,0)
+  ON DUPLICATE KEY UPDATE password=VALUES(password);
+INSERT INTO cq_user (id,account_id,name,lookface,hair,life,mana,recordmap_id,
+                     recordx,recordy,level,profession) VALUES
+  (90,100090,'V127Skills',100003,15,2000,1500,1002,437,340,130,10)
+  ON DUPLICATE KEY UPDATE lookface=100003, hair=15, life=2000, mana=1500,
+    recordmap_id=1002, recordx=437, recordy=340, level=130, profession=10,
+    metempsychosis=0, exp=0;
+INSERT INTO cq_weapon_skill (type,level,exp,old_level,owner_id,unlearn) VALUES
+  (421,5,100,9,90,0),   -- old_level 9 > level 5 -> 1043 must lower it to 5
+  (422,7,100,7,90,0);   -- equal -> untouched
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020390,1043,0,'',99020391,0),
+  (99020391,101,0,'v127-1043-ok',0,0),
+  (99020392,1046,777,'',99020393,0),
+  (99020393,101,0,'v127-1046-ok',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020210,'SkillSage',0,5000,1002,437,340,99020390,''),
+  (99020211,'SkillSage2',0,5000,1002,437,341,99020392,'');

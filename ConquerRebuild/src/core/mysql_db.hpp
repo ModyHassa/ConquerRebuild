@@ -85,6 +85,7 @@ public:
     std::vector<MagicTypeRecord> load_magictypes() override;
     std::vector<MagicTypeOpRecord> load_magictypeop() override;  // v121
     std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t player_id) override;
+    void mark_weapon_skill_unlearned(uint32_t player_id, uint32_t type) override;
     void save_weapon_skill(uint32_t player_id,
                            const WeaponSkillRecord& r) override;
     std::vector<MagicRecord> load_player_magics(uint32_t player_id) override;

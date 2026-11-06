@@ -1952,3 +1952,24 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   `edi` comes from `CUser+0xe78` via two thunks and that field's identity is UNKNOWN, so it stays
   unported too - the predicate itself (`u1 <= today`) is portable once `+0xe78` is named.
 
+### v127 — 1043 and 1046 PORTED; the CMsgAction builder map is now proven
+- **`docs/cmsgaction_10010_map.md`**: every store of `FUN_140362620` read instruction by
+  instruction. The action word is the **6th argument -> wire+0x18**, the "field 38" slot of the
+  earlier notes is really the **5th argument -> wire+0x1A**, the first payload dword is the **7th
+  argument -> wire+0x0C**, and the 8th argument -> wire+0x14 overwrites the second tick. This
+  settles the question that blocked 1043/1046 (and lets 1650/1511/1652/1654 be placed later).
+- **1043 ported**: reverse walk of the player's `cq_weapon_skill` set; `old = old_level`,
+  `level = level`; **only when level < old** the old_level becomes level; the +0x1a flag is set and
+  persisted as `cq_weapon_skill.unlearn = 1` (the loader already filters `unlearn = 0`, so the row
+  is retired exactly like the original's erase); one CMsgAction **action 110** per skill with the
+  element **nType at wire+0x0C** goes to that client. The unproven slots (wire+0x1A/+0x1C/+0x1E)
+  are written **0** rather than filled with a guess.
+- **1046 ported**: CMsgAction **action 126** to self carrying the action's `data` column at
+  wire+0x0C.
+- New DB surface: `WeaponSkillRecord.old_level`, `Player::WeaponSkillState.old_level` (loaded at
+  login from `cq_weapon_skill.old_level`) and `IDatabase::mark_weapon_skill_unlearned(player, type)`
+  (MySQL UPDATE + MemoryDB stub).
+- New test `tests/test_actions_v127.py` (4 checks green): one action 110 per skill carrying 421/422,
+  and action 126 carrying data 777. Fixture V127Skills = cq_user 90 / acc 100090 with skills 421
+  (level 5, old 9) and 422 (level 7, old 7); after the run both rows have `unlearn=1`.
+

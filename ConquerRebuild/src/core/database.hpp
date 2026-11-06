@@ -83,7 +83,8 @@ struct CombatStats {
 // cq_weapon_skill_up: exp required to reach 'level' for a weapon type
 struct WeaponSkillUpRecord { uint32_t type; uint32_t level; uint32_t req_exp; };
 // cq_weapon_skill row per player+type
-struct WeaponSkillRecord { uint32_t type; uint8_t level; uint32_t exp; };
+struct WeaponSkillRecord { uint32_t type; uint8_t level; uint32_t exp;
+                           uint8_t old_level = 0; };  // v127: cq_weapon_skill.old_level
 
 // Auth-side account row (original: SELECT * FROM accounts WHERE id=@id).
 struct AccountRecord {
@@ -280,6 +281,9 @@ public:
     // per player: "SELECT type,level,exp FROM cq_weapon_skill
     // WHERE owner_id=%u"
     virtual std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t player_id) = 0;
+    // v127 (action 1043): flip cq_weapon_skill.unlearn to 1 for one type.
+    virtual void mark_weapon_skill_unlearned(uint32_t player_id,
+                                             uint32_t type) = 0;
     // save on disconnect (original: record pool UPDATE; new rows INSERT)
     virtual void save_weapon_skill(uint32_t player_id,
                                    const WeaponSkillRecord& r) = 0;
@@ -445,6 +449,7 @@ public:
     std::vector<MagicTypeRecord> load_magictypes() override { return {}; }
     std::vector<MagicTypeOpRecord> load_magictypeop() override { return {}; }
     std::vector<WeaponSkillRecord> load_weapon_skills(uint32_t) override { return {}; }
+    void mark_weapon_skill_unlearned(uint32_t, uint32_t) override {}
     void save_weapon_skill(uint32_t, const WeaponSkillRecord&) override {}
     std::vector<MagicRecord> load_player_magics(uint32_t) override { return {}; }
     void save_magic(uint32_t, const MagicRecord&) override {}

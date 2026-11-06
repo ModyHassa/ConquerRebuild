@@ -1011,7 +1011,7 @@ std::vector<WeaponSkillRecord> MySQLDatabase::load_weapon_skills(uint32_t player
     std::lock_guard<std::mutex> lk(mtx_);
     char sql[256];
     std::snprintf(sql, sizeof(sql),
-        "SELECT type,level,exp FROM cq_weapon_skill "
+        "SELECT type,level,exp,old_level FROM cq_weapon_skill "
         "WHERE owner_id=%u AND unlearn=0", player_id);
     if (!exec(sql)) return out;
     MYSQL_RES* res = mysql_store_result(conn_);
@@ -1023,6 +1023,8 @@ std::vector<WeaponSkillRecord> MySQLDatabase::load_weapon_skills(uint32_t player
         r.type  = (uint32_t)std::strtoul(row[0], nullptr, 10);
         r.level = row[1] ? (uint8_t)std::strtoul(row[1], nullptr, 10) : 0;
         r.exp   = row[2] ? (uint32_t)std::strtoul(row[2], nullptr, 10) : 0;
+        r.old_level = (row[3] && row[3][0])
+                      ? (uint8_t)std::strtoul(row[3], nullptr, 10) : r.level;
         out.push_back(r);
     }
     mysql_free_result(res);
@@ -1046,6 +1048,17 @@ void MySQLDatabase::save_weapon_skill(uint32_t player_id,
         "INSERT INTO cq_weapon_skill (type,level,exp,old_level,owner_id,unlearn) "
         "VALUES (%u,%u,%u,%u,%u,0)",
         r.type, (unsigned)r.level, r.exp, (unsigned)r.level, player_id);
+    exec(sql);
+}
+
+void MySQLDatabase::mark_weapon_skill_unlearned(uint32_t player_id,
+                                               uint32_t type) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[256];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_weapon_skill SET unlearn=1 WHERE owner_id=%u AND type=%u",
+        player_id, type);
     exec(sql);
 }
 
