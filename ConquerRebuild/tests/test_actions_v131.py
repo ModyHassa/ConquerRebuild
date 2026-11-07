@@ -15,6 +15,7 @@ Fixtures (Chainz = cq_user 1000012, god_status reset to 0 by the seed):
   GodSage  99020233 -> 99020480 "+= 5" -> 99020481 "< 6" -> ok/fail
   ChkSage  99020234 -> 99020487 "junk 7" -> fail branch must win
   Chk2Sage 99020235 -> 99020484 "chk 1"  -> bitmap 0x1B clear, so fail
+  GrantSage 99020239 -> 99020500 (1096 grants status 27) then 1083 "chk 1" -> true
 """
 import socket, struct, subprocess
 
@@ -103,6 +104,11 @@ s3 = login()
 t = texts(click(s3, 99020235))
 check('v131-chk1-fail' in t and 'v131-chk1-ok' not in t,
       f'"chk 1" is false while status bitmap 0x1B is clear ({t})')
+
+s4 = login()
+t = texts(click(s4, 99020239))
+check('v131-chk1-true' in t and 'v131-chk1-false' not in t,
+      f'"chk 1" turns true once 1096 granted status 27 (0x1B) ({t})')
 
 print()
 if fails:

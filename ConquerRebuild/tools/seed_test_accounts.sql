@@ -1980,3 +1980,18 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020237,'PredSage',0,5000,1002,437,351,99020493,''),
   (99020238,'RangeSage',0,5000,1002,437,352,99020496,'');
 UPDATE cq_user SET last_logout_3=26110312 WHERE id=90;
+
+-- ===========================================================================
+-- v131 check: 1083's "chk 1" must see status bitmap 0x1B once 1096 grants it.
+-- Fixture band: chains 99020500-99020509, npc 99020239.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020500 AND 99020509;
+DELETE FROM cq_npc WHERE id = 99020239;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020500,1096,27,'0 0 90 0 0 0',99020501,99020509),
+  (99020501,1083,0,'chk 1',99020502,99020503),
+  (99020502,101,0,'v131-chk1-true',0,0),
+  (99020503,101,0,'v131-chk1-false',0,0),
+  (99020509,101,0,'v131-grant-failed',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020239,'GrantSage',0,5000,1002,437,353,99020500,'');
