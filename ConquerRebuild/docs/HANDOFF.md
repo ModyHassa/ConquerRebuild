@@ -904,4 +904,9 @@ and re-run it on its own before investigating.
 - v138: `0x1401742b0` (1078/1079's credit call) has **no strings and no SQL** - two singleton lookups
   and two `vt[0x98]` calls only, so the emoney family is an **item hand-over**, not a money UPDATE.
   Blocked on the singleton + `vt[0x98]`. 1110 = `"%d %u %u %u %d %u %u"` then `0x140087790` (unnamed).
+- v139: **1082 = timed self status**: grammar `"%s %s %u %d %d %d"` with tokens
+  `team|couple|mate|self` + `add|chk`; real data is 51x `self add <status> 200 <seconds> 0` and 1x
+  `self del`, so only the self branch matters. **`cq_user.mateid`** is the only couple column in the DB
+  (no couple table) for the unused mate/couple branches. Last unknown = what `add` does (manager slot +
+  packet); that is the only step left for 52 rows.
 

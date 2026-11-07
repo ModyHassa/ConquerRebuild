@@ -2280,3 +2280,16 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - **1110** (6 rows) format pinned: `0x14070f6e0` = `"%d %u %u %u %d %u %u"` (7 fields), then the manager
   getter plus `0x140087790` (no literals, no direct calls in its first 0x170 bytes). BLOCKED.
 
+### v139 — 1082 (52 rows) is `self add <status> 200 <seconds> 0`, and the couple column is `cq_user.mateid`
+- Body `0x14012f025` parses `"%s %s %u %d %d %d"` (two tokens + four numbers) and `strcmp`s the tokens
+  against exactly **`team` / `couple` / `mate` / `self`** and **`add` / `chk`** (+ `del` seen in data).
+- **Real data**: of the 52 rows, **51 are `self add`** and 1 is `self del` - the `team`/`couple`/`mate`
+  and `chk` branches are never used by this database. Every `self add` carries the constant field
+  **200** and a duration in seconds (`self add 2 200 10 0` ... `self add 7 200 3600 0`), i.e. a
+  **timed self status/effect**.
+- Schema confirmation: **`cq_user.mateid` INT UNSIGNED DEFAULT 0** is the only mate/couple column in the
+  entire DB (there is no couple/spouse table) - that is what the unused `mate`/`couple` branches would
+  touch.
+- Remaining step for these 52 rows: the *effect* of `add` (which manager/slot gets (status, 200, secs)
+  and what packet goes out). Everything else about the action is now measured, not guessed.
+
