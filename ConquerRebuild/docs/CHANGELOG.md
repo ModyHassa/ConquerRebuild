@@ -2132,4 +2132,6 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   - the 1000-ladder has several "single CUser method" actions, so a future wave should identify
   those callees in bulk rather than one type at a time.
 - No source change this wave (suite remains 96/96 from v133).
+- Suite verification after v133c: 95/96 with one `test_drops` failure that **passes on re-run**
+  (the test is statistical - 3% per kill over 321 kills). Recorded in HANDOFF as known flakiness.
 

@@ -845,3 +845,7 @@ the port) is what needs fixing.
   create path it needs already exists. 1023 = a single call to `0x140172910` (identify the
   1000-ladder's single-call callees in bulk next time).
 
+
+NOTE (v133c): `tests/test_drops.py` is statistical (3% drop chance over 321 kills). It failed once in
+a full suite run and passes on an immediate re-run, so treat a lone `test_drops` failure as flakiness
+and re-run it on its own before investigating.
