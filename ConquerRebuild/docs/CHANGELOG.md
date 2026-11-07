@@ -2401,3 +2401,25 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   the COL pointer scan must use `image_base + RVA` for a PE32+ vtable.
 - Reports: `docs/worker_v142_lottery.md`, `docs/worker_v145_1109.md`. No engine change this wave.
 
+### v146 — 403 read from the decompiled source: the full item-only branch, and 1509 fully resolved
+- **403 is `FUN_1401199d0` = `CGameAction::ProcessActionItemOnly`** (decompiled `MsgServer.c:207577`, the
+  403 branch at 207778). Entire branch transcribed into `docs/worker_v146_403_itemonly.md`: the
+  `pszAccept` guard, `sscanf(pszAccept,"%d %d %d %d %d")` (>=3 = the **target cell**), the walkable gate
+  `0x1402c3cc0`, the "no NPC 0x1040 already here" gate `0x1402c8370`, the **22-field** action param
+  (`"%s %d ... %s"`, >=5 required, last `%s` memmoved 15 bytes into the info struct), the home-ownership
+  pair (`FUN_1401194e0(map)` + `map[0x58]->vt[0x10](5) == user id`) for kinds 4/0x19/0x65, the
+  `STR_DISABLE_LAY_SYNTRANS` path for kind 0xf on a bit-6 map, the 4-way owner select (0 / own id / map
+  owner / assert `!"OWNER_NPC"`), and `CNpc::Create` = `0x1402c2390(npcMgr, ctx[0x48], &info, itemType)`
+  followed by `npcMgr->vt[0x28](npc)` and the new id written to `CUser+0x146 dwords`.
+  **Still BLOCKED on the 0x6c-byte info struct layout** (22 params -> offsets) and three unnamed helpers.
+- **1509 fully resolved, and my own disassembly corrects the frame**: the dispatch is on the **sscanf
+  conversion COUNT**, not on a field value. `0x140136f90 mov edi,eax` (the count) then `test eax,eax; jg`,
+  `cmp edi,0x1; je`, `cmp edi,0x4; jle` (DBERROR), `cmp edi,0x6; jg` (DBERROR). Destination order is
+  `f1=[rsp+0x27c] f2=[0x2b0] f3=[0x2ac] f4=[0x3c4] f5=[0x36c] f6=[0x2a8]` (from the lea block), and the
+  5/6-token call is `0x1401c7c60(user, f1, f2, f3, f5, f4)` - so count==1 = a random cell on map f1,
+  count 5..6 = a random cell in the rect (f2,f3)+(f5,f4), count 0 = the current map, counts 2..4 and >6 =
+  DBERROR. The shipped rows match exactly (`1011` / `3029` / `1028` = one token; `1002 263 265 3 3` and
+  `1036 210 210 5 5` = five tokens). **New blocker recorded**: both helpers need terrain obstacle data
+  (`0x1402c3cc0` = `terrain(x,y)==0`) plus the map-enter gate `0x1401a4030(user,map)`; the rebuild has no
+  terrain loader and its 1107 port only checks `map_exists`, so 1509 waits on a map-cell subsystem.
+

@@ -944,4 +944,12 @@ and re-run it on its own before investigating.
   **1508** is the lottery forward (Lottery.dll CProvider vtable 0x141539ab8, only slot +0x00, forwarding to
   `[provider+0x10]->vt[+0x8]` = the one remaining unknown). **1109 = TeamMgr->vt[0x30](player id) != 0**,
   blocked only on naming CTeamMgr slot 0x30 (vtable hunt needs `image_base + RVA`).
+- v146: **403's whole `ProcessActionItemOnly` branch is transcribed** (`docs/worker_v146_403_itemonly.md`):
+  `pszAccept` = the target cell (>=3 ints) and the action param is the 22-field grammar (>=5 required);
+  gates = walkable cell, no NPC 0x1040 there, home ownership for kinds 4/0x19/0x65, `STR_DISABLE_LAY_SYNTRANS`
+  for kind 0xf on a bit-6 map, and `CNpc::Create` = 0x1402c2390(npcMgr, ctx[0x48], &info, itemType) then
+  npcMgr->vt[0x28](npc) and the id to CUser+0x146 dwords. **Next step for 403 = the 0x6c info-struct
+  layout** (22 params -> offsets) from the disassembly around the two sscanf sites, then the port (93 rows).
+  **1509 is fully resolved** (dispatch is on the sscanf conversion count; count==1 = random cell on map f1,
+  count 5/6 = rect (f2,f3)+(f5,f4)) but blocked on terrain obstacle data + the `0x1401a4030` map-enter gate.
 
