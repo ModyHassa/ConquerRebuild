@@ -2440,3 +2440,16 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   documents are supplied** - this is a missing-data problem, not a missing-code problem, and it also
   means 1107 stays unfaithful (it only checks `map_exists`).
 
+### v148 — Team.dll vtable extraction method recorded; CTeamMgr identified as one of 12 candidates
+- Established the reusable extraction: MSVC ctors write the vtable with `lea rax,[rip+X]` + `mov [reg],rax`,
+  so scanning back from every such `mov` yields the vtable addresses. Team.dll (image base 0x1418e0000)
+  exposes **12** candidates: `0x1418fb970`(19), `0x1418f9638`(12), `0x1418f9338`(6), `0x1418f96c8`(6),
+  `0x1418f9b80`(6), `0x1418fba50`(5), `0x1418fbb90`(5), `0x1418fbcb0`(5), `0x1418fbdf0`(5),
+  `0x1418f95a8`(4), `0x1418fa2e0`(4), `0x1418f9a48`(3).
+- Ruled out `0x1418f9338` (10 slots, COL 0x1418fbef0; its +0x30 is the stub `xor eax,eax; ret`). Recorded
+  the exact remaining step: the caller's object has slots to +0x220, so the walk must tolerate the
+  non-code qwords sitting between slots (e.g. `0x1418f9638` has `0x219930522`, `0x1cb4c`, `0x300000000`
+  after slot 2) and the candidate whose `+0x30` is a `(this, userId) -> setne al` predicate is CTeamMgr.
+  That read unblocks **1109 (5 rows)** and opens 1102's `count` branch (5 rows).
+- Report: `docs/worker_v148_teammgr_vtable.md`. No engine change (nothing was promoted past verified).
+

@@ -963,4 +963,10 @@ and re-run it on its own before investigating.
   (`cq_map.mapdoc` is just an int, no `.map` file anywhere) -> **403 (93) and 1509 (9) are blocked on data,
   not code**; 1107 also stays unfaithful. Ask the owner for the v6159 map documents before anything else
   touches map cells.
+- v148: Team.dll vtable extraction method + 12 candidate vtables recorded
+  (`docs/worker_v148_teammgr_vtable.md`); `0x1418f9338` ruled out (its +0x30 is `xor eax,eax; ret`). To finish
+  **1109**: walk each candidate tolerating non-code gaps (the caller uses slots to +0x220) and take the one
+  whose `+0x30` is a `(this, userId) -> setne al` predicate. Left untouched and verified-blocked: `1202`
+  (shared with 1102), `1078/1079` delivery target, `1110` construction tail, `224` (`CRoleManager::vt[0xa8]`),
+  `1508` (`[provider+0x10]->vt[+0x8]`), and everything needing map terrain.
 
