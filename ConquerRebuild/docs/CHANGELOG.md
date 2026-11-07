@@ -2335,3 +2335,31 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - No engine code changed this wave (tooling + docs only), so the suite state is the v140 99/99 green run;
   the two preflights (router_audit, packet_id_audit) were re-run and pass.
 
+### v143 — 1202 ported by ALIAS (6 rows), three doc corrections, and the 1102 grammar completed
+- Four decode workers ran in parallel (1102/1202, 1110/1024, 3907/8011/1109, lottery). Their docs files were
+  NOT written before their tool limits, so their verified content was persisted by the coordinator into
+  `docs/worker_v142_1102_1202.md`, `docs/worker_v142_3907_8011_1109.md`, `docs/worker_v142_1110_1024.md`.
+- **1202 is not a new body**: `DAT_14013aa9c[1202-1001] = 0x6e` and `body = image_base + u32[0x14013a7ac+0x6e*4]
+  = 0x1401329bf`, which is exactly the "lastentertime" cooldown gate the rebuild already shipped as case 802.
+  Ported by aliasing `case 1202:` onto `case 802:` (+6 rows: 6033030-6033035, params 7..2, the per-VIP-level
+  labyrinth countdown whose fail row is the "Level N VIPs ... every 7 days" text).
+- **The "shared with 1102" note is retracted**: 1102's body is 0x1401357d2 with `"%s %s %I64d"` and a team
+  container, nothing in common with 1202's `"%d"` + `0x140167070`/`0x1401787e0`.
+- **The trunk claim is retracted**: `ACTION_USER_CHECK_ITEM_IN_TRUNCK fail` (0x14070eaf0) has exactly one
+  reference in .text, at 0x140132bb7, inside case 0x74 = **type 1208** (0 DB rows) - so 1202 was never the
+  trunk check. 1208's body (0x140132b57) is recorded for whoever ports the trunk subsystem.
+- **The v135 jump-table WARNING is retracted**: the byte map and `0x14013a7ac` DO produce the real bodies;
+  v135 used the table address as the base instead of the image base. Verified with `tools/newengine_map.py
+  --anchors` (6/6) plus 1082 -> 0x14012f025 independently.
+- **1102's vocabulary is now complete** (all six literals read): `count`, `money`, `level`, `mate`, `friend`,
+  `istogether`, with the `count` branch fully portable (`count < v` / `== v`). Still BLOCKED on the meaning
+  of the Team module's `vt[0x50]/vt[0x60]/vt[0x180]/vt[0x220]` and of `0x140118800` / `0x140164460`.
+- **3907 = ProcessActionFactionMatch** branch 0x14011c906: `(GetProvider(0x1c=VexillumArenic)
+  ->vt[0x70](guild_id,&out) == DATA-1)`, `param` unused - portable in control flow, but the value needs the
+  VexillumArenic subsystem. **8011 = ProcessActionCrossServer** branch 0x14011ca9b: mode = strtoul(param),
+  mode==1 always false, modes 2/4 gated by `0x809` + `m_pCrossConfig`, then the cross-server transfer -
+  blocked on that transfer subsystem, not on the grammar. Name correction: `FUN_14011c610` (not
+  `FUN_14011bfa0`) is ProcessActionFactionMatch.
+- New fixtures CooldownSage (npc 99020252, chain 99020730-36) and `tests/test_actions_v143.py` (2 checks):
+  the first 1202 passes on an empty stamp and the immediately following 1202 "5" blocks, proving the stamp.
+

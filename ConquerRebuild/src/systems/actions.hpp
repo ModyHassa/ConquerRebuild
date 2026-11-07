@@ -3575,10 +3575,18 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_next;
             break;
         }
-        case 802: {  // v129: the "lastentertime" cooldown gate
-            // Case 0x6e body 0x1401329bf (gameaction.cpp, literal
-            // "ACTION_USER_CHECK_ITEM_IN_TRUNCK fail" is only the shared log
-            // string): sscanf "%d" (>=1 conversions else DBERROR 0x257c),
+        case 802:      // v129: the "lastentertime" cooldown gate
+        case 1202: {   // v143: 1202 ALIASES case byte 0x6e (same body 0x1401329bf)
+            // v143 (independent re-read): DAT_14013aa9c[1202-1001] = 0x6e and
+            // DAT_14013a7ac[0x6e] -> body 0x1401329bf, i.e. 1202 and 802 run the SAME
+            // body, so they share one implementation (6 rows = ids 6033030..6033035,
+            // params 7,6,5,4,3,2 - a per-VIP-level "labyrinth revisit" countdown whose
+            // fail row 6033040 is the "Level N VIPs ... every 7 days" text).
+            // v143 also corrected the old remark: the literal
+            // "ACTION_USER_CHECK_ITEM_IN_TRUNCK fail" is NOT this body's - it is
+            // referenced exactly once, at 0x140132bb7, inside case 0x74 = type 1208.
+            // Case 0x6e body 0x1401329bf: sscanf "%d" (>=1 conversions else DBERROR
+            // 0x257c @0x1401329f1),
             // edi = 0x140167070(user) = the keyed stamp "lastentertime" out of the
             // store at CUser+0x12c0 (its ONLY reader; the only writers are inside
             // 0x1401787e0), then
@@ -3588,7 +3596,7 @@ case 121: {  // random check (ProcessAction case 0x79:
             // and on pass 0x1401787e0(user, now) stores now. No packet, no text.
             int v = 0;
             if (std::sscanf(a->param.c_str(), "%d", &v) < 1) {
-                std::printf("[action] %u 802: param \"%s\" is not %%d "
+                std::printf("[action] %u 1202/802: param \"%s\" is not %%d "
                             "(DBERROR 0x257c) -> id_nextfail\n",
                             p.id, a->param.c_str());
                 cur = a->id_nextfail;
@@ -3598,13 +3606,13 @@ case 121: {  // random check (ProcessAction case 0x79:
             const uint32_t last = p.last_enter_time;
             const uint32_t elapsed = now - last;   // u32 wrap like GetTickCount
             if (last != 0 && (int32_t)elapsed < v) {
-                std::printf("[action] %u 802: elapsed %d < %d -> id_nextfail\n",
+                std::printf("[action] %u 1202/802: elapsed %d < %d -> id_nextfail\n",
                             p.id, (int)elapsed, v);
                 cur = a->id_nextfail;
                 break;
             }
             p.last_enter_time = now;
-            std::printf("[action] %u 802: elapsed %d >= %d, stamp refreshed "
+            std::printf("[action] %u 1202/802: elapsed %d >= %d, stamp refreshed "
                         "-> id_next\n", p.id, (int)elapsed, v);
             cur = a->id_next;
             break;

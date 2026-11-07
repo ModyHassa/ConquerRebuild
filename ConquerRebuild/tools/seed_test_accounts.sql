@@ -2109,3 +2109,21 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020249,'StatusSage',0,5000,1002,437,361,99020710,''),
   (99020250,'BadParamSage',0,5000,1002,437,362,99020717,''),
   (99020251,'ScopeSage',0,5000,1002,437,363,99020720,'');
+
+-- ===========================================================================
+-- v143: 1202 aliases case byte 0x6e = the 802 body (lastentertime cooldown).
+-- Chain: 1202 "1" passes when the stamp is empty and stamps it; the immediate
+-- second 1202 "5" must then FAIL (elapsed < 5), proving the stamp was written.
+-- Fixture band: chains 99020730-99020739, npc 99020252.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020730 AND 99020739;
+DELETE FROM cq_npc WHERE id = 99020252;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020730,1202,0,'1',99020731,99020736),
+  (99020731,101,0,'v143-first-pass',99020732,0),
+  (99020732,1202,0,'5',99020733,99020734),
+  (99020733,101,0,'v143-second-passed',0,0),
+  (99020734,101,0,'v143-second-blocked',0,0),
+  (99020736,101,0,'v143-first-blocked',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020252,'CooldownSage',0,5000,1002,437,364,99020730,'');

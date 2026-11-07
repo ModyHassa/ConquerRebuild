@@ -926,4 +926,11 @@ and re-run it on its own before investigating.
   unported**. 1078/1079's credit call is `GetProvider(CUser+0x1230=db user id) -> provider+0x90 (role)
   -> vt[0x98](value)` twice: a role-level hand-over, no SQL. Only role slot 0x98's owner module and its
   one-int meaning are still unknown.
+- v143: **1202 PORTED as an alias of case 0x6e** (= the 802 body, `DAT_14013aa9c[1202-1001]=0x6e` ->
+  0x1401329bf), +6 rows. Three retractions recorded: 1102 and 1202 share NOTHING; the trunk check belongs
+  to **1208** (0 rows, body 0x140132b57); and the v135 jump-table warning is void (the formula works with
+  the IMAGE BASE, not 0x14013a7ac). 1102's six vocabulary literals are now all read (count/money/level/
+  mate/friend/istogether) - it stays BLOCKED only on the Team module's vtable slots. 3907 (FactionMatch,
+  VexillumArenic vt[0x70] == DATA-1) and 8011 (CrossServer) are grammatically portable but need their
+  provider/cross-server subsystems. Worker reports: docs/worker_v142_*.md.
 
