@@ -985,4 +985,11 @@ and re-run it on its own before investigating.
   (worldkernel.cpp:0x9f), not the GameMap ctor. Next: find the GameMap ctor (stores at +0x58 **and** +0x60 plus
   a CMapData/CTerrainObj allocation), name it with the v150 chain, then port 1509 + 403. Nothing was guessed and
   no engine code changed this wave.
+- v151: **walkability is fully specified** - `walkable(x,y) = 0<=x<width && 0<=y<height && cell_attr(x,y)==0`
+  with `[GameMap+0x60]` exposing width=vt[0x28](), height=vt[0x20](), cells=vt[0x18](x,y); 5 call sites
+  (207813=403, 218998, 219831, 238847, 256418). `CMapData`/`CTerrainObj` have **no COL/vtable** (TD-only,
+  non-polymorphic) so the +0x60 object is a third, still-unnamed class. `.DMap` cell geometry is NOT
+  derivable from the files (path-length-dependent header end 0xea..0xfe, remainders don't factor as w*h) and
+  every file embeds a client `.pul` path -> no parser was written. Next: find the vtable with cell accessors
+  at slots 0x18/0x20/0x28, name it via the v150 chain, read its Load, then port `walkable()` verbatim.
 

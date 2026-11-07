@@ -2483,3 +2483,18 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - **No code changed**: 403/1509 stay BLOCKED rather than being implemented against a guessed cell format
   (the archive's `.DMap` files embed CLIENT `.pul` paths, which is evidence they are not the server format).
 
+### v151 — walkability read instruction-by-instruction; map-data classes have no vtable; .DMap geometry underivable
+- **`0x1402c3cc0` disassembled end to end**: `walkable(x,y) = 0<=x<width && 0<=y<height &&
+  cell_attr(x,y)==0`, with `[GameMap+0x60]` owning **width = vt[0x28]()**, **height = vt[0x20]()** (note the
+  inverted-looking slots) and **cells = vt[0x18](x,y)**. Five call sites found (403's gate at 207813 plus
+  218998, 219831, 238847, 256418), so it is a shared primitive worth porting on its own.
+- **Measured negative**: `CMapData` (TD rva 0x970d30) and `CTerrainObj` (0x970eb0) have **no
+  RTTICompleteObjectLocator anywhere** in MsgServer.exe, and `CMapStaticData` has no TD at all - they are
+  non-polymorphic structs, so they are NOT the object at `[GameMap+0x60]`. Those RTTI names exist only in
+  MsgServer.exe and NpcServer.exe (no DLL).
+- **`.DMap` geometry is not derivable**: after the header, the first non-zero byte sits at a
+  path-length-dependent offset (0xea/0xf6/0xf7/0xfe) and the remaining sizes do not factor as width*height
+  for 1/2/4-byte cells, and every file embeds a CLIENT `.pul` path. No parser was written - that would be
+  inventing the format. Next probe recorded: find the vtable whose slots 0x18/0x20/0x28 have the cell
+  accessors' signatures, name it with the v150 chain, then read its `Load`.
+
