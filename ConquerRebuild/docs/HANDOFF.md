@@ -969,4 +969,12 @@ and re-run it on its own before investigating.
   whose `+0x30` is a `(this, userId) -> setne al` predicate. Left untouched and verified-blocked: `1202`
   (shared with 1102), `1078/1079` delivery target, `1110` construction tail, `224` (`CRoleManager::vt[0xa8]`),
   `1508` (`[provider+0x10]->vt[+0x8]`), and everything needing map terrain.
+- v149 (owner supplied the archive): **map data found** - `Source/map/` inside Conquer_Online_Source_v6159.7z
+  holds **187 `.DMap` (395 MB)** + 267 per-map `.7z` + `mapobj/*.dds`. Header measured: variant tag
+  (1004/1003/ASCII) + 0 + NUL-terminated `map\...\<Name>.pul` path + zero pad + cells (`docs/worker_v149_mapdata_found.md`).
+  `MsgServer.exe` and every DLL have NO `.DMap`/`.pul`/`map\` literal, so the server loader + the
+  `cq_map.mapdoc -> file` mapping must be found via the map object `[GameMap+0x60]->vt[0x18](x,y)` (the
+  walkability slot in 0x1402c3cc0). Then: `src/systems/mapdoc.hpp walkable(x,y)` -> port 1509 (9 rows) and
+  403 (93 rows) -> make 1107 faithful. Extract with
+  `7z x -y -o/tmp/mapsrc Conquer_Online_Source_v6159.7z "Source/map/*"`.
 

@@ -2453,3 +2453,17 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   That read unblocks **1109 (5 rows)** and opens 1102's `count` branch (5 rows).
 - Report: `docs/worker_v148_teammgr_vtable.md`. No engine change (nothing was promoted past verified).
 
+### v149 — map data located: 187 .DMap documents (395 MB) inside Conquer_Online_Source_v6159.7z
+- The owner pointed at the same archive, and `Source/map/*` had never been extracted. It contains **187
+  `.DMap`** map documents (395 MB) plus 267 per-map `.7z` packs and `Source/map/data/map/mapobj/*.dds`
+  textures. Measured header (`docs/worker_v149_mapdata_found.md`): `[u32 variant tag 1004|1003|ASCII]`,
+  `[u32 0]`, NUL-terminated client path (`"map\puzzle\09Christmas02.pul"`), zero pad, then cell data;
+  23 files use an older header-less variant.
+- **Not guessed**: `MsgServer.exe` has no `.DMap`/`.pul`/`map\` literal and no DLL in `Source/` has one
+  either (only the client `Conquer.exe` mentions `.pul`), and `cq_map.name` does not match the file names
+  1:1 (`CentralPlain` vs `newplain.DMap`). So the id->file mapping and the server-side loader must be
+  located through the map object `[GameMap+0x60]->vt[0x18](x,y)` used by `0x1402c3cc0`, not inferred.
+- Recorded the exact 3-step plan: find the loader/vtable -> write `src/systems/mapdoc.hpp walkable(x,y)` ->
+  port 1509 (9 rows, dispatch resolved in v146) and 403 (93 rows, gates + 0x6c struct measured in v146) and
+  make 1107 honour walkability.
+
