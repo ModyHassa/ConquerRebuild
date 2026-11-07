@@ -901,4 +901,7 @@ and re-run it on its own before investigating.
   meaning of those two flag bytes, that vtable work, and `0x1402bfa5c`'s return value. ALSO: re-verify
   `0x1002` - v133's 1651 treats it as the player with `vt+0x50` = level, but `+0x154` on the same class
   is read as seconds elsewhere; do not trust that branch until it is settled.
+- v138: `0x1401742b0` (1078/1079's credit call) has **no strings and no SQL** - two singleton lookups
+  and two `vt[0x98]` calls only, so the emoney family is an **item hand-over**, not a money UPDATE.
+  Blocked on the singleton + `vt[0x98]`. 1110 = `"%d %u %u %u %d %u %u"` then `0x140087790` (unnamed).
 

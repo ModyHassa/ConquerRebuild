@@ -2270,3 +2270,13 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   inconsistency is not resolved, so 1651's value branch and any 1654 port must not be called faithful
   until `0x1002` and `vt+0x50` are re-verified.
 
+### v138 — 1078/1079's credit call has no SQL (the money hypothesis is contradicted twice); 1110's format pinned
+- `0x1401742b0` (the one call 1078/1079 were blocked on) contains **no .rdata literal at all** - no
+  table, column or log string - just two singleton lookups (`0x140008520`) and **two `vt[0x98]`**
+  object calls with no persistence. That is an in-memory grant shape, and together with the `.rdata`
+  evidence (`nItemCount` in the google checkout log) it rules the "credits emoney_mono" hypothesis out
+  a second time. Still BLOCKED on the singleton identity and the `vt[0x98]` slot, but the family is now
+  narrowed to "hand over items twice".
+- **1110** (6 rows) format pinned: `0x14070f6e0` = `"%d %u %u %u %d %u %u"` (7 fields), then the manager
+  getter plus `0x140087790` (no literals, no direct calls in its first 0x170 bytes). BLOCKED.
+
