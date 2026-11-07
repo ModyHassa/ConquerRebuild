@@ -938,4 +938,10 @@ and re-run it on its own before investigating.
   (module 8) and module 0x16 notifications. **1110 fully parsed, still BLOCKED** on the
   `ActivateNpcPathTask` tail (0x1403a3220/0x1403a13c0/0x1402a7380/0x1402a6490); its team-leader gate
   (`阁下不是队长`) is proven. Also retracted: 0x140087790 IS literal-bearing (m_pNpcPathTaskMgr accessor).
+- v145 (docs/corrections, no code): `0x140008520` = **CMapGroup::GetMapGroup** (stride 0x850), so the
+  v141 "provider getter" note is retracted and `+0x90 -> vt[0x98]` is `m_pUserManager -> GetUserById`.
+  **1509 is a random-cell teleport**, not lottery; **223 is home-subsystem** (`%user_home_id` params);
+  **1508** is the lottery forward (Lottery.dll CProvider vtable 0x141539ab8, only slot +0x00, forwarding to
+  `[provider+0x10]->vt[+0x8]` = the one remaining unknown). **1109 = TeamMgr->vt[0x30](player id) != 0**,
+  blocked only on naming CTeamMgr slot 0x30 (vtable hunt needs `image_base + RVA`).
 

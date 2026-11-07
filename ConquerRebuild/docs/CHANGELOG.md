@@ -2383,3 +2383,21 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - `tests/test_actions_v144.py` (5 checks): the id_next line arrives, cq_user.mateid is cleared, and a
   MeteorTear row is created. Fixture DivorceSage npc 99020253, chain 99020740-45.
 
+### v145 — corrections wave: 0x140008520 is CMapGroup (not a provider), 1509 is a map action, 1109 is a team predicate
+- **CORRECTION to v141**: `0x140008520` is **`CMapGroup::GetMapGroup`** - range check via
+  `CMapGroup::IsValidMapGroupProcessID` (0x1406dc150, mapgroup.h:889) and the array `&g_mapGroups[id]`
+  with **stride 0x850** (0x1400085a1). The v141 note that it returns a per-user provider is wrong. The
+  chain `user+0x1230 -> 0x140008520 -> +0x90 -> vt[0x98](id)` is **mapgroup -> m_pUserManager ->
+  GetUserById**, i.e. a *lookup* (proven again by 1024's CHECKF `m_pUserManager`, 0x1406f3b10), so the
+  1078/1079 "emoney delivery" reading needs re-deriving from that base.
+- **1509 is not lottery**: its body is a random-walkable-cell teleport (`0x1401c7e10` = 1000 attempts of
+  `rand` over the map bounds + `0x1402c3cc0` walkability + `0x1401c55b0`, and `0x1401c7c60` = the same over
+  an offset rectangle), while the actual lottery forward is 1508 -> `GetProvider(10)` = Lottery.dll
+  `CProvider` (vtable 0x141539ab8) whose only working slot (+0x00) forwards to `[provider+0x10]->vt[+0x8]`.
+  **223 is not lottery either**: its params start with `%user_home_id` (home subsystem).
+- **1109 = `TeamMgr->vt[0x30](player_id) != 0`**, a 12-instruction predicate with no parameters
+  (body 0x140136e35, full listing in `docs/worker_v145_1109.md`). BLOCKED on naming CTeamMgr slot +0x30:
+  Team.dll's RTTI gives `.?AVCTeamMgr@team@@` (TD 0x23158, COL 0x1c304) but the vtable was not located -
+  the COL pointer scan must use `image_base + RVA` for a PE32+ vtable.
+- Reports: `docs/worker_v142_lottery.md`, `docs/worker_v145_1109.md`. No engine change this wave.
+
