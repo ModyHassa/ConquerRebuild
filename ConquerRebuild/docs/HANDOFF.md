@@ -952,4 +952,8 @@ and re-run it on its own before investigating.
   layout** (22 params -> offsets) from the disassembly around the two sscanf sites, then the port (93 rows).
   **1509 is fully resolved** (dispatch is on the sscanf conversion count; count==1 = random cell on map f1,
   count 5/6 = rect (f2,f3)+(f5,f4)) but blocked on terrain obstacle data + the `0x1401a4030` map-enter gate.
+- **Highest-value next subsystem (v146 finding): map terrain cells.** `0x1402c3cc0(map,x,y)` (walkable =
+  `terrain(x,y)==0`) gates both **403 (93 rows)** and **1509 (9 rows)** and would make 1107 faithful; the
+  rebuild has no terrain loader. Also measured: 403's 0x6c info struct is the `local_7f8..local_790` block
+  and the 22 param fields are written straight into it in compiled order (see docs/worker_v146_403_itemonly.md §6).
 

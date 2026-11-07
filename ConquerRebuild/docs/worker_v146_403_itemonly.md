@@ -74,3 +74,27 @@ That IF_OK string is the original's own naming of the call, so `FUN_1402c2390` =
 the target cell, action param >=5 of 22), five placement gates, the home-ownership pair, the 4-way owner
 select, and `CNpc::Create(process, &info, itemType)` + `npcManager->vt[0x28](npc)`. The single biggest
 missing piece is the 0x6c struct layout. 93 rows are waiting behind it.
+
+## 6. The 0x6c info struct IS the local block (measured, not guessed)
+`memset(&info,0,0x6c)` covers `local_7f8` down to `local_790`, and the struct is passed as `&local_7f8`
+to `0x1402c2390`. Its field addresses therefore are `base - local`:
+`+0x00 local_7f8` (owner id), `+0x04 local_7f4` (owner kind), `+0x08 local_7f0` (map->vt[0x168]()),
+`+0x10 local_7e8`, `+0x14 local_7e4` (kind), `+0x18 local_7e0`, `+0x1c local_7dc`, `+0x20 local_7d8`,
+`+0x24 local_7d4`, `+0x28 local_7d0`, `+0x2c local_7cc`, `+0x30 local_7c8`, `+0x34 local_7c4`,
+`+0x38 local_7c0`, `+0x3c local_7bc`, `+0x40 local_7b8`, `+0x44 local_7b4`, `+0x48 local_7b0`,
+`+0x4c local_7ac`, `+0x50 local_7a8`, `+0x54 local_7a4`, `+0x58 local_7a0`, `+0x5c local_79c`,
+`+0x60 local_798`, `+0x64 local_794`, `+0x68 local_790` - 0x6c bytes exactly.
+The `sscanf` table assignments (in compiled order, i.e. the 22 format fields after `%s %d`) are
+`local_258, local_7b0, local_7b4, local_7b8, local_7bc, local_7c0, local_7c4, local_7c8, local_7cc,
+local_7d0, local_7d4, local_7d8, local_7dc, local_79c, local_794, local_848, local_798, local_7f4,
+local_7e0, local_790` - i.e. **the 22 fields are written straight into the struct**, in that order.
+Not yet verified against the instruction stream: the `&`-vs-value inconsistency of the decompiler on
+`local_258` (a 256-byte buffer) and `local_790`/`local_79c`/`local_794`/`local_798`.
+
+## 7. The real blocker for both 403 and 1509: map cells
+Gate 5 of 403 (`0x1402c3cc0(map,x,y)`) is the **same** walkability predicate 1509 uses, and it reads the
+terrain cell (`[map+0x60]->vt[0x18](x,y) == 0`). The rebuild has no terrain/obstacle loader at all - its
+1107 (FlyMap) port only checks `map_exists`, and its own source notes "our maps are flat".
+So one subsystem - **map terrain cells** - blocks **403 (93 rows) + 1509 (9 rows)** and makes 1107
+faithful. That makes it the highest-value subsystem in the project right now, ahead of the 0x6c struct.
+
