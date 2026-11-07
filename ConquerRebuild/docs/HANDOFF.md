@@ -849,3 +849,11 @@ the port) is what needs fixing.
 NOTE (v133c): `tests/test_drops.py` is statistical (3% drop chance over 321 kills). It failed once in
 a full suite run and passes on an immediate re-run, so treat a lone `test_drops` failure as flakiness
 and re-run it on its own before investigating.
+- v133d (decode only): `docs/single_call_actions.md` maps the 1000-ladder's single-call actions to
+  their callees: 1023 = `0x140172910` = claim a `cq_bonus` row (`SELECT ... WHERE id_account=%u AND
+  flag=0`, `STR_BAG_FULL` on failure), 1078/1079 = the emoney card pair, plus `0x1401acc30` /
+  `0x1401ad0f0` (two more parameterless bodies, same family). NEXT WAVE: do 1078+1079+the two
+  siblings in ONE build (needs `0x1401742b0` grant + `0x140164640` checksum) and take 1023 with it.
+  For 1654, read the CNpc constructor at `0x14010d435` (it allocates 0x70 and sets +0x68/+0x69) to
+  name `[npc+0x68]`/`[npc+0xb4]`.
+

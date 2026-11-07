@@ -2135,3 +2135,12 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Suite verification after v133c: 95/96 with one `test_drops` failure that **passes on re-run**
   (the test is statistical - 3% per kill over 321 kills). Recorded in HANDOFF as known flakiness.
 
+### v133d — third "single call" action identified (1023 = cq_bonus claim)
+- `docs/single_call_actions.md` now lists the 1000-ladder actions whose whole body is one CUser
+  call, with the callee identified where possible: **1023** = `0x140172910(user)`, which runs
+  `SELECT * FROM cq_bonus WHERE id_account = %u AND flag = 0 LIMIT 1` and reports `STR_BAG_FULL`
+  when it cannot hand over the bonus item; **1078/1079** = the two emoney card operations; and two
+  further parameterless bodies (`0x1401acc30`, `0x1401ad0f0`) that belong to the same family.
+- No source change; suite state unchanged (96/96 from v133, `test_drops` is the known statistical
+  flake and passes on re-run).
+
