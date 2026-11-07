@@ -933,4 +933,9 @@ and re-run it on its own before investigating.
   mate/friend/istogether) - it stays BLOCKED only on the Team module's vtable slots. 3907 (FactionMatch,
   VexillumArenic vt[0x70] == DATA-1) and 8011 (CrossServer) are grammatically portable but need their
   provider/cross-server subsystems. Worker reports: docs/worker_v142_*.md.
+- v144: **1024 PORTED (5 rows)** = divorce: MeteorTear (1088002) insert + chk_sum, STR_DIVORCE, and
+  `UPDATE cq_user SET mateid=0`; returns FALSE only when the player id is 0. Not modelled: the Family.dll
+  (module 8) and module 0x16 notifications. **1110 fully parsed, still BLOCKED** on the
+  `ActivateNpcPathTask` tail (0x1403a3220/0x1403a13c0/0x1402a7380/0x1402a6490); its team-leader gate
+  (`阁下不是队长`) is proven. Also retracted: 0x140087790 IS literal-bearing (m_pNpcPathTaskMgr accessor).
 

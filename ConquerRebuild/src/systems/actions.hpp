@@ -509,6 +509,61 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = a->id_next;
             break;
         }
+        case 1024: {  // v144: DIVORCE (case byte 18, body 0x14012fd3d ->
+            // 0x140173e20(player); returns that routine's own AL). Read end to
+            // end with addresses:
+            //  0x140173e41 player->vt[0x48]() (the player's own id, used below as
+            //             owner_id/player_id) ; ==0 -> return FALSE
+            //  0x140173e7c Root.dll CurrentInstanceGet -> GetModule(8) (Family.dll,
+            //             literal 0x140717468) -> module vt[0x178](id, id)
+            //  0x140173edc 0x140087ed0 = GetModule(0x16=22) -> vt[0x68](id, id)
+            //             [both of these are subsystem notifications whose args
+            //              are proven but whose effects are NOT decoded here]
+            //  0x140173f08 [player+0x1230] -> 0x140008520 (CMapGroup by process
+            //             id) -> CHECKF m_pUserManager (0x1406f3b10, line 0x130)
+            //             -> vt[0x98](player id) = the user object
+            //  0x140174008 INSERT cq_item SET type=%u,owner_id=%u,player_id=%u,
+            //             amount=1,amount_limit=1,position=%d,accumulate_num=1
+            //             with type=0x109a02 = 1088002 (cq_itemtype "MeteorTear"),
+            //             both ids = the player, position=0
+            //  0x14017405c db->vt[0x18] = the new row id, 0x1400fe140(...) = the
+            //             chk_sum value, then UPDATE cq_item SET chk_sum=%u
+            //             WHERE id=%u LIMIT 1
+            //  0x1401740f2 string manager 'STR_DIVORCE' (0x1407175a8) sent to the
+            //             player's client through [+0x10]->vt[0x340]
+            //  0x14017415e if the user lookup returned an object ->
+            //             0x140164300(obj, 0, 'NOMATE_NAME', true); else
+            //  0x1401741a2 UPDATE cq_user SET mateid = %u WHERE id=%u LIMIT 1
+            //             with 0 (the mate link is cleared)
+            //  0x1401741e1 tq::MyLogSave('gmlog/marriage',
+            //             '%u[%s] divorced %u[%s]')
+            //  0x14017428c mov al,1 -> TRUE
+            // The two subsystem notifications (module 8 / module 0x16) are NOT
+            // modelled: their effects are undecoded, and refusing the whole
+            // action for them would drop the proven core below.
+            if (p.id == 0) {
+                std::printf("[action] %u 1024: no player id -> id_nextfail\n",
+                            p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            const uint32_t tear = 1088002u;    // cq_itemtype "MeteorTear"
+            uint32_t nid = active_db()->insert_item(p.id, tear, 1);
+            if (nid != 0 && p.session) {
+                p.session->send(build_item_info_1008(nid, tear, 1, 0, 1));
+                p.session->send(build_item_status_2077(nid, 8, 0, 1, 1));
+            }
+            send_line(6, 0, 0, 0, 0, "STR_DIVORCE");
+            active_db()->execute_sql(
+                "UPDATE cq_user SET mateid = 0 WHERE id=" +
+                std::to_string(p.id) + " LIMIT 1");
+            std::printf("[action] %u 1024 divorced: MeteorTear id=%u, "
+                        "mateid cleared, gmlog/marriage %u[%s] divorced 0[]\n",
+                        p.id, nid, p.id, p.name.c_str());
+            cur = a->id_next;
+            break;
+        }
+
         case 1022: {  // ACTION_LOG (case 0x10):
             // tq::MyLogSave("gmlog/action", param) then continue.
             std::printf("[gmlog/action] %u: %s\n", p.id,

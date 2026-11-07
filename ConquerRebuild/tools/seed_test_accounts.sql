@@ -2127,3 +2127,13 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
   (99020736,101,0,'v143-first-blocked',0,0);
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020252,'CooldownSage',0,5000,1002,437,364,99020730,'');
+
+-- v144: 1024 = divorce (MeteorTear 1088002 + mateid cleared).
+DELETE FROM cq_action WHERE id BETWEEN 99020740 AND 99020749;
+DELETE FROM cq_npc WHERE id = 99020253;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020740,1024,0,'',99020741,99020745),
+  (99020741,101,0,'v144-divorced',0,0),
+  (99020745,101,0,'v144-divorce-failed',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020253,'DivorceSage',0,5000,1002,439,364,99020740,'');

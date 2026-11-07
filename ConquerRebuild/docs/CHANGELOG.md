@@ -2363,3 +2363,23 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - New fixtures CooldownSage (npc 99020252, chain 99020730-36) and `tests/test_actions_v143.py` (2 checks):
   the first 1202 passes on an empty stamp and the immediately following 1202 "5" blocks, proving the stamp.
 
+### v144 — action 1024 ported (5 rows): divorce, with real DB side effects
+- **1024 read end to end** (body 0x14012fd3d -> 0x140173e20): the action takes no parameters and is
+  `CUser::Divorce`. It inserts one `cq_item` of type **0x109A02 = 1088002 (cq_itemtype "MeteorTear")**
+  (owner/player = the player, amount 1, position 0) and stamps its `chk_sum` (value from 0x1400fe140),
+  sends **STR_DIVORCE**, clears the mate link with `UPDATE cq_user SET mateid = 0 WHERE id=%u LIMIT 1`,
+  writes `gmlog/marriage` `%u[%s] divorced %u[%s]`, and returns TRUE. FALSE only when the player's own id
+  is 0. It also calls `GetModule(8)` (Family.dll) `vt[0x178]` and `GetModule(0x16)` `vt[0x68]` - args
+  proven, effects undecoded, so those two notifications are **not modelled**.
+- Implemented as `case 1024` (MeteorTear through `IDatabase::insert_item`, STR_DIVORCE via the
+  `send_line` token convention used for STR_DIE, the `mateid` UPDATE, the gmlog line).
+- **1110 is now fully parsed but still BLOCKED on one tail**: fmt `"%d %u %u %u %d %u %u"` (>=6
+  conversions), fields proven by literal 0x14070f660 (f2 monster type, f3 npc path, f4 task id, f6 check
+  action - and `cq_monstertype 2493 = Merchant` pins f2), gates f2/f3/f4/f6 != 0, then a **direct** call
+  into `CNpcPathManager::ActivateNpcPathTask` (0x1402a74b0, literals 0x140740880/0x1407407f0) whose team
+  leader gate (`阁下不是队长…`) and task construction tail (0x1403a3220 / 0x1403a13c0 / 0x1402a7380 /
+  0x1402a6490) are not decoded. The v138 note that 0x140087790 is literal-free is retracted: it is a
+  0x41-byte CHECKF accessor returning `mapgroup+0x230 m_pNpcPathTaskMgr`.
+- `tests/test_actions_v144.py` (5 checks): the id_next line arrives, cq_user.mateid is cleared, and a
+  MeteorTear row is created. Fixture DivorceSage npc 99020253, chain 99020740-45.
+
