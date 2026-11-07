@@ -1014,4 +1014,11 @@ and re-run it on its own before investigating.
   `.DMap` are editor/client docs, the server map documents are NOT in the archive. 403 (93 rows) + 1509 (9)
   therefore stay BLOCKED on DATA only. Way forward: get the v6159 server map documents, or generate fixture
   maps with the verified layout for tests (labelled as generated).
+- v155: **TERRAIN PORTED AS CODE** - `src/systems/mapdoc.hpp` implements `CMapStaticData::load()` exactly
+  (8B skip, 260B name, square u32 dims, `width*height` 4-byte cells from `{u16 mask, u16 skipped, u16 sur}`,
+  4B row trailer, `u32 n` + `n*12` tail) with the original's three log strings verbatim, plus `valid()`
+  (0x14056ab10), `index()=width*y+x` (0x14056ab30), `cell()` (0x1405623a0, **OOB == 1**) and `walkable()`
+  (0x1402c3cc0). The in-range attribute stays **UNKNOWN** (the `+0x1c0` map filler is not in the binary) so
+  the port returns `kUnknownAttribute(-1)` rather than a guess; 403/1509 remain BLOCKED on the original map
+  documents. `tests/mapdoc_unit_test.cpp` (generated fixture, labelled) is the 102nd suite test -> **102/102**.
 

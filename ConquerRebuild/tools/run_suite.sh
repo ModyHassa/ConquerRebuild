@@ -68,3 +68,12 @@ else
   echo "FAIL lua_unit"
   tail -5 /tmp/lua_unit.out 2>/dev/null
 fi
+
+# ---- wave v155: terrain reader (verified server map-file layout, docs/worker_v154) ----
+if g++ -std=c++17 -O1 -Isrc -o /tmp/mapdoc_unit tests/mapdoc_unit_test.cpp 2>/tmp/mapdoc_unit.build \
+   && /tmp/mapdoc_unit > /tmp/mapdoc_unit.out 2>&1; then
+  echo "PASS mapdoc_unit"
+else
+  echo "FAIL mapdoc_unit"
+  tail -8 /tmp/mapdoc_unit.build /tmp/mapdoc_unit.out 2>/dev/null
+fi

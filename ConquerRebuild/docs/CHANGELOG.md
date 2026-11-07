@@ -2543,3 +2543,17 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Next (both legitimate, choose per owner): supply the v6159 server map documents, or generate **fixture**
   map documents with this verified layout for tests only (always labelled as generated, never as original).
 
+### v155 — terrain types PORTED as code (no inference); suite 102/102
+- New `src/systems/mapdoc.hpp`: a byte-faithful port of `CMapStaticData` (file reader, exact log strings
+  0x1407a6420 / 0x1407a63f0 / 0x1407a63b8, 8-byte skip, 260-byte name, **square** `u32` dims, `width*height`
+  4-byte cells filled from `{u16 mask, u16 skipped, u16 sur}`, 4-byte row trailer, `u32 n` + `n*12` tail),
+  plus `valid()` (0x14056ab10), `index() = width*y+x` (0x14056ab30), `cell()` with **out of bounds == 1**
+  (0x1405623a0) and `walkable()` (0x1402c3cc0).
+- **Explicit stop line**: the in-range cell attribute is looked up in a `std::map` at `CMapData+0x1c0` that
+  nothing in MsgServer fills, so the port returns `kUnknownAttribute (-1)` instead of inventing a value, and
+  `walkable()` propagates it. 403 (93 rows) / 1509 (9 rows) stay BLOCKED on the original map documents.
+- New `tests/mapdoc_unit_test.cpp` (wired into `tools/run_suite.sh`): loads a **generated** fixture with the
+  verified layout and asserts name/dims/9 cells/`sur`/`mask`/tail records, all `valid()` edges, `index()`,
+  `cell()` OOB == 1, in-range == sentinel, `walkable()` OOB == 0, non-square rejection, missing-file
+  rejection, and both original log strings. **Suite 102/102 green.**
+
