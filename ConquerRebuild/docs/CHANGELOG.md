@@ -2177,3 +2177,14 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   spent row is not claimed a second time.
 - **Suite 97/97 green; 162/217 types, 99.71% of rows.**
 
+### v134b — 1082's token grammar decoded (the couple/mate family)
+- `docs/worker_v133_1082.md`: 1082 parses `"%s %s %u %d %d %d"` (>=6) and dispatches on two tokens:
+  **subject** `self` (0x14070f078) / `couple` (0x14070f068) / `mate` (0x14070f070) and **operation**
+  `add` (0x14070f2d0) / `chk` (0x14070f390). Four branches repeat one shape: a manager singleton
+  `0x1401181a0`, two of its vtable slots (`vt[0x8]`, `vt[0x10]`) called with the parsed ints, a
+  world-object lookup, the status-bitmap query `user->vt[0x2d8]` and `user->vt[0x98]`.
+- **Blocked** on the couple manager's slot meanings and on a couple/mate model (the rebuild has
+  teams but not couples). The grammar is complete, so the port is mechanical once those are named.
+- Also probed this wave: 223 = lottery provider (`pLotteryProvider`, same blocked family as
+  1508/1509); 3012 = a predicate call `0x14018e960` whose own identity is still open.
+

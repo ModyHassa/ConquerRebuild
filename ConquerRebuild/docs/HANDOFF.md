@@ -868,4 +868,11 @@ and re-run it on its own before investigating.
   mark `flag=1`; new `IDatabase::load_unclaimed_bonus` / `set_bonus_flag` + `BonusRow`, case uses
   `run_action_chain`. Bag-full placement is the one documented UNKNOWN. Suite 97/97, coverage
   162/217 types = 99.71%.
+- v134b: **1082 is the couple/mate action family** (52 rows). Grammar: `"%s %s %u %d %d %d"`;
+  subject token `self`/`couple`/`mate`, operation token `add`/`chk`; four branches each call the
+  manager `0x1401181a0` slots `vt[0x8]`/`vt[0x10]` with the parsed ints, do a world-object lookup and
+  query the status bitmap (`vt[0x2d8]`). Blocked on naming those slots + a couple model.
+  NEXT-WAVE OPTIONS, in order of rows-per-effort: (a) the **lottery cluster** 1508(13)+1509(9)+
+  223(4) = 26 rows behind one `pLotteryProvider` decode, (b) 1082 (52 rows) once the couple manager
+  is named, (c) the home/furniture model that unblocks 403 (93 rows).
 
