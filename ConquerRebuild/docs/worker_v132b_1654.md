@@ -93,3 +93,30 @@ The gate structure itself is complete, so the port is three facts away.
 1402bf924  cmpl $0x0,0xb4(%rcx)
 ```
 It re-tests the same two fields, so the whole branch hinges on the same two UNKNOWNs.
+
+## v136 follow-up: one of 1654's three unknowns is now MEASURED — `[npc+0xb4]` is a seconds timestamp
+
+The initialiser in the NPC kernel around `0x1402bfab0` writes the object's timer fields:
+
+```
+1402bfac0  movl $0x3,0xb0(%r15)              ; +0xB0 = 3            (a state / idle mode)
+1402bfacb  call *0x1406d8350                 ; GetTickCount()
+1402bfad4  mov $0x10624dd3,%eax ; mul ; shr $6   ; the standard /1000 magic
+1402bfadf  mov %edx,0xb4(%r15)               ; +0xB4 = tick / 1000  (SECONDS)
+```
+and, four instructions earlier, `mov 0x60(%r15),%rcx` shows **`+0x60` holds an object pointer**
+(its vtable is then called at `+0x10` with index 4), and `call 0x14046a040` initialises that object.
+
+Consequences for 1654 kind 1:
+- `[npc+0xb4] != 0` is **"this NPC currently has a timer/leave stamp set"** (a nonzero uptime value),
+  which is why that branch returns TRUE *without* closing the dialog and without touching state.
+  It is reset (to 0) elsewhere when the timer fires - that reset is the remaining piece.
+- `[npc+0x68]` is compared against 0 as a **pointer** in the same family (`+0x60` is proven to be a
+  pointer at +0x60); it is very likely the NPC's data/owner pointer, but nothing in this range writes
+  it, so it is still **UNKNOWN**.
+
+Also confirmed this wave, from the record parser at `0x1400ed800` (assert string
+`pRole->QueryObj(OBJ_NPC, IPP_OF(pTarget))` at 0x140705aa8): that function reads the cq_npc columns
+**`pstAddr` (0x140705a80), `data` (0x140705a88), `datastr` (0x140705a90), `lookface` (0x140705a98)**
+through `0x1400922d0` / `0x1400e32a0` / `0x1400e3310`. It is the NPC task-data loader, not the field
+mapper, so it does not name `+0x68` either.

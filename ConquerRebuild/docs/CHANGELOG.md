@@ -2242,3 +2242,15 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   `%d %u %u %u %d %u %u`, 1106 is a list predicate `0x140118860`. All labelled BLOCKED rather than
   approximated.
 
+### v136b — 1654: `[npc+0xb4]` measured (a tick/1000 seconds stamp), `+0x60` is a pointer
+- The NPC kernel initialiser at `0x1402bfab0` writes `+0xB0 = 3` and, from **GetTickCount()**
+  (`*0x1406d8350`) through the `/1000` magic (`0x10624dd3`, `shr $6`), `+0xB4 = tick / 1000`, i.e. a
+  **seconds timestamp**; `+0x60` is proven to hold an **object pointer** (`mov 0x60(%r15),%rcx` then a
+  vtable call at `+0x10`, plus `0x14046a040` initialising it).
+- So 1654 kind 1's `[npc+0xb4] != 0` branch means "the NPC has a timer/leave stamp set" -> return TRUE
+  without closing and without touching state (its reset site is still to be found). `[npc+0x68]` is a
+  **pointer** comparison against 0 but no writer in that range exists, so it stays UNKNOWN.
+- The record parser at `0x1400ed800` (assert `pRole->QueryObj(OBJ_NPC, IPP_OF(pTarget))`) was also
+  identified: it reads `pstAddr`, `data`, `datastr`, `lookface` - it is the NPC task-data loader, not
+  the field mapper.
+
