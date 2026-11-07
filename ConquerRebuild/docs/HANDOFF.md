@@ -815,4 +815,11 @@ the port) is what needs fixing.
   `CUser+0x2F0`. Also fixed a real bug: `load_user`'s SELECT overflowed `char sql[512]` (526 bytes
   after the new columns) and was truncated, which silently broke logins for several accounts.
   Suite 94/94 green.
+- v132: **1107 (FlyMap) ported** - it shares the 1070 teleport core and its result is the FlyMap
+  code, so 9 rows of map jumps now behave like the original; the new v132 test proves the map
+  change through the NPC map guard. The v132b decode reports are persisted: 403 is a furniture/NPC
+  placement action blocked on the CNpc create/register + map-region subsystem (`CUser+0xA30`),
+  1654 is read-only but only reachable from 1651, and 1651's blocker is now exact (the second text
+  param = `FUN_140145f60` arg 6 -> router arg 7 -> `%rbx`, an entity id our `ActionRow` cannot
+  carry). 1082 produced no findings. Suite 95/95.
 

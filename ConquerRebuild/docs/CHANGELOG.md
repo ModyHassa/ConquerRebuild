@@ -2052,3 +2052,26 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - New tests `tests/test_actions_v131.py` (5 checks) and `tests/test_actions_v131b.py` (3 checks).
 - **Suite 94/94 green.**
 
+### v132 — 1107 (FlyMap) ported; the v132b decode reports persisted
+- **1107 ported** (9 rows): case 0x60 body 0x140136426 is `sscanf "%u %d %d"` -> (map,x,y) and the
+  body's own CHECK string is `pUser->FlyMap(idMap, nPosX, nPosY) == FLYMAP_NORMAL`, so the action
+  result IS the FlyMap code and an unknown map takes `id_nextfail`. The port reuses the 1070
+  FlyMap core (leave the old screen, join the new map, rewrite the record position, respawn +
+  item snapshot), so both actions now share one teleport behaviour.
+- New test `tests/test_actions_v132.py` (5 checks): a non-existent map fails, a real fly succeeds,
+  **an NPC that only exists on the destination map becomes clickable** (the click handler refuses
+  `npc->map_id != p.map_id`, so this is a real proof of the map change), flying back returns to
+  1002 and the 1002-only NPC answers again.
+- **The three v132b decode reports are now in the repo** (`docs/worker_v132b_403.md`,
+  `worker_v132b_1654.md`, `worker_v132b_1082.md`). Headlines: **403** is a furniture/NPC PLACEMENT
+  action, not a life/attribute op - it parses `pszAccept` (`"%d %d %d %d %d"`, >=3) and the param
+  (22 fields, >=5), runs eight gates (home map, owner checks for kinds 0x19/0x65/0x04,
+  `STR_DISABLE_LAY_SYNTRANS` = config 0x0F), fills a 108-byte NPC-info struct and stores the new
+  NPC id at `CUser+0xA30`; it builds no packet and is **BLOCKED** on the CNpc create/register path
+  plus the map-region manager. **1654** is read-only (gates state==3, target!=0, kind in {1,2};
+  kind 1 queries the 0x1040 class and tears the dialog down unless `[npc+0xb4]`, kind 2 queries
+  0x1002) but its only entry state is produced by **1651**, whose blocker is now precise: the
+  second text param is `FUN_140145f60` arg 6 -> `r12` -> router arg 7 -> `%rbx`, consumed as a
+  `%u` entity id, and `ActionRow` has no second text slot. **1082** produced no findings.
+- **Suite 95/95 green.**
+

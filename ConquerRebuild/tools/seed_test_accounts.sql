@@ -1995,3 +1995,26 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
   (99020509,101,0,'v131-grant-failed',0,0);
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020239,'GrantSage',0,5000,1002,437,353,99020500,'');
+
+-- ===========================================================================
+-- v132: 1107 FlyMap ("%u %d %d" -> map,x,y, result == FLYMAP_NORMAL)
+-- Fixture band: chains 99020510-99020519, npc 99020240-99020243.
+-- The map guard on NPC clicks (npc->map_id != p.map_id) is what proves a fly.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020510 AND 99020519;
+DELETE FROM cq_npc WHERE id BETWEEN 99020240 AND 99020243;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020510,1107,0,'999999 0 0',99020511,99020512),
+  (99020511,101,0,'v132-fly-badmap-passed',0,0),
+  (99020512,101,0,'v132-fly-badmap',0,0),
+  (99020513,1107,0,'3852 410 290',99020514,99020515),
+  (99020514,101,0,'v132-fly-ok',0,0),
+  (99020515,101,0,'v132-fly-fail',0,0),
+  (99020516,101,0,'v132-fly-landed',0,0),
+  (99020518,1107,0,'1002 437 343',99020519,99020511),
+  (99020519,101,0,'v132-fly-back',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020240,'FlySage',0,5000,1002,437,354,99020510,''),
+  (99020241,'FlightSage',0,5000,1002,437,355,99020513,''),
+  (99020242,'LandedSage',0,5000,3852,410,291,99020516,''),
+  (99020243,'ReturnSage',0,5000,3852,410,292,99020518,'');

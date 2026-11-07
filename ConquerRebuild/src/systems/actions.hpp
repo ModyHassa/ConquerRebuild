@@ -1985,6 +1985,60 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_next;
             break;
         }
+        case 1107: {  // v132: FlyMap - "%u %d %d" -> map,x,y; true iff FLYMAP_NORMAL
+            // Case 0x60 body 0x140136426. The body's own CHECK string is
+            // 'pUser->FlyMap(idMap, nPosX, nPosY) == FLYMAP_NORMAL', i.e. the
+            // action result IS the FlyMap result code, and FlyMap is the same
+            // core 1070 already ports (leave the old screen, join the new map,
+            // update the record position, respawn + item snapshot). 9 rows.
+            std::string ps = subst_templates(a->param, p.id, p.name,
+                p.map_id, p.pos.x, p.pos.y, p.level, npc_id, npc_x, npc_y);
+            uint32_t map = 0; int32_t x = 0, y = 0;
+            bool ok = std::sscanf(ps.c_str(), "%u %d %d", &map, &x, &y) == 3;
+            IDatabase* db = active_db();
+            if (ok) ok = (db ? db->map_exists(map) : true);
+            if (ok) {
+                if (p.map_id != map) {
+                    auto oldit = w.maps().find(p.map_id);
+                    if (oldit != w.maps().end())
+                        oldit->second.players().remove(&p);
+                }
+                GameMap& nm = w.get_or_create_map(map);
+                nm.players().remove(&p);
+                nm.players().push_back(&p);
+                p.map_id = map;
+                p.pos = Position{(uint32_t)x, (uint32_t)y};
+                p.alive = true;
+                p.record_map = map;
+                p.record_pos = p.pos;
+                if (db) {
+                    UserRecord r;
+                    r.id = p.id; r.name = p.name; r.level = p.level;
+                    r.recordmap_id = map; r.recordx = (uint32_t)x;
+                    r.recordy = (uint32_t)y;
+                    db->save_user(r);
+                }
+                SpawnInfo si;
+                si.id = p.id; si.name = p.name;
+                si.x = p.pos.x; si.y = p.pos.y;
+                w.broadcast_to_screen(nm, p.pos, build_spawn_10014(si), nullptr);
+                w.send_monsters_in_screen(p, nm);
+                if (p.session && db) {
+                    for (const auto& it : db->load_player_items(p.id)) {
+                        p.session->send(build_item_info_1008(
+                            it.id, it.type, it.amount, it.position, 1));
+                    }
+                }
+                std::printf("[action] %u 1107 flymap -> map %u (%d,%d)\n",
+                            p.id, map, x, y);
+            } else {
+                std::printf("[action] %u 1107 flymap '%s' not FLYMAP_NORMAL -> "
+                            "id_nextfail\n", p.id, ps.c_str());
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
+
         case 1203: {  // life comparison (new-engine case 0x6F).
             // VERIFIED (msgserver_gameaction.c:17661-17665):
             //   a = user[2] getter +0x78 (current life)
