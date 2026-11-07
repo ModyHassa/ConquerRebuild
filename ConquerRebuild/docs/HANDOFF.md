@@ -977,4 +977,12 @@ and re-run it on its own before investigating.
   walkability slot in 0x1402c3cc0). Then: `src/systems/mapdoc.hpp walkable(x,y)` -> port 1509 (9 rows) and
   403 (93 rows) -> make 1107 faithful. Extract with
   `7z x -y -o/tmp/mapsrc Conquer_Online_Source_v6159.7z "Source/map/*"`.
+- v150: **vtable->RTTI chain fixed and documented** (`docs/worker_v150_vtable_rtti.md`): vtable[-8] = COL (VA),
+  u32(COL+0x0C) = TD (**RVA**), name **inline at TD+0x10**. 218 MsgServer classes resolve in one pass; Team.dll
+  resolves 0 by this route. **Terrain is server-side and ref-counted**: CMapData / CMapStaticData / CTerrainObj
+  / CTerrainObjPart / CMapObj / CMapTrap / CMapManager / CMapList / CMsgLoadMap@world_kernel. Two leads closed:
+  no `.DMap`/`.pul`/`map\` literal anywhere in the server binaries, and `0x1400651f0` is CWorldKernel's init
+  (worldkernel.cpp:0x9f), not the GameMap ctor. Next: find the GameMap ctor (stores at +0x58 **and** +0x60 plus
+  a CMapData/CTerrainObj allocation), name it with the v150 chain, then port 1509 + 403. Nothing was guessed and
+  no engine code changed this wave.
 

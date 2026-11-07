@@ -2467,3 +2467,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   port 1509 (9 rows, dispatch resolved in v146) and 403 (93 rows, gates + 0x6c struct measured in v146) and
   make 1107 honour walkability.
 
+### v150 — working vtable->RTTI technique; terrain classes proven; two dead leads closed
+- **Technique (corrected twice before)**: `vtable[-8]` is the COL **as a VA**, `u32(COL+0x0C)` is the
+  TypeDescriptor **as an RVA** (x64 MSVC stores it image-relative), and the class name is **inline at TD+0x10**
+  (not a pointer). Scanning sections for >=4 consecutive code pointers and applying that chain resolves **218
+  classes in MsgServer.exe**; the same scan on Team.dll resolves 0 (its vtables come from the v148 ctor scan).
+  Recorded the pitfall: bounding the code test to `image_base+0x400000` rejects most of MsgServer's .text.
+- **Terrain is real and server-side**: the RTTI names `CMapData`, `CMapStaticData`, `CTerrainObj`,
+  `CTerrainObjPart`, `CMapObj`, `CMapTrap`, `CMapManager`, `CMapList`, `CMsgLoadMap@world_kernel` all exist in
+  MsgServer.exe, with `tr1::_Ref_count` wrappers around the three data classes.
+- **Closed leads**: no `.DMap`/`.pul`/`map\` literal exists in MsgServer.exe or any `Source/` DLL; and
+  `0x1400651f0` (whose `+0x58`/`+0x60` stores looked like the GameMap ctor) is `CWorldKernel`'s initialiser
+  (`MYASSERT m_idProcess == MSGPORT_WORLD`, worldkernel.cpp:0x9f). Next probe recorded: find the GameMap ctor
+  by the pair of stores plus a CMapData/CTerrainObj allocation, then name it with the §1 chain.
+- **No code changed**: 403/1509 stay BLOCKED rather than being implemented against a guessed cell format
+  (the archive's `.DMap` files embed CLIENT `.pul` paths, which is evidence they are not the server format).
+
