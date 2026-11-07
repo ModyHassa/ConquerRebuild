@@ -1000,4 +1000,11 @@ and re-run it on its own before investigating.
   `0x14056ab30` `index=width*y+x`, `0x1405623a0` `cell(x,y)` returning **1 for out-of-bounds**. With v151's
   `attr==0` rule, walkability is fully specified. STILL MISSING: the loader that fills width/height and inserts
   into `+0x1c0` (the map-file reader) - find writers of `+0x1c0` next; 403/1509 remain BLOCKED, nothing invented.
+- v153: **THE SERVER MAP LOADER EXISTS** - `"load map %d from file %s, gridsize=%d"` (0x1407a5768) and
+  `"CMapData cannot load map %d from file %s, gridsize=%d"` (0x1407a5758). Chain verified:
+  factory @~0x140568d60 (mapId, file, gridsize) -> loader **0x140570300** -> `new(0x1d0)` (CMapData = 0x1d0
+  bytes) -> **CMapData ctor 0x140568960** (vtables 0x1407a4638 then 0x1407a5698, std::map at +0x30; single
+  caller 0x140568e1c). Path is an argument, which is why no `.dmap`/`.pul` literal exists - the v149/v150
+  "client-only" conclusion is corrected. NEXT: follow the `file` arg up from 0x14056907f to the provider to
+  get directory + extension + per-map gridsize; then port walkable() and open 403 (93 rows) + 1509 (9 rows).
 

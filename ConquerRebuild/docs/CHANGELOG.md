@@ -2514,3 +2514,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   into `+0x1c0`, i.e. the map-file reader. 403/1509 stay BLOCKED until that reader is found - no parser was
   invented. Next probe recorded: find writers of `CMapData+0x1c0` and the setter of `+0x100`.
 
+### v153 — the server map loader is real: "load map %d from file %s, gridsize=%d"
+- Found the two format strings that v149/v150 missed (they contain neither `.dmap` nor `.pul`):
+  `0x1407a5768 "load map %d from file %s, gridsize=%d"` and
+  `0x1407a5758 "CMapData cannot load map %d from file %s, gridsize=%d"`. The server therefore **does** load
+  maps from a file, the path comes in as an argument (why no literal exists), and the file carries a
+  **gridsize** - the grid is chunked, which also explains why the archive `.DMap` sizes never factored as
+  `width*height` (v151).
+- Verified chain: factory @~0x140568d60 (`mapId`, `file`, `gridsize`) -> **loader 0x140570300** ->
+  `new(0x1d0)` (**CMapData size = 0x1d0**) -> shared_ptr copy (0x14055f840) -> **CMapData ctor 0x140568960**
+  (base vtable 0x1407a4638 then CMapData vtable 0x1407a5698, embeds a std::map at +0x30). The ctor has
+  exactly one caller in the binary (0x140568e1c) and the factory is that entry point; upward the chain is
+  0x140568bd0 <- 0x14056907f <- ...
+- **Corrected v149/v150's "client-only" conclusion**: the server reads a configured path, not a literal.
+- Next probe: follow the `file` argument up from 0x14056907f to the provider; that yields the directory,
+  extension and per-map `gridsize`, after which `walkable()` ports verbatim and 403/1509 open.
+
