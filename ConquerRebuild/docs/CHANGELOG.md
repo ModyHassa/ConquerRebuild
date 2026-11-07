@@ -2188,3 +2188,17 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Also probed this wave: 223 = lottery provider (`pLotteryProvider`, same blocked family as
   1508/1509); 3012 = a predicate call `0x14018e960` whose own identity is still open.
 
+### v134c — 1094's exact tier math, and the home model found in the schema
+- **1094** (11 rows) body `0x140137f06` read instruction by instruction: gate `user->vt[0x108]() >= 2`,
+  then the **tens bucket** `(byte/10)*10` of `CUser+0xEEE` must equal both the action's `data`
+  (when non-zero) and the buckets of `CUser+0xEDB` / `CUser+0xEDA` (getters `0x140165580` /
+  `0x140165570` are literally `movzbl`). Blocked only on naming those three tier bytes.
+- **The home model is `cq_map.owner_id`**: `cq_map` has `id, name, describe_text, mapdoc,
+  type (bigint bitmask), owner_id (nullable), mapgroup`. A home map is a row with `owner_id` set and
+  the player's home is `cq_user.home_id` (the container field at `CUser+0xB4`; exactly 1 row has it
+  set in the dump). So 403's two ownership gates - "current map is my `home_id`" and "that map's
+  `owner_id` is me" - need no guessing. What 403 still lacks is the item-driven entry point plus
+  `CNpc::Create(m_idProcess, &info, ITEMDATA_TYPE, pName)` with the 108-byte struct.
+- Also recorded: 1509 is PARTIAL (router + map-flag gate portable, leaves `0x1401c7e10` /
+  `0x1401c7c60` unknown) and 1508 is a pure forward into `pLotteryProvider` (BLOCKED).
+

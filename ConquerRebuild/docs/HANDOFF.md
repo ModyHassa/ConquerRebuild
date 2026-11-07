@@ -875,4 +875,9 @@ and re-run it on its own before investigating.
   NEXT-WAVE OPTIONS, in order of rows-per-effort: (a) the **lottery cluster** 1508(13)+1509(9)+
   223(4) = 26 rows behind one `pLotteryProvider` decode, (b) 1082 (52 rows) once the couple manager
   is named, (c) the home/furniture model that unblocks 403 (93 rows).
+- v134c: **1094** = three tier bytes (`CUser+0xEEE`, `+0xEDB`, `+0xEDA`) whose tens buckets must agree
+  with `data` (blocked on naming them). **Homes are `cq_map.owner_id`** (nullable column) with
+  `cq_user.home_id` pointing at the map - so 403's ownership gates are evidence-based; only the
+  item-driven entry point and `CNpc::Create` remain. Next credit: build the home model + furniture
+  item path and port 403 (93 rows) in one wave.
 
