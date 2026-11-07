@@ -1007,4 +1007,11 @@ and re-run it on its own before investigating.
   caller 0x140568e1c). Path is an argument, which is why no `.dmap`/`.pul` literal exists - the v149/v150
   "client-only" conclusion is corrected. NEXT: follow the `file` arg up from 0x14056907f to the provider to
   get directory + extension + per-map gridsize; then port walkable() and open 403 (93 rows) + 1509 (9 rows).
+- v154: **server map-file FORMAT CRACKED**: `8B skip | 260B name | u32 dim | u32 dim (must be equal: square) |
+  cells | per-row 4B trailer | u32 n | n*12B records`; file cell = 6B `[u16 mask!=0][u16 skip][u16 sur]`,
+  memory cell = 4B at `dim*y+x` (matches CMapData::index); debug string `"cell(%d,%d), flr=%d, sur=%d,
+  mask=%d"`. Size law `276 + dim*(6*dim+4) + 4 + 12n`; whole-archive scan = **0 matching files** -> the 187
+  `.DMap` are editor/client docs, the server map documents are NOT in the archive. 403 (93 rows) + 1509 (9)
+  therefore stay BLOCKED on DATA only. Way forward: get the v6159 server map documents, or generate fixture
+  maps with the verified layout for tests (labelled as generated).
 

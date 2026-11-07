@@ -2530,3 +2530,16 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Next probe: follow the `file` argument up from 0x14056907f to the provider; that yields the directory,
   extension and per-map `gridsize`, after which `walkable()` ports verbatim and 403/1509 open.
 
+### v154 — the server map-file format, byte for byte
+- Read the whole `CMapStaticData` file reader (`0x14056fb80` region; strings 0x1407a6420 / 0x1407a63f0 /
+  0x1407a63b8, I/O wrapper `0x1405739a0`, `rdx=0` = skip). Verified sequence: **8 bytes skipped -> 260-byte
+  name -> u32 dim A -> u32 dim B -> (A must equal B: square grid) -> cells -> per-row 4-byte trailer ->
+  u32 n + n*12-byte trailing records**. Per cell the file holds **6 bytes** `[u16 mask!=0][u16 skipped][u16 sur]`
+  while memory holds **4 bytes/cell** at `dim*y+x` (same index as `CMapData::index` v152); the binary's own
+  debug string is `"cell(%d,%d), flr=%d, sur=%d, mask=%d"`.
+- **Size law**: `276 + dim*(6*dim+4) + 4 + 12n`. A full-archive scan of `conquer_source` for that layout with
+  matching dims found **0 files**, so the 187 `map/map/*.DMap` are editor/client documents, NOT the server
+  format. Format = known; **data = absent from the archive**; 403/1509 remain BLOCKED on data (no invention).
+- Next (both legitimate, choose per owner): supply the v6159 server map documents, or generate **fixture**
+  map documents with this verified layout for tests only (always labelled as generated, never as original).
+
