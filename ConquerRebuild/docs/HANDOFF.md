@@ -831,4 +831,10 @@ the port) is what needs fixing.
   unreachable-not-because-of-us: it needs state 3, which 1651 now produces, so it is the next
   candidate (its own body still has two UNKNOWN NPC fields: [npc+0x68], [npc+0xb4]).
   Suite 96/96, coverage 99.71%.
+- v133b (decode only): **1078 = emoney-card redeem** - traced end to end except the credit call
+  `0x1401742b0` (and the `0x140164640` checksum body, which must match exactly). The card is marked
+  `used=1` with a re-stamped checksum in the same call that validates it. **1654** is decoded to its
+  last branch: it needs `[npc+0x68]`, `[npc+0xb4]` and `0x14038e270`. Both ports are one
+  identification away, so a future wave should finish them before touching 403 (which needs the
+  CNpc create/register + MapRegion subsystems) or 1082 (undecoded).
 

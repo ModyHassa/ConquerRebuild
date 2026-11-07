@@ -2096,3 +2096,22 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   state 3 and 1652 closes with CMsgAction **174**.
 - **Suite 96/96 green, coverage 161/217 types = 99.71% of rows.**
 
+### v133b — decode-only wave: 1654's exact branch table and 1078's redeem flow (both one step from a port)
+- **1654** is now decoded instruction by instruction (`docs/worker_v132b_1654.md`): gate `state==3`,
+  `target != 0`, `kind ∈ {1,2}`; kind 1 = QueryInterface 0x1040, `[npc+0x68]` must be non-zero,
+  `[npc+0xb4] != 0` returns TRUE without closing, else the `0x1402bf900` predicate then close
+  (CMsgAction 174) + state reset; kind 2 = QueryInterface 0x1002, `[obj+0x154] != 0` returns TRUE
+  with no side effects, else the life getter and `0x14038e270(obj,1)` then close + reset.
+  **Blocked on exactly three facts:** `[npc+0x68]`, `[npc+0xb4]`, `0x14038e270`.
+- **1078** turned out to be `CUser::RedeemEmoney` (`0x1401ac210`), fully traced
+  (`docs/worker_v133_1078.md`): it SELECTs an unused `emoney_card` for the account and type
+  (`SELECT * FROM emoney_card WHERE account_id=%u && used=0 && type=%d`), reads `ref_id`,
+  `time_stamp`, `chk_sum`, `type`, requires a positive `price` from `0x140276390(type)`, accepts
+  either `0x140164640(account, ref_id, time_stamp, 0) == chk_sum` or the legacy
+  `(account ^ 0xBE6E0) + (ref_id >> 1)`, then stamps `used=1`, `time_stamp=now`, a re-computed
+  `chk_sum` and flushes before logging `gmlog/card_checkout`.
+  **Blocked on exactly one call:** `0x1401742b0` (the credit target - `money`, `emoney_mono`, or
+  points), plus the `0x140164640` checksum body, which must be ported verbatim rather than
+  approximated.
+- No source change this wave; the suite stays at 96/96 (last code wave v133).
+
