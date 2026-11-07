@@ -50,6 +50,8 @@ public:
     void save_user_vars(uint32_t player_id,
                         const std::map<std::string, int64_t>& vars) override;
     std::vector<PlayerItemRecord> load_player_items(uint32_t player_id) override;
+    bool load_unclaimed_bonus(uint32_t account_id, BonusRow& out) override;
+    bool set_bonus_flag(uint32_t bonus_id, uint8_t flag) override;
     bool map_exists(uint32_t map_id) override;
     std::vector<ActionRow> load_actions() override;
     std::vector<NpcRecord> load_npcs() override;

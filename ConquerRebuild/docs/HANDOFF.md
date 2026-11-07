@@ -863,4 +863,9 @@ and re-run it on its own before investigating.
   map, own home, `STR_DISABLE_LAY_SYNTRANS`, placement kind, three region/building queries, then
   `pNpc->Create(m_idProcess, &info, pItem->GetItemInt(ITEMDATA_TYPE), pName)` and the id goes to
   `CUser+0xA30`. Blocked on the HOME + FURNITURE model (not on MapRegion, which is trivial).
+- v134: **1023 ported** (cq_bonus claim). `0x140172910` = SELECT the account's unclaimed row then
+  run its `action` column **as a chain through the router** (with NULL as the second text param) and
+  mark `flag=1`; new `IDatabase::load_unclaimed_bonus` / `set_bonus_flag` + `BonusRow`, case uses
+  `run_action_chain`. Bag-full placement is the one documented UNKNOWN. Suite 97/97, coverage
+  162/217 types = 99.71%.
 

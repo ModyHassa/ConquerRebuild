@@ -480,6 +480,35 @@ inline uint32_t run_action_chain(World& w, Player& p, uint32_t npc_id,
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
+        case 1023: {  // v134: claim the account's cq_bonus row
+            // Case 0x11 body 0x14012fd4a is exactly ONE call: 0x140172910(user).
+            // That callee (verified from its own literals) runs
+            //   SELECT * FROM cq_bonus WHERE id_account = %u AND flag = 0 LIMIT 1
+            // and then executes the row's `action` column as a normal action chain
+            // through the router (it calls FUN_140145f60 with NULL for the second
+            // text param), logging 'gmlog/bonus' "AccountID(%u), Player(%u) take
+            // bonus(%u)." (0x1407170e8 / 0x1407170f8) and answering STR_BAG_FULL
+            // (0x140700ba0) when the grant cannot be delivered.
+            // UNKNOWN (documented, not guessed): where the bag-full test sits. This
+            // port lets the chain itself decide and marks the row used only when a
+            // chain actually ran; the original may pre-test inventory capacity.
+            IDatabase* db = active_db();
+            BonusRow b;
+            if (!db || !db->load_unclaimed_bonus(p.account_id, b) || b.action == 0) {
+                std::printf("[action] %u 1023: no unclaimed cq_bonus row for account %u "
+                            "-> id_nextfail\n", p.id, p.account_id);
+                cur = a->id_nextfail;
+                break;
+            }
+            std::printf("[action] %u 1023: claiming cq_bonus %u (chain %d, number %u)\n",
+                        p.id, b.id, b.action, b.number);
+            run_action_chain(w, p, npc_id, (uint32_t)b.action);
+            db->set_bonus_flag(b.id, 1);
+            std::printf("[gmlog/bonus] AccountID(%u), Player(%u) take bonus(%u).\n",
+                        p.account_id, p.id, b.number);
+            cur = a->id_next;
+            break;
+        }
         case 1022: {  // ACTION_LOG (case 0x10):
             // tq::MyLogSave("gmlog/action", param) then continue.
             std::printf("[gmlog/action] %u: %s\n", p.id,

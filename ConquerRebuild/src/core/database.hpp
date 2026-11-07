@@ -171,6 +171,17 @@ struct ActionRow {
     // runtime by the caller (see Player::chain_param2).
     std::string param2;
 };
+// v134: one cq_bonus row (the account's unclaimed bonus). `action` is the chain
+// the original runs through FUN_140145f60 (decoded from action 1023's callee
+// 0x140172910), `number` the "take bonus(%u)" count it logs.
+struct BonusRow {
+    uint32_t id = 0;
+    uint32_t account_id = 0;
+    int32_t  action = 0;
+    uint32_t number = 0;
+    uint32_t ref_id = 0;
+};
+
 struct NpcRecord {
     uint32_t id = 0;
     std::string name;
@@ -326,6 +337,10 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     // all carried items (inventory position 0 + equipment 1-8) of a player,
     // used for the login inventory dump (CMsgItemInfo 1008 family)
     virtual std::vector<PlayerItemRecord> load_player_items(uint32_t player_id) = 0;
+    // v134 (action 1023): the account's first unclaimed cq_bonus row plus the
+    // flag=1 write-back after its chain has run (0x140172910).
+    virtual bool load_unclaimed_bonus(uint32_t account_id, BonusRow& out) = 0;
+    virtual bool set_bonus_flag(uint32_t bonus_id, uint8_t flag) = 0;
     // v47: does the id exist in cq_map (original validates the map
     // through the map-group manager before a record-pos/relive move)
     virtual bool map_exists(uint32_t map_id) { (void)map_id; return true; }
@@ -466,6 +481,8 @@ public:
     void save_magic(uint32_t, const MagicRecord&) override {}
     void delete_magic(uint32_t, uint32_t) override {}
     std::vector<PlayerItemRecord> load_player_items(uint32_t) override { return {}; }
+    bool load_unclaimed_bonus(uint32_t, BonusRow&) override { return false; }
+    bool set_bonus_flag(uint32_t, uint8_t) override { return false; }
     uint32_t insert_item(uint32_t, uint32_t, uint32_t) override { return 0; }
     uint32_t insert_item_attrs(uint32_t, uint32_t, uint32_t,
                                const ItemAttrs&) override { return 0; }

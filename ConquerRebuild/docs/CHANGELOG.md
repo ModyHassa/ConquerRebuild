@@ -2161,3 +2161,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   the furniture item model, and `CNpc::Create`). The two region queries themselves are trivial to
   express on our `GameMap`, so once homes exist the 93 rows are a straight port.
 
+### v134 — action 1023 ported (cq_bonus claim) with the first real producer behind the second text param
+- **1023** (case 0x11, body `0x14012fd4a`) is one call, `0x140172910(user)`. Its verified SQL is
+  `SELECT * FROM cq_bonus WHERE id_account = %u AND flag = 0 LIMIT 1`; it then executes the row's
+  **`action` column as a normal action chain through the router** (`FUN_140145f60`, passing **NULL**
+  for the second text param), logs `gmlog/bonus` `"AccountID(%u), Player(%u) take bonus(%u)."` and
+  answers `STR_BAG_FULL` when a grant cannot be delivered.
+- Port: `IDatabase::load_unclaimed_bonus` + `set_bonus_flag` (new `BonusRow`), the case runs
+  `run_action_chain(w, p, npc_id, row.action)` and then marks `flag=1` with `time=UNIX_TIMESTAMP()`.
+  `MemoryDB` gets returning stubs so the in-memory tests still link.
+- **Documented UNKNOWN:** where the original's bag-full test sits (this port lets the chain decide
+  and only marks the row used once a chain ran; the original may pre-test inventory capacity).
+- New test `tests/test_actions_v134.py` (4 checks): the seeded row is claimed, **the row's `action`
+  really runs as a chain** (both of its lines arrive), `cq_bonus.flag` becomes 1 in the DB, and a
+  spent row is not claimed a second time.
+- **Suite 97/97 green; 162/217 types, 99.71% of rows.**
+

@@ -795,6 +795,38 @@ bool MySQLDatabase::syndicate_has_domain(uint32_t gid) {
     return std::strtoll(v.c_str(), nullptr, 10) > 0;
 }
 
+bool MySQLDatabase::load_unclaimed_bonus(uint32_t account_id, BonusRow& out) {
+    // v134: the verified SQL of action 1023's callee (0x140172910):
+    //   SELECT * FROM cq_bonus WHERE id_account = %u AND flag = 0 LIMIT 1
+    char sql[256];
+    std::snprintf(sql, sizeof(sql),
+        "SELECT id,action,number,ref_id FROM cq_bonus "
+        "WHERE id_account=%u AND flag=0 LIMIT 1", account_id);
+    if (!exec(sql)) return false;
+    MYSQL_RES* res = mysql_store_result(conn_);
+    if (!res) return false;
+    MYSQL_ROW row = mysql_fetch_row(res);
+    bool ok = false;
+    if (row && row[0]) {
+        out.id = (uint32_t)strtoul(row[0], nullptr, 10);
+        out.account_id = account_id;
+        out.action = (int32_t)strtol(row[1] ? row[1] : "0", nullptr, 10);
+        out.number = row[2] ? (uint32_t)strtoul(row[2], nullptr, 10) : 0;
+        out.ref_id = row[3] ? (uint32_t)strtoul(row[3], nullptr, 10) : 0;
+        ok = true;
+    }
+    mysql_free_result(res);
+    return ok;
+}
+
+bool MySQLDatabase::set_bonus_flag(uint32_t bonus_id, uint8_t flag) {
+    char sql[192];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_bonus SET flag=%u, time=UNIX_TIMESTAMP() WHERE id=%u LIMIT 1",
+        (unsigned)flag, bonus_id);
+    return exec(sql);
+}
+
 std::vector<IDatabase::PlayerItemRecord> MySQLDatabase::load_player_items(uint32_t player_id) {
     std::vector<PlayerItemRecord> out;
     if (!conn_) return out;

@@ -2038,3 +2038,22 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
   (99020527,101,0,'v133-closed',0,0);
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020244,'AskSage',0,5000,1002,437,356,99020520,'');
+
+-- ===========================================================================
+-- v134: 1023 (claim the account's cq_bonus row)
+-- Fixture band: chain 99020600-99020609, npc 99020245 'BonusSage'.
+-- The claim chain is stored in cq_bonus.action, so the row points at 99020600.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020600 AND 99020609;
+DELETE FROM cq_npc WHERE id = 99020245;
+DELETE FROM cq_bonus WHERE id_account = 100090;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020600,101,0,'v134-bonus-chain-ran',99020601,0),
+  (99020601,101,0,'v134-bonus-chain-done',0,0),
+  (99020602,1023,0,'',99020603,99020604),
+  (99020603,101,0,'v134-bonus-claimed',0,0),
+  (99020604,101,0,'v134-bonus-none',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020245,'BonusSage',0,5000,1002,437,357,99020602,'');
+INSERT INTO cq_bonus (id_account,action,flag,ref_id,time,ordernumber,bonus_in_time,number)
+  VALUES (100090,99020600,0,0,0,'',0,3);
