@@ -91,7 +91,8 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
     std::lock_guard<std::mutex> lk(mtx_);
     // original: SELECT id,name,account_id,uin,recordmap_id,level FROM
     // cq_user WHERE account_id='%u' (first character of the account)
-    char sql[512];
+    char sql[1024];   // v131: the date columns pushed this query past 512 bytes
+    // (a truncated SELECT made every login resolve to the wrong row).
     // real cq.sql schema has no gm column on cq_user; GM authorization is
     // account-level (AccountServer: World.GMOnly && AccountType==0 reject),
     // so join accounts.type as the gm flag.
@@ -102,7 +103,7 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         "(SELECT rank FROM cq_synattr WHERE id=u.id LIMIT 1),u.hair,"
         "u.virtue,u.metempsychosis,u.home_id,u.nobility,u.business,"
         "u.strength,u.Speed,u.health,u.soul,u.additional_point,"
-        "u.old_prof,u.first_prof "
+        "u.old_prof,u.first_prof,u.god_status,u.last_logout_3,u.last_login "
         "FROM cq_user u LEFT JOIN accounts a "
         "ON a.id=u.account_id WHERE u.account_id=%u LIMIT 1", account_id);
     if (!exec(sql)) return out;
@@ -143,6 +144,10 @@ UserRecord MySQLDatabase::load_user(uint32_t account_id) {
         if (row[27]) out.add_point = strtoul(row[27], nullptr, 10);
         if (row[13]) out.pk = (int32_t)strtol(row[13], nullptr, 10);
         if (row[14]) out.lookface = strtoul(row[14], nullptr, 10);
+        // v131: the date container (indices follow the SELECT above)
+        if (row[30]) out.god_status    = (uint32_t)strtoul(row[30], nullptr, 10);
+        if (row[31]) out.last_logout_3 = (uint32_t)strtoul(row[31], nullptr, 10);
+        if (row[32]) out.last_login    = (uint32_t)strtoul(row[32], nullptr, 10);
     }
     mysql_free_result(res);
     return out;
@@ -568,6 +573,18 @@ void MySQLDatabase::update_user_profession(uint32_t player_id,
     std::snprintf(sql, sizeof(sql),
         "UPDATE cq_user SET profession=%u WHERE id=%u LIMIT 1",
         profession, player_id);
+    exec(sql);
+}
+
+// ---- v131: the packed date container's flush (0x140372710's tail) ----
+void MySQLDatabase::update_user_god_status(uint32_t player_id,
+                                           uint32_t value) {
+    if (!conn_) return;
+    std::lock_guard<std::mutex> lk(mtx_);
+    char sql[160];
+    std::snprintf(sql, sizeof(sql),
+        "UPDATE cq_user SET god_status=%u WHERE id=%u LIMIT 1",
+        value, player_id);
     exec(sql);
 }
 

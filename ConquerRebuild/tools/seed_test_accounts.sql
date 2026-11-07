@@ -1934,3 +1934,49 @@ INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
   (99020471,101,0,'v130-1041-ok',0,0);
 INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
   (99020232,'TalkSage',0,5000,1002,437,346,99020470,'');
+
+-- ===========================================================================
+-- v131: 1083 (packed god_status: <, ==, +=, chk)
+-- Fixture band: chains 99020480-99020489, npc 99020233.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020480 AND 99020489;
+DELETE FROM cq_npc WHERE id BETWEEN 99020233 AND 99020235;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020480,1083,0,'+= 5',99020481,0),
+  (99020481,1083,0,'< 6',99020482,99020483),
+  (99020482,101,0,'v131-god-ok',0,0),
+  (99020483,101,0,'v131-god-fail',0,0),
+  (99020484,1083,0,'chk 1',99020485,99020486),
+  (99020485,101,0,'v131-chk1-ok',0,0),
+  (99020486,101,0,'v131-chk1-fail',0,0),
+  (99020487,1083,0,'junk 7',99020488,99020489),
+  (99020488,101,0,'v131-junk-passed',0,0),
+  (99020489,101,0,'v131-junk-failed',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020233,'GodSage',0,5000,1002,437,347,99020480,''),
+  (99020234,'ChkSage',0,5000,1002,437,348,99020487,''),
+  (99020235,'Chk2Sage',0,5000,1002,437,349,99020484,'');
+UPDATE cq_user SET god_status=0 WHERE id=90;
+
+-- ===========================================================================
+-- v131: 1557 (days-since-last-logout slots at CUser+0x2F0)
+-- Fixture band: chains 99020490-99020499, npc 99020236-99020238.
+-- last_logout_3 is set to 2026-11-03 12:00 so "days since" is a real value.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020490 AND 99020499;
+DELETE FROM cq_npc WHERE id BETWEEN 99020236 AND 99020238;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020490,1557,5,'2',99020491,99020492),
+  (99020491,101,0,'v131-1557-slot-ok',0,0),
+  (99020492,101,0,'v131-1557-slot-fail',0,0),
+  (99020493,1557,0,'99999999',99020494,99020495),
+  (99020494,101,0,'v131-1557-pred-ok',0,0),
+  (99020495,101,0,'v131-1557-pred-fail',0,0),
+  (99020496,1557,5,'9',99020497,99020498),
+  (99020497,101,0,'v131-1557-range-passed',0,0),
+  (99020498,101,0,'v131-1557-range-failed',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020236,'DateSage',0,5000,1002,437,350,99020490,''),
+  (99020237,'PredSage',0,5000,1002,437,351,99020493,''),
+  (99020238,'RangeSage',0,5000,1002,437,352,99020496,'');
+UPDATE cq_user SET last_logout_3=26110312 WHERE id=90;

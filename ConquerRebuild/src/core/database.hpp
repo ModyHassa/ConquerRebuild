@@ -49,7 +49,11 @@ struct UserRecord {
     // v94: the rest of the pinned GetUserInt keys that have a real cq_user column
     uint32_t virtue       = 0;  // cq_user.virtue        (key 1010)
     uint32_t meto         = 0;  // cq_user.metempsychosis(key 1011)
-    uint32_t old_prof     = 0;  // cq_user.old_prof  (CUser +0xedb, v121)
+    uint32_t old_prof     = 0;
+    // v131: the packed YYMMDDHH date container (columns of the same name).
+    uint32_t god_status     = 0;   // cq_user.god_status
+    uint32_t last_logout_3  = 0;   // cq_user.last_logout_3
+    uint32_t last_login     = 0;   // cq_user.last_login  // cq_user.old_prof  (CUser +0xedb, v121)
     uint32_t first_prof   = 0;  // cq_user.first_prof (CUser +0xeda, v121)
     uint32_t home_id      = 0;  // cq_user.home_id       (key 1014)
     uint32_t nobility     = 0;  // cq_user.nobility      (key 1045)
@@ -359,6 +363,8 @@ struct PlayerItemRecord { uint32_t id; uint32_t type; uint32_t amount;
     // v35: action 509/510 item attribute ops
     virtual bool update_item(uint32_t item_id, uint32_t type,
                              uint32_t amount) = 0;
+    // v131: flush the packed god_status (0x140372710's keyed-store flush).
+    virtual void update_user_god_status(uint32_t player_id, uint32_t value) = 0;
     virtual void update_user_lookface(uint32_t player_id,
                                      uint32_t lookface) = 0;
     virtual void update_user_hair(uint32_t player_id, uint32_t hair) = 0;
@@ -462,6 +468,7 @@ public:
     bool update_item(uint32_t, uint32_t, uint32_t) override { return false; }
     bool update_item_position(uint32_t, uint16_t) override { return false; }
     void update_user_lookface(uint32_t, uint32_t) override {}
+    void update_user_god_status(uint32_t, uint32_t) override {}
     void update_user_hair(uint32_t, uint32_t) override {}
     void update_user_profession(uint32_t, uint32_t) override {}
     uint32_t itemtype_amount(uint32_t) override { return 0; }

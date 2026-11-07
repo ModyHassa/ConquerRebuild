@@ -808,4 +808,11 @@ the port) is what needs fixing.
   decoded but still BLOCKED**: its four branches (`<` / `==` / `+=` / `chk`) all hinge on the packed
   value at CUser+0xF38, written only by the login loader 0x14016812b from record+0xd8 (DB column
   UNKNOWN), plus the two `chk` predicates 0x140383750 / 0x140382350.
+- v131: **1083 (121 rows) and 1557 ported.** The `CUser+0xE78` date container is decoded into 50
+  field→`cq_user` column pairs (`docs/date_container_0xe78.md`); `god_status` is a packed
+  `YYMMDDHH` (e.g. 26052409 = 2026-05-24 09:00) with helpers in `src/systems/godtime.hpp`.
+  `+=` re-bases on the **next hour boundary**. 1557 stores day differences in the 8 qwords at
+  `CUser+0x2F0`. Also fixed a real bug: `load_user`'s SELECT overflowed `char sql[512]` (526 bytes
+  after the new columns) and was truncated, which silently broke logins for several accounts.
+  Suite 94/94 green.
 

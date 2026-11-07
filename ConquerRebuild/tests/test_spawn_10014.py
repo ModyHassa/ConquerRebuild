@@ -59,6 +59,21 @@ def find(pkts, want_id):
         if p[1] == want_id: return p
     return None
 
+def find_spawn_of(pkts, pid):
+    """The 10014 for a GIVEN player id.
+
+    v131: the test map now carries fixture NPCs, so the join burst can hold other
+    10014 spawns (NPCs are sent as 10014 too). Every assertion on the packet's
+    fields is unchanged - only the selection is id-based instead of 'first 10014'.
+    """
+    for p in pkts:
+        if p[1] != 10014: continue
+        try:
+            if parse_10014(p[2])['id'] == pid: return p
+        except Exception:
+            continue
+    return None
+
 try:
     a = login(100001)
     pkts_a = drain_all(a)
@@ -73,7 +88,7 @@ try:
     login_b = [p for p in pkts_b if p[1] == 1008 and p[0] == 0x20]
     assert login_b and login_b[0][2][4] == 0, f'client B login reply: {[p[1] for p in pkts_b]}'
     print('B login OK (code 0)')
-    b_sees_a = find(pkts_b, 10014)
+    b_sees_a = find_spawn_of(pkts_b, 1)
     assert b_sees_a, f'B never received A spawn; got {[p[1] for p in pkts_b]}'
     info_b = parse_10014(b_sees_a[2])
     print('B received A spawn:', info_b)
@@ -82,7 +97,7 @@ try:
     assert len(info_b['strings']) == 5, info_b['strings']
 
     pkts_a = drain_all(a)
-    a_sees_b = find(pkts_a, 10014)
+    a_sees_b = find_spawn_of(pkts_a, 2)
     assert a_sees_b, f'A never received B spawn; got {[p[1] for p in pkts_a]}'
     info = parse_10014(a_sees_b[2])
     print('A received B spawn:', info)

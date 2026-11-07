@@ -2026,3 +2026,29 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   second count. The DB column behind `record+0xd8` and the two `chk` predicates are still
   **UNKNOWN**, so this rebuild cannot carry the value yet.
 
+### v131 — 1083 (121 rows) + 1557 ported; the CUser date container mapped to DB columns
+- **The date container at `CUser+0xE78` is decoded**: every setter stores a field and mirrors it into
+  a keyed store under the field's **DB column name**, so the `.rdata` keys give 50 field→column
+  pairs (`docs/date_container_0xe78.md`). The three this wave needed: `+0xA8` = `last_login`
+  (user+0xF20), `+0xC0` = `god_status` (user+0xF38), `+0x1B0` = `last_logout_3` (user+0x1028).
+- **Action 1083 ported** (121 rows, the largest unported type): `sscanf "%s %d"`, then
+  `<` / `==` compare `0x140382960(user,2,0)` (whole **hours** left of the packed `god_status`) against
+  the parsed value, `+=` runs `0x140382b00` (re-base on the **next hour boundary** when absent or
+  expired, add `u*3600`, re-pack, flush to `cq_user.god_status`), and `chk` = `u==0 ?
+  (bitmap(0x1C) || seconds left > 0) : bitmap(0x1B)`. New `src/systems/godtime.hpp`
+  (pack/unpack/remaining/add + day ordinals) and `IDatabase::update_user_god_status`.
+- **Action 1557 ported**: `sscanf "%u"`; `edi = day-stamp(last_logout_3)` or the **raw** `last_login`
+  when `last_logout_3` is 0; `data == 0` is the pure predicate `u1 <= today` (u1 >= 1e8 is an error),
+  otherwise `u1` must be `0..7` and the qword slot at `CUser+0x2F0+u1*8` receives `today - edi` when
+  `edi` is a real past day (else 0) and the action returns true only then.
+- **REAL BUG FIXED — every login was resolving to the wrong row**: adding the three date columns
+  pushed `load_user`'s SELECT to 526 bytes, past its `char sql[512]`, so the query was silently
+  truncated (`test_spawn_10014` and ~35 others failed with misleading symptoms). The buffer is now
+  1024 bytes with a comment. This also explains why the first v131 attempt "logged in as Chainz" for
+  every account.
+- `tests/test_spawn_10014.py`: the two spawn lookups now select the 10014 whose **id matches the
+  expected player** instead of "the first 10014". The fixture NPCs share the test map, so the old
+  heuristic was no longer stable; every field assertion is unchanged.
+- New tests `tests/test_actions_v131.py` (5 checks) and `tests/test_actions_v131b.py` (3 checks).
+- **Suite 94/94 green.**
+

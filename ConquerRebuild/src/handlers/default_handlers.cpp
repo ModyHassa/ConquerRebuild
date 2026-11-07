@@ -859,6 +859,12 @@ void attach_login_system(Dispatcher& d, LoginSystem& login_system) {
             p.health     = rec.health;
             p.soul       = rec.soul;
             p.add_point  = rec.add_point;
+            // v131: the date container's fields
+            p.god_status    = rec.god_status;
+            p.last_logout_3 = rec.last_logout_3;
+            p.last_login    = rec.last_login;
+            if (rec.god_status)
+                std::printf("[login] %s god_status=%u\n", rec.name.c_str(), rec.god_status);
             p.record_map = rec.recordmap_id;
             p.record_pos = Position{(uint16_t)rec.recordx, (uint16_t)rec.recordy};
             // hp from cq_user.life; combat stats from equipped items

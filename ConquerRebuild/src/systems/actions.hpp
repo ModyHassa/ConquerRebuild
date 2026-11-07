@@ -20,6 +20,7 @@
 //             whatever text/options accumulated.
 #include "../core/database.hpp"
 #include "world.hpp"
+#include "godtime.hpp"
 #include "chat.hpp"
 #include "usereffect.hpp"
 #include <sstream>
@@ -3286,6 +3287,110 @@ case 121: {  // random check (ProcessAction case 0x79:
             std::printf("[action] %u 722 guild %u missing -> id_nextfail\n",
                         p.id, p.guild_id);
             cur = a->id_nextfail;
+            break;
+        }
+        case 1557: {  // v131: the "days since last logout" bookkeeping slots
+            // Case 0x9c body 0x140139ebb..0x14013a019 (docs/worker_v126_g5_1508.md).
+            // sscanf "%u" must give exactly 1, else log 0x3036 -> fail.
+            // edi = day-stamp of last_logout_3 (CUser+0x1028 = container +0x1B0,
+            // getter 0x140373950) when it is non-zero, ELSE the RAW last_login
+            // value (container +0x0A8, getter 0x140371db0) with no stamp applied.
+            unsigned u1 = 0;
+            if (std::sscanf(a->param.c_str(), "%u", &u1) != 1) {
+                std::printf("[action] %u 1557 bad param '%s' (log 0x3036) -> "
+                            "id_nextfail\n", p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            int64_t edi = p.last_logout_3 ? god_day_stamp(p.last_logout_3)
+                                          : (int64_t)p.last_login;
+            bool ok;
+            if (a->data == 0) {
+                // pure predicate "u1 <= today": u1 >= 100000000 is an error, and
+                // edi > u1 or edi == 0 both fail.
+                if (u1 >= 100000000u) {
+                    std::printf("[action] %u 1557 u1=%u out of range (0x3049) -> "
+                                "id_nextfail\n", p.id, u1);
+                    cur = a->id_nextfail;
+                    break;
+                }
+                ok = !(edi > (int64_t)u1) && edi != 0;
+            } else {
+                // per-slot store: u1 must be 0..7; the slot at CUser+0x2F0+u1*8
+                // receives today-edi when edi is a real PAST day, else 0.
+                if (u1 >= 8u) {
+                    std::printf("[action] %u 1557 u1=%u not in 0..7 (log says "
+                                "\"param not in range\") -> id_nextfail\n", p.id, u1);
+                    cur = a->id_nextfail;
+                    break;
+                }
+                const int64_t today = god_today(std::time(nullptr));
+                if (today > edi && edi != 0) {
+                    p.date_slots[u1] = today - edi;
+                    ok = true;
+                } else {
+                    p.date_slots[u1] = 0;
+                    ok = false;
+                }
+                std::printf("[action] %u 1557 slot %u <- %lld (edi=%lld today=%lld)\n",
+                            p.id, u1, (long long)p.date_slots[u1],
+                            (long long)edi, (long long)today);
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
+        case 1083: {  // v131: the packed god_status ("online god") privilege
+            // Case 0x49 body 0x14012becb. sscanf "%s %d" must yield BOTH tokens,
+            // then four branches on the first token ("<" / "==" / "+=" / "chk");
+            // anything else is the DBERROR path -> fail. Every branch reads the
+            // packed date at CUser+0xF38 (container +0xC0, DB column god_status),
+            // whose helpers are ported in systems/godtime.hpp.
+            char op[64] = {0};
+            int u = 0;
+            int n = std::sscanf(a->param.c_str(), "%63s %d", op, &u);
+            if (n != 2) {
+                std::printf("[action] %u 1083 bad param '%s' (n=%d) -> "
+                            "id_nextfail\n", p.id, a->param.c_str(), n);
+                cur = a->id_nextfail;
+                break;
+            }
+            const std::time_t now = std::time(nullptr);
+            bool ok = false;
+            if (std::strcmp(op, "<") == 0) {
+                // 0x140382960(user, 2, 0) < u   (mode 2 = whole hours)
+                ok = (int)god_remaining(p.god_status, now, 2, false) < u;
+                std::printf("[action] %u 1083 rem_hours %d < %d -> %d\n", p.id,
+                            (int)god_remaining(p.god_status, now, 2, false), u, (int)ok);
+            } else if (std::strcmp(op, "==") == 0) {
+                ok = (int)god_remaining(p.god_status, now, 2, false) == u;
+                std::printf("[action] %u 1083 rem_hours == %d -> %d\n", p.id, u, (int)ok);
+            } else if (std::strcmp(op, "+=") == 0) {
+                // 0x140382b00(user, u): re-base on the start of the current hour
+                // when absent/expired, add u*3600, then the setter packs it back
+                // and flushes the keyed store to the DB (0x140372710).
+                uint32_t next = god_add_hours(p.god_status, u, now);
+                p.god_status = next;
+                if (active_db()) active_db()->update_user_god_status(p.id, next);
+                ok = true;
+                std::printf("[action] %u 1083 += %d h -> god_status=%u\n",
+                            p.id, u, next);
+            } else if (std::strcmp(op, "chk") == 0) {
+                // u == 0 -> 0x140383750 = "bitmap(0x1C) set OR time still left";
+                // else   -> 0x140382350 = "bitmap(0x1B) set".
+                auto& sm = StatusSystem::instance();
+                if (u == 0)
+                    ok = sm.has((int)p.id, 0x1C)
+                         || god_remaining(p.god_status, now, 0, false) > 0;
+                else
+                    ok = sm.has((int)p.id, 0x1B);
+                std::printf("[action] %u 1083 chk %d -> %d\n", p.id, u, (int)ok);
+            } else {
+                std::printf("[action] %u 1083 unknown op '%s' -> id_nextfail\n",
+                            p.id, op);
+                cur = a->id_nextfail;
+                break;
+            }
+            cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
         case 1041: {  // v130: one talk line to self on channel 2105

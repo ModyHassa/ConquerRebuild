@@ -76,6 +76,8 @@ public:
     uint32_t itemtype_amount(uint32_t itemtype) override;
     bool itemtype_ident(uint32_t itemtype) override;
     void update_user_lookface(uint32_t player_id, uint32_t lookface) override;
+    // v131: flush the packed god_status date (the container's keyed-store flush)
+    void update_user_god_status(uint32_t player_id, uint32_t value) override;
     void update_user_hair(uint32_t player_id, uint32_t hair) override;
     void update_user_profession(uint32_t player_id,
                                 uint32_t profession) override;

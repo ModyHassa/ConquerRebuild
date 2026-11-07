@@ -120,6 +120,12 @@ struct Player {
     // v129: the "lastentertime" stamp of the keyed store at CUser+0x12c0 (the only
     // reader/writer pair of that key in the binary is action 802's getter/setter).
     uint32_t last_enter_time = 0;   // GetTickCount() ms, 0 = never
+    // v131: cq_user packed YYMMDDHH dates (the CUser+0xE78 container).
+    uint32_t god_status    = 0;   // "god_status"     = user+0xF38
+    uint32_t last_logout_3 = 0;   // "last_logout_3"  = user+0x1028
+    uint32_t last_login    = 0;   // "last_login"     = user+0xF20
+    // v131: the 8 qwords at CUser+0x2F0 (1557's per-slot day differences).
+    int64_t date_slots[8]  = {0,0,0,0,0,0,0,0};
     // v37: cq_magic rows (spells learned; type -> state)
     struct MagicSkillState {
         uint16_t level = 0; uint32_t exp = 0; bool dirty = false;
