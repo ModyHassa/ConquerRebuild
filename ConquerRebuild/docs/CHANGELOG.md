@@ -2557,3 +2557,21 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   `cell()` OOB == 1, in-range == sentinel, `walkable()` OOB == 0, non-square rejection, missing-file
   rejection, and both original log strings. **Suite 102/102 green.**
 
+### v156 — the `mapdata` module named; live caller found in NpcServer; MsgServer's path proved dead
+- Both binaries carry the module identity: `f:\version\cqserver-78.0.11-1204\mapdata\i_mapdata.h`,
+  `...\mapdata\source\mapdata.cpp`, RTTI `.?AVIMapData@@` / `.?AVCMapData@@`. So v154/v155 ported the
+  **`mapdata` module** (interface `IMapData` + implementation `CMapData`).
+- Its log strings enumerate the unported functions: `IMapData::CreateNew`, `IMapData::Create` (map %d from file
+  %s, gridsize=%d), `IMapData` find/open, `CMapData` **layer data**, **per-owner items** (item from file %s for
+  owner %u), **item lookup** (item %d, key %s, field %s) and `AddTerrainObj` (the 403 entry) - now a checklist
+  in `src/systems/mapdoc.hpp` and docs. The **layer** concept explains the `gridsize` + per-row trailer.
+- **Verified live chain (NpcServer)**: `0x14005184c -> factory 0x14008ba00` with `ecx = mapId`,
+  `rdx = &record+0x20` (path), `r8d = [record+0x1c]` (**gridsize**), looked up in the **IMapData registry**
+  (tree header `0x140104630`); miss logs `IMapData cannot find map %d`. This answers v153's open question for
+  that path: path + gridsize are properties of the map-info record.
+- **Negative result**: in MsgServer the `CMapData` factory `0x140568d50` has **no caller** - no call, no jmp, no
+  vtable slot (639 classes x 0x200 slots), no 8-byte function pointer, and no rel32 jump-table entry anywhere in
+  the image. MsgServer's creation path is dead; the reachable one is NpcServer's.
+- Still BLOCKED: 403 (93) + 1509 (9) need the `IMapData` registry populator (writes `+0x1c` gridsize and
+  `+0x20` path) - that reader names directory/extension/gridsize. No map document invented.
+

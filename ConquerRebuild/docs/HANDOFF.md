@@ -1021,4 +1021,12 @@ and re-run it on its own before investigating.
   (0x1402c3cc0). The in-range attribute stays **UNKNOWN** (the `+0x1c0` map filler is not in the binary) so
   the port returns `kUnknownAttribute(-1)` rather than a guess; 403/1509 remain BLOCKED on the original map
   documents. `tests/mapdoc_unit_test.cpp` (generated fixture, labelled) is the 102nd suite test -> **102/102**.
+- v156: the terrain code is the **`mapdata` module** (`mapdata/i_mapdata.h` + `mapdata/source/mapdata.cpp`,
+  RTTI `IMapData`/`CMapData`, present in BOTH exes). Unported surface (from its own log strings, now a checklist
+  in `src/systems/mapdoc.hpp`): `IMapData::CreateNew`/`Create`/find/open, `CMapData` **layer data**, **per-owner
+  items**, **item lookup (id,key,field)**, and `AddTerrainObj` (the 403 entry). **Live chain verified in
+  NpcServer**: `0x14005184c -> 0x14008ba00` with mapId / path `record+0x20` / gridsize `record+0x1c` from the
+  IMapData registry (`0x140104630`), miss logs `IMapData cannot find map %d`. **MsgServer's factory
+  `0x140568d50` has NO caller at all** (no call/jmp/vtable slot/function pointer/rel32 table entry) = dead path.
+  Next: find the registry populator (writer of `+0x1c`/`+0x20`); 403 (93) + 1509 (9) stay BLOCKED, nothing invented.
 

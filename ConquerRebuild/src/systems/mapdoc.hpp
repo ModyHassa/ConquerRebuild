@@ -17,6 +17,14 @@
 //   then height rows of: width * {u16 mask, u16 skipped, u16 sur} followed by 4 ignored bytes
 //   then u32 n followed by n * 12-byte records.
 //
+// PORT CHECKLIST for the rest of the module (strings are from mapdata.cpp itself, see
+// docs/worker_v156_mapdata_module.md): IMapData::CreateNew, IMapData::Create (cannot create map %d from
+// file %s, gridsize=%d), IMapData find (cannot find map %d), IMapData open (cannot open file %s),
+// CMapData layer data (cannot create layer data), CMapData per-owner items (cannot create item from file
+// %s for owner %u), CMapData item lookup (cannot find item %d, key %s, field %s), and AddTerrainObj
+// (3 guards: layer data / item from file / file name is null, owner:%u). None of those are ported yet -
+// they are listed here so the module surface stays visible and nothing gets invented in their place.
+//
 // BLOCKED / not invented: the value CMapData::cell returns for an IN-RANGE cell (it is looked up
 // in a std::map at CMapData+0x1c0 that a loader not present in this binary fills). Because of that
 // walkable() cannot be completed today, so this module exposes the verified pieces only and reports
