@@ -2305,3 +2305,21 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   landing in `t5`. Either this caller really passes 0 or v125's numbering is off by one. Settle it by
   re-reading Status.dll's `AddStatus` prologue (vftable `0x1416da0f8`, slot 8) - then the 52 rows go in.
 
+### v140 — 1082 ported (52 rows): `self add` -> CStatusMgr::AddStatus, and the v125 conflict is settled
+- Read Status.dll's `AddStatus` (vtable `0x1416da0f8` slot +0x8 = `0x1416be020`, base `0x1416b0000`)
+  instruction by instruction and tabulated every record store. **v125's arg order is confirmed**:
+  `rec+0x04=arg2, +0x08=arg3, +0x0c=arg4, +0x11=(byte)arg6, +0x14=arg7, +0x18=time()+arg8,
+  +0x1c=arg5(+1 when arg3==0x12), +0x20=(byte)arg9, +0x24=arg11`.
+- Therefore for the shipped rows (`self add 7 200 1800 0`) the **duration `arg8` is literally 0**
+  and 1800 is an opaque `t5` - the earlier "conflict" is resolved, no guess needed. `arg10` is also
+  not a constant (the prologue tests it to build the flags byte); only `arg2` is player-range-checked
+  (>= 1000000 at `0x1416be055`), so the small `arg3` is the status id.
+- **`case 1082` implemented** (164/217 types, **99.74% of rows**, 53 unported): `self add` calls
+  `StatusSystem::add(p.id, p.id, 200, 1800, 0, 0, 0, 0, 7)`-style with the original's exact arg order;
+  `team/couple/mate`, `chk` and the apply path are **BLOCKED and refused** (no shipped row uses them).
+  Returns TRUE on add, FALSE on a `<6`-conversion parse (the original's own two exits).
+- **`tests/test_actions_v140.py`** (5 checks, suite green): the status effect is proven end to end by
+  a 1098 mode-0 probe **before and after** the add inside one click chain (memory-only statuses would
+  not survive a re-login), plus the bad-count and blocked-scope branches. New fixtures
+  StatusSage/BadParamSage/ScopeSage (npc 99020249-51, chains 99020710-22).
+

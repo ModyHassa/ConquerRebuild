@@ -2082,3 +2082,30 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020246,'TierSage',0,5000,1002,437,358,99020700,''),
   (99020247,'TierSage10',0,5000,1002,437,359,99020703,''),
   (99020248,'TierSage20',0,5000,1002,437,360,99020706,'');
+
+-- ===========================================================================
+-- v140: 1082 (`self add <status> <t1> <t5> <t4>` -> CStatusMgr::AddStatus)
+-- Fixture band: chains 99020710-99020729, npc 99020249-99020251.
+-- Chain A proves the effect end to end: 1098 probe (mode 0) must be FALSE before
+-- the add and TRUE after it, all inside one click chain (statuses are in-memory).
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020710 AND 99020729;
+DELETE FROM cq_npc WHERE id BETWEEN 99020249 AND 99020251;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020710,1098,0,'7',99020711,99020712),
+  (99020711,101,0,'v140-pre-held',0,0),
+  (99020712,1082,0,'self add 7 200 1800 0',99020713,99020715),
+  (99020713,1098,0,'7',99020714,99020716),
+  (99020714,101,0,'v140-status-7-held',0,0),
+  (99020715,101,0,'v140-add-failed',0,0),
+  (99020716,101,0,'v140-status-7-missing',0,0),
+  (99020717,1082,0,'self add 7 200',99020718,99020719),
+  (99020718,101,0,'v140-badcount-passed',0,0),
+  (99020719,101,0,'v140-badcount',0,0),
+  (99020720,1082,0,'mate add 7 200 60 0',99020721,99020722),
+  (99020721,101,0,'v140-blocked-scope-passed',0,0),
+  (99020722,101,0,'v140-blocked-scope',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020249,'StatusSage',0,5000,1002,437,361,99020710,''),
+  (99020250,'BadParamSage',0,5000,1002,437,362,99020717,''),
+  (99020251,'ScopeSage',0,5000,1002,437,363,99020720,'');

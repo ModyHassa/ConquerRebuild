@@ -915,4 +915,10 @@ and re-run it on its own before investigating.
   (n1=%u at 0xc8, n2 at 0x11c, n3 at 0x10c, n4 at 0x110). CONFLICT to settle first: v125's arg order
   puts the duration in `t3` = arg8, which is 0 for these rows while 1800/3600 lands in `t5` - re-read
   Status.dll AddStatus' prologue (vftable 0x1416da0f8, slot 8) before implementing.
+- v140: **1082 PORTED (52 rows)** - `self add <status> <t1> <t5> <t4>` -> `status::CStatusMgr::AddStatus`
+  (Status.dll `0x1416be020`). That prologue settles the v139b conflict: **v125's arg order is right and
+  the duration arg8 really is 0** for the shipped rows (`self add 7 200 1800 0` -> t1=200, t5=1800,
+  t3=0), and only arg2 is player-range-checked so arg3 is the status id. `team/couple/mate`, `chk` and
+  the apply path stay BLOCKED/refused (unused by any row). Coverage **164/217 types, 99.74% rows, 53
+  unported**; test_actions_v140 proves the effect with a 1098 probe before+after the add.
 

@@ -3446,6 +3446,62 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = ok ? a->id_next : a->id_nextfail;
             break;
         }
+        case 1082: {  // v140: the mate/status command - shipped rows are `self add <status> <t1> <t5> <t4>`
+            // Case body 0x14012f025. sscanf "%s %s %u %d %d %d" (fmt 0x14070f080); the two
+            // tokens are strcmp'd against team/couple/mate/self (0x14070f060..0x14070f078) and
+            // add/chk (0x14070f2d0 / 0x14070f390). Fewer than 6 conversions -> the shared
+            // "bad parameter count" log (0x14070c010, err 0x20d6) and FALSE.
+            //
+            // `self` + `add` (0x14012f115): GetInstance(0x14) = status::CStatusMgr, then its
+            // vtable slot +0x8 = AddStatus (Status.dll 0x1416be020) with
+            //   arg2 = actorObj->vt[+0x8]()  (the acting player id)
+            //   arg3 = n1 (the %u), arg4 = n2, arg5 = n3, arg6 = n4, arg7..arg11 = 0.
+            // Status.dll's own prologue stores, proven at 0x1416be0eb..0x1416be135:
+            //   rec+0x04 = arg2, rec+0x08 = arg3, rec+0x0c = arg4 (t1), rec+0x11 = (byte)arg6 (t4),
+            //   rec+0x14 = arg7 (t2), rec+0x18 = time(NULL) + arg8 (t3 = the duration),
+            //   rec+0x1c = arg5 (+1 when arg3 == 0x12), rec+0x20 = (byte)arg9 (t6), rec+0x24 = arg11.
+            // So for the shipped rows (`self add 7 200 1800 0`) the duration arg8 is literally 0
+            // and 1800 lands in t5 - that is the original's behaviour, and it also settles the
+            // v125 conflict in favour of v125's arg order. Only arg2 is range-checked as a player
+            // id (>= 1000000 at 0x1416be055); arg3 is not, which is why the small n1 (2/6/7/17) can
+            // be the status and not a user. The add branch returns TRUE (al=1 @0x14012f761).
+            //
+            // NOT USED BY ANY SHIPPED ROW, so BLOCKED and failing loudly instead of guessed:
+            // the team/couple/mate scopes, `chk` (actorObj->vt[+0x2d8](n1) on an unidentified
+            // object) and any other token (the vt[+0x10] apply path).
+            char tk1[64] = {0}, tk2[64] = {0};
+            unsigned nu1 = 0;
+            int n2 = 0, n3 = 0, n4 = 0;
+            const int got = std::sscanf(a->param.c_str(), "%63s %63s %u %d %d %d",
+                                        tk1, tk2, &nu1, &n2, &n3, &n4);
+            if (got < 6) {
+                std::printf("[action] %u 1082: bad parameter count in \"%s\" -> id_nextfail\n",
+                            p.id, a->param.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            if (std::strcmp(tk1, "self") != 0) {
+                std::printf("[action] %u 1082: scope '%s' BLOCKED (no shipped row uses it)\n",
+                            p.id, tk1);
+                cur = a->id_nextfail;
+                break;
+            }
+            if (std::strcmp(tk2, "add") != 0) {
+                std::printf("[action] %u 1082: op '%s' BLOCKED (only add is ported)\n",
+                            p.id, tk2);
+                cur = a->id_nextfail;
+                break;
+            }
+            StatusSystem::instance().add((int)p.id, (int)p.id,
+                                         /*t1=*/n2, /*t5=*/n3, /*t4=*/n4,
+                                         /*t2=*/0, /*t3=*/0, /*t6=*/0,
+                                         /*type=*/(int)nu1);
+            std::printf("[action] %u 1082: self add status=%u t1=%d t5=%d t4=%d -> id_next\n",
+                        p.id, nu1, n2, n3, n4);
+            cur = a->id_next;
+            break;
+        }
+
         case 1083: {  // v131: the packed god_status ("online god") privilege
             // Case 0x49 body 0x14012becb. sscanf "%s %d" must yield BOTH tokens,
             // then four branches on the first token ("<" / "==" / "+=" / "chk");
