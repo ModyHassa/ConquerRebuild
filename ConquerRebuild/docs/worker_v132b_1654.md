@@ -120,3 +120,42 @@ Also confirmed this wave, from the record parser at `0x1400ed800` (assert string
 **`pstAddr` (0x140705a80), `data` (0x140705a88), `datastr` (0x140705a90), `lookface` (0x140705a98)**
 through `0x1400922d0` / `0x1400e32a0` / `0x1400e3310`. It is the NPC task-data loader, not the field
 mapper, so it does not name `+0x68` either.
+
+## v137 CORRECTION — `+0x68`/`+0x69` are BYTES, `+0x60` is the pointer; `0x1402bf900` is the NPC idle-timer routine
+
+Reading the predicate `0x1402bf900` itself (not just its call site):
+
+```
+1402bf908  cmpb $0x0,0x68(%rcx)      ; +0x68 is a BYTE flag   <- earlier note said "pointer": WRONG
+1402bf90f  jne 0x1402bf917
+1402bf911  cmpb $0x0,0x69(%rcx)      ; +0x69 is a second BYTE flag
+1402bf915  je  0x1402bf924
+1402bf917  cmpl $0x0,0xb4(%rcx)      ; +0xB4 is a DWORD (the GetTickCount/1000 stamp)
+1402bf91e  je  0x1402bfa5c           ; -> return path, value not yet read
+1402bf94c  cmpq $0x0,0x60(%rcx)      ; +0x60 really is the object POINTER
+1402bf994  mov 0x60(%rcx),%rcx ; vtable+0x10   ; then its vtable is called
+1402bfadf  mov %edx,0xb4(%r15)       ; ... and the routine immediately re-stamps the timer
+1402bfac0  movl $0x3,0xb0(%r15)
+```
+
+So the shape is: **"does this NPC have a pending idle/timed action, and has its timer expired yet"**:
+`+0x68`/`+0x69` are flag bytes, `+0xB4` is the expiry stamp in seconds, `+0x60` is the NPC's
+sub-object (its vtable slots `+0x88/+0x90/+0x98/+0xA0` are called before the re-stamp), and the
+positive path **re-stamps** `+0xB4 = GetTickCount()/1000` and sets `+0xB0 = 3`.
+
+For 1654 kind 1 that means:
+1. `if (b68 == 0) return 0;` (no idle action configured on this NPC),
+2. `if (b4 != 0) return 1;` unchanged, no close, no state change (timer still armed),
+3. else run the idle routine -> **close the dialog + reset state**, return 1.
+
+**Still UNKNOWN for the port:** the meaning/source of the `+0x68`/`+0x69` flag bytes in cq_npc terms
+(no writer found in the NPC-kernel range), the vtable work this routine performs, and the value
+returned at `0x1402bfa5c`.
+
+## Open flag for review — 0x1002's identity used by the 1651 port
+Our `case 1651` (v133) treats class **`0x1002` as the player** and compares its `vt+0x50` against the
+parsed value using **level** as the model. 1654's kind 2 also queries `0x1002` and tests `[obj+0x154]`,
+while `0x14038e270` (called on the same class elsewhere) reads `[obj+0x154]` as a **seconds** value
+together with `+0x150`. That is not consistent with "player + level" and is not proven either way -
+**the 0x1002 class id and `vt+0x50`/`+0x154` meanings must be re-verified before 1651's value branch
+and any 1654 port can be called faithful.**

@@ -2254,3 +2254,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   identified: it reads `pstAddr`, `data`, `datastr`, `lookface` - it is the NPC task-data loader, not
   the field mapper.
 
+### v137 — 1654 correction: `+0x68`/`+0x69` are BYTES, and `0x1402bf900` is the NPC idle-timer routine
+- Read the predicate itself: `cmpb $0,0x68(%rcx)` / `cmpb $0,0x69(%rcx)` prove **`+0x68` and `+0x69` are
+  byte flags** (the previous note calling `+0x68` "very likely a pointer" was wrong - the pointer is
+  **`+0x60`**, confirmed by `cmpq $0,0x60(%rcx)` followed by `mov 0x60(%rcx),%rcx` and a vtable call).
+- `+0xB4` is the DWORD expiry stamp; the routine's positive path **re-stamps** it
+  (`+0xB4 = GetTickCount()/1000`) and sets `+0xB0 = 3`, after calling the sub-object's vtable slots
+  `+0x88/+0x90/+0x98/+0xA0`. So kind 1 of 1654 reads exactly: "NPC has an idle action (`+0x68`), is
+  its timer still armed (`+0xB4 != 0`) -> do nothing and keep the dialog open; otherwise run the idle
+  routine, close the dialog and reset the state".
+- **Still blocked** on the cq_npc meaning of `+0x68`/`+0x69`, the vtable work, and the value at
+  `0x1402bfa5c`.
+- **Review flag recorded:** our v133 `case 1651` models class `0x1002` as the *player* and `vt+0x50` as
+  *level*, but `0x1002`'s `+0x154` is read elsewhere as a **seconds** value next to `+0x150`. That
+  inconsistency is not resolved, so 1651's value branch and any 1654 port must not be called faithful
+  until `0x1002` and `vt+0x50` are re-verified.
+

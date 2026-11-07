@@ -895,4 +895,10 @@ and re-run it on its own before investigating.
   both together. Remaining unported types are now all subsystem-bound: 403 (93, home+furniture),
   1082 (52, couple), 1654 (28, two CNpc fields + `CUser+0x154`), 1508/1509/223 (26, lottery),
   1078/1079 (8, emoney grant+checksum), 1094 done, and the small ones above.
+- v137 CORRECTION for 1654: `+0x68`/`+0x69` are BYTE flags (not pointers - the pointer is `+0x60`) and
+  `0x1402bf900` is the NPC **idle-timer** routine (re-stamps `+0xB4 = GetTickCount()/1000`, sets
+  `+0xB0 = 3`, calls the `+0x60` sub-object's vtable `+0x88/+0x90/+0x98/+0xA0`). Blocked on the cq_npc
+  meaning of those two flag bytes, that vtable work, and `0x1402bfa5c`'s return value. ALSO: re-verify
+  `0x1002` - v133's 1651 treats it as the player with `vt+0x50` = level, but `+0x154` on the same class
+  is read as seconds elsewhere; do not trust that branch until it is settled.
 
