@@ -2115,3 +2115,21 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   approximated.
 - No source change this wave; the suite stays at 96/96 (last code wave v133).
 
+### v133c — decode-only: the emoney family narrowed, 403's blocker pinned to MapRegion
+- **1078 and 1079 are one family**, both single calls into the emoney module
+  (`0x1401ac210(user,data)` and `0x1401ac720(user)`), sharing the `ref_id`/`time_stamp`/`chk_sum`
+  keys. `.rdata` shows the card tables are `emoney_card`, `emoney_card2/3/4`,
+  `emoney_card_google`, `emoney_card_ndsdk`, and the google checkout log carries
+  `nItemCount` - so a card grants **items**, and the earlier "credits emoney_mono" hypothesis is
+  ruled out (not yet proven which item path). Port 1078+1079 together after decoding
+  `0x1401742b0` (grant) and `0x140164640` (checksum).
+- **403's blocker is now exact**: the two gates before its 22-field param parse are CMapRegion
+  queries - `0x1402c3cc0(regionMgr, x, y)` must succeed and `0x1402c8370(regionMgr, x, y, 0x1040,
+  &out)` must find no NPC at the cell. The rebuild has no region model, but the `cq_dynanpc`
+  create/register path it needs already exists (`DynaNpc::create`, used by action 301), so once a
+  minimal region model lands, 403 becomes a straight port.
+- Also noted: 1023's whole body is `0x140172910(user)` and 1079's whole body is `0x1401ac720(user)`
+  - the 1000-ladder has several "single CUser method" actions, so a future wave should identify
+  those callees in bulk rather than one type at a time.
+- No source change this wave (suite remains 96/96 from v133).
+

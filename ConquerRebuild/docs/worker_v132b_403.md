@@ -55,3 +55,25 @@ So **case 403 body begins at 0x140119b83**. Body ends by jumping to
 **Port verdict: BLOCKED.** It needs the CNpc create/register path plus the map-region manager
 (the same subsystem that owns `CUser+0xA30`), neither of which this rebuild models. The parse
 formats and gates above are enough to write the port the day that subsystem lands.
+
+---
+
+## 3. The gate machinery is the MAP-REGION subsystem (verified this wave)
+
+Read at `0x140119ca3..0x140119d08`:
+
+```
+140119cab  x = [rsp+0x11c], y = [rsp+0x120]      ; from the pszAccept parse
+140119cc3  call 0x1402c3cc0(regionMgr, x, y)     ; region query #1
+140119cc8  test al ; je -> FALSE                 ; must succeed
+140119d03  call 0x1402c8370(regionMgr, x, y, 0x1040, &out)  ; NPC-class occupancy
+140119d08  test al ; jne -> FALSE                ; must find NOTHING at the spot
+```
+So the two gates before the 22-field param parse are **CMapRegion** queries: "is this cell placeable"
+and "is there already an NPC (class 0x1040) there". The rebuild models maps and NPC defs but has no
+MapRegion object model at all, which is why this action cannot be ported yet even though the
+`cq_dynanpc` create/register path it needs (`DynaNpc::create`) already exists in
+`src/systems/dynanpc.hpp` and is used by action 301.
+
+**Verdict unchanged: BLOCKED - on the MapRegion subsystem (`0x1402c3cc0`, `0x1402c8370`), not on
+the NPC creation path.**

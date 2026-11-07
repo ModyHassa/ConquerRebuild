@@ -837,4 +837,11 @@ the port) is what needs fixing.
   last branch: it needs `[npc+0x68]`, `[npc+0xb4]` and `0x14038e270`. Both ports are one
   identification away, so a future wave should finish them before touching 403 (which needs the
   CNpc create/register + MapRegion subsystems) or 1082 (undecoded).
+- v133c (decode only): **1078+1079 are the same emoney-card module** (card tables
+  emoney_card/card2/card3/card4/google/ndsdk; the checkout log's `nItemCount` means a card grants
+  ITEMS, ruling out the earlier emoney_mono guess). Port them together after decoding `0x1401742b0`
+  (the grant) and `0x140164640` (the checksum). **403 is blocked on MapRegion**, proven: its gates
+  are `0x1402c3cc0(regionMgr,x,y)` and `0x1402c8370(regionMgr,x,y,0x1040,&out)`, while the dynanpc
+  create path it needs already exists. 1023 = a single call to `0x140172910` (identify the
+  1000-ladder's single-call callees in bulk next time).
 
