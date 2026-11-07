@@ -2423,3 +2423,20 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   (`0x1402c3cc0` = `terrain(x,y)==0`) plus the map-enter gate `0x1401a4030(user,map)`; the rebuild has no
   terrain loader and its 1107 port only checks `map_exists`, so 1509 waits on a map-cell subsystem.
 
+### v147 — CMapGroup accessors named, 224 decoded, and the map-terrain data does not exist
+- **The CMapGroup member table is now named from the binaries' own assert literals**
+  (`docs/worker_v147_mapgroup_rolemanager.md`): `0x1400875f0 -> +0x88 m_pRoleManager`,
+  `0x140087650 -> +0x90 m_pUserManager` (already used by 1024), `0x1400876b0 -> +0x98 m_pMapManager`,
+  `0x140087710 -> +0xa8 m_pGameAction`, `0x140087790 -> +0x230 m_pNpcPathTaskMgr`, plus the literals
+  `m_pMagicManager` / `m_pTexasMgr` / `m_pInstanceMgr` for the next three (their offsets not yet read).
+- **224 (7 rows) = the home-upgrade furniture gate**, decompiled `case 0xe0`: `"%u %d %d"` (>=2 fields) ->
+  `m_pRoleManager->vt[0xa8](home_map_id, 25)`, then `count > 0` (3rd field absent) or `count >= n`.
+  The shipped chain proves it: id_next = `"Please~close~your~furniture~before~the~house~upgrade~begins!"`
+  and id_nextfail = the upgrade that charges 3,000,000 (an extra pair charges 4,000,000).
+  BLOCKED only on `CRoleManager::vt[0xa8]`.
+- **DECISIVE data finding**: map terrain does not exist in this workspace (`cq_map.mapdoc` is only an
+  integer id; there is no `.map`/map-pack file anywhere; `cq_map` is 415 rows of metadata). Since
+  `0x1402c3cc0` needs the terrain cell, **403 (93 rows) and 1509 (9 rows) are blocked until the map
+  documents are supplied** - this is a missing-data problem, not a missing-code problem, and it also
+  means 1107 stays unfaithful (it only checks `map_exists`).
+

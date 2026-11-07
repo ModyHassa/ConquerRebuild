@@ -956,4 +956,11 @@ and re-run it on its own before investigating.
   `terrain(x,y)==0`) gates both **403 (93 rows)** and **1509 (9 rows)** and would make 1107 faithful; the
   rebuild has no terrain loader. Also measured: 403's 0x6c info struct is the `local_7f8..local_790` block
   and the 22 param fields are written straight into it in compiled order (see docs/worker_v146_403_itemonly.md §6).
+- v147: **CMapGroup accessors named** (+0x88 m_pRoleManager, +0x90 m_pUserManager, +0x98 m_pMapManager,
+  +0xa8 m_pGameAction, +0x230 m_pNpcPathTaskMgr) from the binary's own CHECKF literals. **224 (7 rows)** =
+  the home-upgrade furniture gate (`m_pRoleManager->vt[0xa8](home_map_id,25)` then count >0 / >= n; the
+  shipped texts prove it), blocked only on that one slot. **TERRAIN DATA IS ABSENT from the workspace**
+  (`cq_map.mapdoc` is just an int, no `.map` file anywhere) -> **403 (93) and 1509 (9) are blocked on data,
+  not code**; 1107 also stays unfaithful. Ask the owner for the v6159 map documents before anything else
+  touches map cells.
 
