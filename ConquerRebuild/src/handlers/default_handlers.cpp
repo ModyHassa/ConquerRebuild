@@ -659,6 +659,18 @@ void register_default_handlers(Dispatcher& d) {
         if (!npc) return;
         if (npc->map_id != p.map_id) return;   // wrong map
         p.last_npc_id = npc_id;
+        // v133: the chain's SECOND text parameter and the dialog select step.
+        // See docs/second_text_param.md. The only writer of dialog state 2 in the
+        // binary is 0x140367333 (`movb $0x2,[user+0x968]` then `%r15d` into +0x970
+        // AND +0x974) inside a packet handler; our equivalent trigger is a click
+        // that carries a selection id (wire+0x0C) while a dialog is open.
+        p.chain_param2 = std::to_string(task_id);
+        if (task_id != 0 && p.dlg_state == 1) {
+            p.dlg_state  = 2;
+            p.dlg_target = task_id;
+            p.dlg_kind   = (uint8_t)(task_id & 0xFF);
+            std::printf("[dialog] %u select %u -> state 2\n", p.id, task_id);
+        }
         // v84: a scripted NPC (cq_npc.datastr names a .lua file) runs its
         // on_talk hook with this player as the script context; the script's
         // say() lines reach the client through the SYSTEM talk builder.

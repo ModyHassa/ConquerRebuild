@@ -3561,6 +3561,97 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = a->id_next;
             break;
         }
+        case 1651: {  // v133: the dialog ANSWER - match the chosen object, state 2 -> 3
+            // Case 0xa6 body 0x140138889..0x140138bbf (docs/worker_v126_g5_1508.md,
+            // extended in docs/worker_v132b_1654.md).
+            //   gate: [user+0x968] == 2                    (anything else -> 0)
+            //   sscanf #1 from the SECOND text param ("%u", exactly 1 conversion)
+            //     -> the selected ENTITY id; a failure logs and returns 0
+            //   dispatch on id4 = ctx->vt[0x10](4)+0x48 = the action's `data` column,
+            //   comparing the FIRST text param against the queried object:
+            //     id4 1 -> "%s" vs the 0x1040 (NPC) name  (strncmp, 0x40)
+            //     id4 2 -> "%u" vs the 0x1002 object's vt+0x50 value
+            //     id4 3 -> "%d" vs the 0x1001 object's vt+0x50 value
+            //     other -> DBERROR -> 0
+            //   mismatch -> state=1 and 0x140165a30 re-sends CMsgAction 175 -> 0
+            //   match    -> state=3, +0x96c=0, +0x970=the parsed id, +0x974=id4 -> 1
+            // ENGINE MAPPING (documented, not proven from the binary): our chains take
+            // the second text param from Player::chain_param2, which the NPC-click
+            // handler fills with the click's third dword (wire+0x0C, the selected
+            // element id) - the only entity-selection value the client sends with a
+            // click. See docs/second_text_param.md.
+            if (p.dlg_state != 2) {
+                std::printf("[action] %u 1651: dialog state %u != 2 -> id_nextfail\n",
+                            p.id, (unsigned)p.dlg_state);
+                cur = a->id_nextfail;
+                break;
+            }
+            unsigned ent = 0;
+            if (std::sscanf(p.chain_param2.c_str(), "%u", &ent) != 1) {
+                std::printf("[action] %u 1651: no second text param (\"%s\") for "
+                            "the entity id -> id_nextfail\n",
+                            p.id, p.chain_param2.c_str());
+                cur = a->id_nextfail;
+                break;
+            }
+            const unsigned id4 = (unsigned)a->data;
+            const NpcDef* self_npc = npc_id ? NpcSystem::instance().find(npc_id)
+                                            : nullptr;
+            const std::string npc_name = self_npc ? self_npc->name : std::string();
+            bool matched = false, bad_dispatch = false;
+            if (id4 == 1) {                      // NPC name compare (class 0x1040)
+                char want[256] = {0};
+                if (std::sscanf(a->param.c_str(), "%255s", want) != 1) {
+                    std::printf("[action] %u 1651: param '%s' is not %%s\n",
+                                p.id, a->param.c_str());
+                } else if (ent == npc_id) {      // the clicked NPC is the entity
+                    matched = std::strncmp(want, npc_name.c_str(), 0x40) == 0;
+                }
+                std::printf("[action] %u 1651 kind 1: \"%s\" vs npc %u \"%s\" -> %d\n",
+                            p.id, want, ent, npc_name.c_str(), (int)matched);
+            } else if (id4 == 2 || id4 == 3) {   // object value compare
+                long long want = 0;
+                const bool parsed = id4 == 2
+                    ? std::sscanf(a->param.c_str(), "%lld", &want) == 1
+                    : std::sscanf(a->param.c_str(), "%lld", &want) == 1;
+                if (!parsed) {
+                    std::printf("[action] %u 1651 kind %u: param '%s' is not "
+                                "numeric\n", p.id, id4, a->param.c_str());
+                } else if (w.players.count(ent)) {
+                    Player* t = &w.players[ent];
+                    // class 0x1002 (player) exposes vt+0x50; our nearest model is
+                    // the level, which is what 0x1002's +0x50 returns elsewhere.
+                    matched = (long long)t->level == want;
+                    std::printf("[action] %u 1651 kind %u: %lld vs %u level %u -> %d\n",
+                                p.id, id4, want, ent, t->level, (int)matched);
+                }
+            } else {
+                bad_dispatch = true;
+                std::printf("[action] %u 1651: id4 %u is not 1/2/3 -> id_nextfail\n",
+                            p.id, id4);
+            }
+            if (bad_dispatch) { cur = a->id_nextfail; break; }
+            if (!matched) {
+                // the original's failure path: state 1, then 0x140165a30 re-sends
+                // CMsgAction 0xaf (175) to re-open the dialog.
+                p.dlg_state = 1;
+                if (p.session)
+                    p.session->send(build_action_10010(p.id, 0, 175,
+                        (uint16_t)p.dir, (uint16_t)p.pos.x, (uint16_t)p.pos.y));
+                std::printf("[action] %u 1651: no match -> state 1 + action 175, "
+                            "id_nextfail\n", p.id);
+                cur = a->id_nextfail;
+                break;
+            }
+            p.dlg_state  = 3;
+            p.dlg_id     = 0;
+            p.dlg_target = ent;
+            p.dlg_kind   = (uint8_t)id4;
+            std::printf("[action] %u 1651: matched -> state 3, target %u, kind %u\n",
+                        p.id, ent, id4);
+            cur = a->id_next;
+            break;
+        }
         case 1652: {  // v128: close the dialog - CMsgAction 174, then reset state
             // Body 0x140138e49: `0x140165b50(user)` builds the same CMsgAction with
             // `mov r13d,0xae` = **action 174** and returns the send result; only a

@@ -822,4 +822,13 @@ the port) is what needs fixing.
   1654 is read-only but only reachable from 1651, and 1651's blocker is now exact (the second text
   param = `FUN_140145f60` arg 6 -> router arg 7 -> `%rbx`, an entity id our `ActionRow` cannot
   carry). 1082 produced no findings. Suite 95/95.
+- v133: **1651 (95 rows) ported** with the dialog answer flow: gate state==2, `%u` entity id from
+  the chain's SECOND text param, dispatch on the `data` column (1 = NPC name, 2/3 = numeric),
+  mismatch re-sends CMsgAction 175 and drops the state back to 1, match writes state 3. The second
+  text param is runtime state (`Player::chain_param2`, filled from the click's wire+0x0C); the
+  select step (state 2) is an ENGINE MAPPING documented in docs/second_text_param.md because the
+  binary's only writer (0x140367333) lives in an unidentified packet handler. 1654 remains
+  unreachable-not-because-of-us: it needs state 3, which 1651 now produces, so it is the next
+  candidate (its own body still has two UNKNOWN NPC fields: [npc+0x68], [npc+0xb4]).
+  Suite 96/96, coverage 99.71%.
 

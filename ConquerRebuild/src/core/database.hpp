@@ -165,6 +165,11 @@ struct ActionRow {
     uint32_t type = 0;
     int32_t  data = 0;
     std::string param;      // raw (uses ~ as space, client converts)
+    // v133: the SECOND text parameter the original action router passes alongside
+    // `param`. In the dialog family (1651) it reaches %rbx and is read with "%u" as
+    // the selected ENTITY id. The DB has one param column, so this is filled at
+    // runtime by the caller (see Player::chain_param2).
+    std::string param2;
 };
 struct NpcRecord {
     uint32_t id = 0;

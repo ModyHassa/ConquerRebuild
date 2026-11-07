@@ -2018,3 +2018,23 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020241,'FlightSage',0,5000,1002,437,355,99020513,''),
   (99020242,'LandedSage',0,5000,3852,410,291,99020516,''),
   (99020243,'ReturnSage',0,5000,3852,410,292,99020518,'');
+
+-- ===========================================================================
+-- v133: 1651 (dialog answer) + the second text param (click wire+0x0C)
+-- Fixture band: chains 99020520-99020529, npc 99020244 'AskSage'.
+-- Click 1 (selection 0): 1651 fails (state 0) -> 1650 opens -> state 1.
+-- Click 2 (selection = npc id): the select step sets state 2 -> 1651 matches the
+--   NPC name -> state 3 -> 1652 closes.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020520 AND 99020529;
+DELETE FROM cq_npc WHERE id = 99020244;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020520,1651,1,'AskSage',99020521,99020523),
+  (99020521,101,0,'v133-1651-match',99020522,0),
+  (99020522,1652,0,'',99020527,99020527),
+  (99020523,1650,1,'0',99020525,99020526),
+  (99020525,101,0,'v133-opened',0,0),
+  (99020526,101,0,'v133-open-failed',0,0),
+  (99020527,101,0,'v133-closed',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020244,'AskSage',0,5000,1002,437,356,99020520,'');

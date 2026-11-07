@@ -120,6 +120,10 @@ struct Player {
     // v129: the "lastentertime" stamp of the keyed store at CUser+0x12c0 (the only
     // reader/writer pair of that key in the binary is action 802's getter/setter).
     uint32_t last_enter_time = 0;   // GetTickCount() ms, 0 = never
+    // v133: the chain's second text parameter (ActionRow::param2). The original's
+    // router receives it as a separate string (FUN_140145f60's stack argument ->
+    // %rbx); our chains carry it on the player so no signature changes.
+    std::string chain_param2;
     // v131: cq_user packed YYMMDDHH dates (the CUser+0xE78 container).
     uint32_t god_status    = 0;   // "god_status"     = user+0xF38
     uint32_t last_logout_3 = 0;   // "last_logout_3"  = user+0x1028

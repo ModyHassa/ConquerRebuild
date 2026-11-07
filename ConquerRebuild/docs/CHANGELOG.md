@@ -2075,3 +2075,24 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   `%u` entity id, and `ActionRow` has no second text slot. **1082** produced no findings.
 - **Suite 95/95 green.**
 
+### v133 — the router's second text parameter + 1651 ported (95 rows)
+- **ActionRow::param2 / Player::chain_param2**: the original router carries a SECOND text
+  parameter (`FUN_140145f60` stack arg -> `r12` -> `%rbx` in the cases). It can never come from the
+  DB (one `param` column, and 1651's row holds the compared value), so it is runtime state:
+  `docs/second_text_param.md` records exactly what is proven and what is our mapping.
+- **1651 ported** (95 rows): gate `dlg_state == 2`; `sscanf "%u"` on the second text param = the
+  selected entity id; dispatch on the action's `data` (1 = name compare against the clicked NPC,
+  2/3 = numeric compare against a player), mismatch -> `state=1` + CMsgAction **175**, match ->
+  `state=3`, `+0x96c=0`, `+0x970=id`, `+0x974=data`.
+- **The dialog select step**: the only writer of state 2 in the whole binary is `0x140367333`
+  (`movb $0x2,[user+0x968]`, then `%r15d` into both `+0x970` and `+0x974`) inside a packet handler.
+  1651 never reads those two fields for its gate (it overwrites both on a match), so the payload is
+  not load-bearing. Our equivalent trigger, flagged as an **ENGINE MAPPING** in
+  `docs/second_text_param.md`: the NPC click's third dword (`wire+0x0C`, the selected element id)
+  is copied into `chain_param2`, and a non-zero selection while a dialog is open performs the
+  select step. Which message field carries it in the original is still UNKNOWN.
+- New test `tests/test_actions_v133.py` (5 checks): click 1 refuses 1651 (state 0) and opens the
+  dialog with CMsgAction **171**; click 2 with the selection id matches the NPC name, reaches
+  state 3 and 1652 closes with CMsgAction **174**.
+- **Suite 96/96 green, coverage 161/217 types = 99.71% of rows.**
+
