@@ -2077,6 +2077,30 @@ case 121: {  // random check (ProcessAction case 0x79:
             cur = full ? a->id_next : a->id_nextfail;
             break;
         }
+        case 1094: {  // v135: profession-TIER gate (case 0x5b, body 0x140137f06)
+            // Verified instruction by instruction. The three bytes are already pinned
+            // in docs/attrib_writer.md and docs/lua_key_table.md: +0xeee = profession,
+            // +0xedb = old_prof, +0xeda = first_prof, and vt+0x108 = level.
+            //   if (level < 2) return FALSE
+            //   bucket = (profession / 10) * 10
+            //   if (data != 0 && data != bucket) return FALSE
+            //   if ((old_prof  / 10) * 10 != bucket) return FALSE
+            //   return ((first_prof / 10) * 10 == bucket)        ; 0x140137f9d sete al
+            // i.e. the action's `data` selects a profession tier and the player's
+            // current/old/first professions must all still be in that same tier.
+            const uint32_t bucket = (p.profession / 10) * 10;
+            const uint32_t oldb   = (p.old_prof   / 10) * 10;
+            const uint32_t firstb = (p.first_prof / 10) * 10;
+            bool ok = p.level >= 2;
+            if (ok && a->data != 0 && (uint32_t)a->data != bucket) ok = false;
+            if (ok && oldb != bucket) ok = false;
+            if (ok && firstb != bucket) ok = false;
+            std::printf("[action] %u 1094: level %u, data %d, buckets prof %u old %u "
+                        "first %u -> %s\n", p.id, p.level, a->data, bucket, oldb,
+                        firstb, ok ? "id_next" : "id_nextfail");
+            cur = ok ? a->id_next : a->id_nextfail;
+            break;
+        }
         case 1095: {  // v121: rebirth skill set from cq_magictypeop (case 0x54)
             // Body 0x140137ef7 is exactly one call: FUN_1401763f0(user, true)
             // -> FUN_1402f16c0(mgr, userid, +0xeda, +0xedb, +0xeee, meto).

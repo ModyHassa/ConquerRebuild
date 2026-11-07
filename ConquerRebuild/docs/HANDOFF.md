@@ -885,4 +885,8 @@ and re-run it on its own before investigating.
   `ACTION_USER_CHECK_ITEM_IN_TRUNCK` but its two helpers are the `lastentertime` keyed store and a
   cross-server path, so it stays BLOCKED (do not fake it with a position query). Also: the new-engine
   case jumptable formula is UNRELIABLE (verified map bytes, wrong targets) - use tools/body_probe.py.
+- v135: **1094 ported** (11 rows) - profession-tier gate: level>=2, `data` (when non-zero) and the
+  tens buckets of profession/old_prof/first_prof must all match. The three bytes were already pinned
+  (`+0xEEE` profession, `+0xEDB` old_prof, `+0xEDA` first_prof) in docs/attrib_writer.md and
+  docs/lua_key_table.md, so no inference was needed. Suite 98/98, coverage 163/217 = 99.72%.
 

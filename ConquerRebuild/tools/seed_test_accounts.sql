@@ -2057,3 +2057,28 @@ INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUE
   (99020245,'BonusSage',0,5000,1002,437,357,99020602,'');
 INSERT INTO cq_bonus (id_account,action,flag,ref_id,time,ordernumber,bonus_in_time,number)
   VALUES (100090,99020600,0,0,0,'',0,3);
+
+-- ===========================================================================
+-- v135: 1094 (profession-TIER gate: level>=2 and profession/old_prof/first_prof
+-- must share the same tens bucket, plus `data` when non-zero).
+-- V127Skills seeds professions that AGREE (10 / 12 / 18 -> bucket 10) so the
+-- positive branch is reachable; the test mutates old_prof itself for the miss.
+-- Fixture band: chains 99020700-99020709, npc 99020246-99020248.
+-- ===========================================================================
+DELETE FROM cq_action WHERE id BETWEEN 99020700 AND 99020709;
+DELETE FROM cq_npc WHERE id BETWEEN 99020246 AND 99020248;
+UPDATE cq_user SET old_prof = 12, first_prof = 18 WHERE id = 90;
+INSERT INTO cq_action (id,type,data,param,id_next,id_nextfail) VALUES
+  (99020700,1094,0,'',99020701,99020702),
+  (99020701,101,0,'v135-tier0-ok',0,0),
+  (99020702,101,0,'v135-tier0-no',0,0),
+  (99020703,1094,10,'',99020704,99020705),
+  (99020704,101,0,'v135-tier10-ok',0,0),
+  (99020705,101,0,'v135-tier10-no',0,0),
+  (99020706,1094,20,'',99020707,99020708),
+  (99020707,101,0,'v135-tier20-ok',0,0),
+  (99020708,101,0,'v135-tier20-no',0,0);
+INSERT INTO cq_npc (id,name,type,lookface,mapid,cellx,celly,task0,datastr) VALUES
+  (99020246,'TierSage',0,5000,1002,437,358,99020700,''),
+  (99020247,'TierSage10',0,5000,1002,437,359,99020703,''),
+  (99020248,'TierSage20',0,5000,1002,437,360,99020706,'');

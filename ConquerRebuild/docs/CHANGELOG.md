@@ -2215,3 +2215,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   0x1402698f1 vs the real 0x14012f025), so any "types share a body" conclusion drawn that way is
   bogus. Use `tools/body_probe.py` or read `FUN_14012a6e0`'s switch.
 
+### v135 — action 1094 ported (profession-TIER gate); the three tier bytes were already pinned
+- **1094** (11 rows, case 0x5b, body `0x140137f06`) read instruction by instruction and ported:
+  `if (level < 2) fail`; `bucket = (profession/10)*10`; `if (data != 0 && data != bucket) fail`;
+  `if ((old_prof/10)*10 != bucket) fail`; `return (first_prof/10)*10 == bucket` (the tail ends in
+  `sete %al` at 0x140137f9d).
+- The three bytes were **already identified elsewhere in the repo** (`docs/attrib_writer.md`,
+  `docs/lua_key_table.md`, HANDOFF): `CUser+0xEEE` = **profession**, `+0xEDB` = **old_prof**,
+  `+0xEDA` = **first_prof**, and `vt+0x108` = **level**. So this needed no new guessing: it maps 1:1
+  onto `Player::profession / old_prof / first_prof / level`.
+- New test `tests/test_actions_v135.py` (4 checks): data 0 passes when all three buckets agree,
+  data 10 (the shared bucket) passes, data 20 fails, and **mutating `cq_user.old_prof` to 25 then
+  re-logging in makes data 0 fail**, which proves the bucket comparison is really what gates.
+- Seed note: V127Skills (cq_user 90) now carries `old_prof=12, first_prof=18` (bucket 10, matching
+  its profession 10) so the positive branch is reachable.
+- **Suite 98/98 green; 163/217 types, 99.72% of rows.**
+
