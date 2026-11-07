@@ -921,4 +921,9 @@ and re-run it on its own before investigating.
   t3=0), and only arg2 is player-range-checked so arg3 is the status id. `team/couple/mate`, `chk` and
   the apply path stay BLOCKED/refused (unused by any row). Coverage **164/217 types, 99.74% rows, 53
   unported**; test_actions_v140 proves the effect with a 1098 probe before+after the add.
+- v141: coverage tooling now separates **verified non-actions** (532 = 252 item-attribute data rows, no
+  `0x214` in the 501-598 dispatcher) -> honest headline **99.87% (193277/193525), 164/217 types, 52
+  unported**. 1078/1079's credit call is `GetProvider(CUser+0x1230=db user id) -> provider+0x90 (role)
+  -> vt[0x98](value)` twice: a role-level hand-over, no SQL. Only role slot 0x98's owner module and its
+  one-int meaning are still unknown.
 

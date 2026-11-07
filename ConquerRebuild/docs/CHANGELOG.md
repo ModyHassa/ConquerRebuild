@@ -2323,3 +2323,15 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   not survive a re-login), plus the bad-count and blocked-scope branches. New fixtures
   StatusSage/BadParamSage/ScopeSage (npc 99020249-51, chains 99020710-22).
 
+### v141 — coverage now excludes verified non-actions (99.87%), and 1078/1079's credit target is the user's own role
+- `tools/coverage.py` gained `NOT_AN_ACTION = {532}`: the 501-598 dispatcher has no `0x214`, and those
+  252 rows are item-attribute definitions (DATA 304-319) read by the item-attribute subsystem, so they
+  can never execute as action chains. The report now prints them separately and measures coverage over
+  dispatchable rows: **193277 / 193525 = 99.87%**, **164/217 types with a case label, 52 unported**.
+- **1078/1079's credit call resolved to a role slot**: `0x1401742b0` does
+  `GetProvider([CUser+0x1230 = db user id]) -> provider+0x90 (the user's role object) -> vt[0x98](value)`
+  **twice**, one int each - no SQL, no item manager. Only the owner module of role slot `0x98` and its
+  single-int meaning remain unknown; the call site itself is fully mapped.
+- No engine code changed this wave (tooling + docs only), so the suite state is the v140 99/99 green run;
+  the two preflights (router_audit, packet_id_audit) were re-run and pass.
+

@@ -44,6 +44,14 @@ def handled_types():
     return out
 
 
+# Types the ORIGINAL never dispatches as actions, so their rows can never execute
+# and must not be counted as "unported" work. Evidence per type:
+#   532 (252 rows): the 501-598 dispatcher has no 0x214 at all and the rows are
+#       item-attribute definitions (DATA 304-319, params like "1 10 0 604800 120 121 0")
+#       read by the item-attribute subsystem - docs/CHANGELOG.md v117, v166 review.
+NOT_AN_ACTION = {532}
+
+
 def main():
     rows = {}
     total = 0
@@ -55,14 +63,19 @@ def main():
         rows[int(t)] = int(c)
         total += int(c)
     have = handled_types()
-    missing = sorted(((c, t) for t, c in rows.items() if t not in have),
+    dead_rows = sum(c for t, c in rows.items() if t in NOT_AN_ACTION)
+    dead_types = len(NOT_AN_ACTION & set(rows))
+    live = total - dead_rows
+    missing = sorted(((c, t) for t, c in rows.items()
+                      if t not in have and t not in NOT_AN_ACTION),
                      reverse=True)
     miss_rows = sum(c for c, _ in missing)
     print(f"action types in DB      : {len(rows)}")
     print(f"types with a case label : {len(have & set(rows))}")
+    print(f"not an action (verified): {dead_types} type(s), {dead_rows} rows")
     print(f"unported types          : {len(missing)}")
-    print(f"rows covered            : {total - miss_rows} / {total} "
-          f"= {100.0 * (total - miss_rows) / total:.2f}%")
+    print(f"rows covered            : {live - miss_rows} / {live} "
+          f"= {100.0 * (live - miss_rows) / live:.2f}%")
     limit = len(missing) if "--all" in sys.argv else 15
     print("\ntop unported types by row count:")
     for c, t in missing[:limit]:
