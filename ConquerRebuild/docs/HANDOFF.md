@@ -909,4 +909,10 @@ and re-run it on its own before investigating.
   `self del`, so only the self branch matters. **`cq_user.mateid`** is the only couple column in the DB
   (no couple table) for the unused mate/couple branches. Last unknown = what `add` does (manager slot +
   packet); that is the only step left for 52 rows.
+- v139b: 1082's `self add` = `GetInstance(0x14)` (`status::CStatusMgr`) -> `AddStatus` (vt `+0x8`) with
+  the actor from the acting object's `vt[+0x8]` and the four parsed ints as the next four args;
+  `chk` = `vt[+0x2d8](n1)`, other = `vt[+0x10]` (ApplyUserStatusCode). sscanf dest map proven
+  (n1=%u at 0xc8, n2 at 0x11c, n3 at 0x10c, n4 at 0x110). CONFLICT to settle first: v125's arg order
+  puts the duration in `t3` = arg8, which is 0 for these rows while 1800/3600 lands in `t5` - re-read
+  Status.dll AddStatus' prologue (vftable 0x1416da0f8, slot 8) before implementing.
 

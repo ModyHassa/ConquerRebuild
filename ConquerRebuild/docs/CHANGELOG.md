@@ -2293,3 +2293,15 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Remaining step for these 52 rows: the *effect* of `add` (which manager/slot gets (status, 200, secs)
   and what packet goes out). Everything else about the action is now measured, not guessed.
 
+### v139b — 1082's `self add` lands on `status::CStatusMgr` (instance slot 0x14); one mapping conflict left
+- The `self add` branch calls **`GetInstance(0x14)`** = `status::CStatusMgr` (Status.dll, already pinned
+  in HANDOFF v124) and then that vftable's **slot `+0x8`** = `AddStatus`, with the acting object's
+  `vt[+0x8]` result as the actor and the four parsed numbers as the next four args (zeros after).
+  `chk` calls `vt[+0x2d8](n1)`; the other token calls `vt[+0x10]` = `ApplyUserStatusCode`.
+- The `sscanf` destination map `[0x20]=&n1(%u), [0x28]=&n2, [0x30]=&n3, [0x38]=&n4` is explicit in the
+  code, so which parsed field goes into which argument is measured, not inferred.
+- **One conflict recorded**: applying v125's proven AddStatus field order gives `t3` (the proven
+  duration, `rec+0x18 = now + t3`) = 0 for `self add 7 200 1800 0`, with the duration-looking 1800
+  landing in `t5`. Either this caller really passes 0 or v125's numbering is off by one. Settle it by
+  re-reading Status.dll's `AddStatus` prologue (vftable `0x1416da0f8`, slot 8) - then the 52 rows go in.
+
