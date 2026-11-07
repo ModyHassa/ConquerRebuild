@@ -856,4 +856,11 @@ and re-run it on its own before investigating.
   siblings in ONE build (needs `0x1401742b0` grant + `0x140164640` checksum) and take 1023 with it.
   For 1654, read the CNpc constructor at `0x14010d435` (it allocates 0x70 and sets +0x68/+0x69) to
   name `[npc+0x68]`/`[npc+0xb4]`.
+- v133e: **403 is home-furniture placement**, not a generic placement action. Formats:
+  pszAccept `"%d %d %d %d %d"` (>=3), param 22 fields
+  `"%s %d %d %d %d %d %d %u %u %d %d %d %d %d %d %d %d %d %d %d %d %s"`; it is
+  `ProcessActionItemOnly` (driven by the held item). Gates: cell bounds, no NPC at the cell, home
+  map, own home, `STR_DISABLE_LAY_SYNTRANS`, placement kind, three region/building queries, then
+  `pNpc->Create(m_idProcess, &info, pItem->GetItemInt(ITEMDATA_TYPE), pName)` and the id goes to
+  `CUser+0xA30`. Blocked on the HOME + FURNITURE model (not on MapRegion, which is trivial).
 

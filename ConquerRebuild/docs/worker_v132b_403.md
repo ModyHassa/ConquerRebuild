@@ -77,3 +77,47 @@ MapRegion object model at all, which is why this action cannot be ported yet eve
 
 **Verdict unchanged: BLOCKED - on the MapRegion subsystem (`0x1402c3cc0`, `0x1402c8370`), not on
 the NPC creation path.**
+
+---
+
+## 4. The full parse and the create call (verified this wave) — it is FURNITURE in a PLAYER HOME
+
+### Parses
+- **pszAccept** with `"%d %d %d %d %d"` (`.rdata` 0x14070c0b8), assert string `'ret >= 3'`
+  (0x14070c0a8) and the failure log `ACTION %u: <bad parameter count>` (0x14070c010,
+  InlineLogDBERROR 0x10ac).
+- **the action param** with **22 fields** (0x14070c060):
+
+```
+"%s %d %d %d %d %d %d %u %u %d %d %d %d %d %d %d %d %d %d %d %d %s"
+  ^name/script         ^six ints        ^two unsigned      ^eleven ints       ^last string
+```
+  The mistake log for this one is the `CGameAction::ProcessActionItemOnly() ActionID=%u`
+  (0x14070c0d0, code 0x10a1) - i.e. 403 is an **item-only** action: it is driven by the ITEM the
+  player is holding (`pszAccept` = that item's accept string).
+
+### Gates (in order, with the strings that prove what they mean)
+| # | gate | proof |
+|---|---|---|
+| 1 | cell bounds: `x >= 0 && x < mgr->vt[0x28]()` and `y >= 0 && y < mgr->vt[0x20]()` (`0x1402c3cc0`) | body at 0x1402c3cc0 |
+| 2 | no NPC already at the cell: `0x1402c8370(mgr, x, y, 0x1040, &out)` must find nothing | 0x140119d03 |
+| 3 | **must be the player's HOME map** | log 0x14070bfb0 = `[%s] attempts to place furniture on a non-home map` |
+| 4 | **must be the player's OWN home** | log 0x14070bf60 = `[%s] attempts to place furniture in someone else's home` |
+| 5 | `STR_DISABLE_LAY_SYNTRANS` (config 0x0F) | 0x14070bf40 |
+| 6 | `0x1402c68a0` + `cmp $0x1` on the placement kind | 0x14011a1fe / 0x14011a235 |
+| 7 | `0x1402c0d80` / `0x1402fda10` / `0x1402c2390` region/building queries | 0x14011a2a0 / 0x1402e4 / 0x14011a300 |
+| 8 | asserts `!"OWNER_NPC"` and `pNpc` | 0x14070bf30 / 0x14070bf28 |
+
+### The create
+```
+pNpc->Create(m_idProcess, &info, pItem->GetInt(ITEMDATA_TYPE), pName)   ; 0x14070bee0
+```
+with the zeroed **108-byte info struct** filled from the 22 parsed fields, and the new NPC's id
+stored at **`CUser+0xA30`**.
+
+**Verdict (corrected): BLOCKED on the HOME + FURNITURE subsystem**, not merely MapRegion. The two
+region queries are actually simple (a bounds check and an "is there an NPC at (x,y)" lookup, both
+directly expressible on our `GameMap`/`NpcSystem`), but the action is a *player-home furniture
+placement*: it needs home-map ownership, the furniture item model (`ITEMDATA_TYPE`) and a CNpc
+`Create` that takes the 108-byte info struct. None of those three exist in the rebuild, so the 93
+rows are not reachable until homes are modelled.

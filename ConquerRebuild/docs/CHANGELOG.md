@@ -2144,3 +2144,20 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - No source change; suite state unchanged (96/96 from v133, `test_drops` is the known statistical
   flake and passes on re-run).
 
+### v133e — 403 fully parsed: it is HOME FURNITURE placement (blocker corrected)
+- Read the two format strings and the whole gate list. **pszAccept** = `"%d %d %d %d %d"` (>=3,
+  assert `ret >= 3`); the **param** is 22 fields
+  `"%s %d %d %d %d %d %d %u %u %d %d %d %d %d %d %d %d %d %d %d %d %s"`, and the parse failure logs
+  `CGameAction::ProcessActionItemOnly() ActionID=%u` - so 403 is **item-driven** (the item the
+  player is holding).
+- The gates are, in order: cell bounds (`0x1402c3cc0` = `0 <= x < width && 0 <= y < height`), no NPC
+  already at the cell (`0x1402c8370(..., 0x1040, &out)`), **must be the player's home map**
+  (`[%s] attempts to place furniture on a non-home map`), **must be the player's own home**
+  (`... in someone else's home`), `STR_DISABLE_LAY_SYNTRANS` (config 0x0F), a placement-kind compare,
+  three more region/building queries, then the asserts `!"OWNER_NPC"` / `pNpc`.
+- The create is `pNpc->Create(m_idProcess, &info, pItem->GetInt(ITEMDATA_TYPE), pName)` with the
+  108-byte info struct, and the id lands at `CUser+0xA30`.
+- **Blocker corrected**: not "MapRegion" but the **home + furniture subsystem** (home-map ownership,
+  the furniture item model, and `CNpc::Create`). The two region queries themselves are trivial to
+  express on our `GameMap`, so once homes exist the 93 rows are a straight port.
+
