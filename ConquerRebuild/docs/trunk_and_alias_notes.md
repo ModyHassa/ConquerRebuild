@@ -37,3 +37,18 @@ while 1082's real body is `0x14012f025`. So the jumptable at `0x14013a7ac` is ei
 router uses or its entries are relative to a different base. **Do not trust any type grouping derived
 that way** (a run of it produced a bogus "shared body" list). Use `tools/body_probe.py`, which
 resolves bodies from the code, or read the router's own `switch` at `FUN_14012a6e0`.
+
+## 1102 (6 rows) — grammar decoded, manager still unnamed
+Body `0x1401357d2`:
+- `sscanf(param, "%s %s %I64d")` (fmt 0x14070e340) -> two tokens + one 64-bit number;
+- token 1 is compared against **`count`** (0x14070e334), token 2 against **`<`** (0x14070be94), so the
+  rows read like `count < N`. A bad token count logs the shared
+  `ACTION %u: <bad parameter count>` (0x14070c010) and fails.
+- then `0x140118320()` (a singleton getter: instance slot **0x1e = 30**) and `0x140118800(id)`, which
+  is a thin wrapper around that singleton's **`vt[0x30]`** call, returning an int.
+- `0x14070be94` being `'<'` means the comparison operator itself is data (an `<`, and by the same
+  template probably `==`), like the `stc`/`var` families.
+
+**Still UNKNOWN:** which singleton instance slot 30 is (and therefore what `count` counts). Until that
+is named, 1102 stays BLOCKED. It is the same "count over a manager" shape as 1202, so both will
+probably be solved together.

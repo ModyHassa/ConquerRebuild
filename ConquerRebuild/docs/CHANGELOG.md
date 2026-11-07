@@ -2231,3 +2231,14 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   its profession 10) so the positive branch is reachable.
 - **Suite 98/98 green; 163/217 types, 99.72% of rows.**
 
+### v136 — 1102's grammar decoded (`count < N` over a manager), still blocked on the manager
+- **1102** (6 rows) body `0x1401357d2`: `sscanf "%s %s %I64d"`, token 1 compared with **`count`**
+  (0x14070e334), token 2 with **`<`** (0x14070be94), then the singleton getter `0x140118320()`
+  (instance slot **30**) and `0x140118800(id)` = a wrapper around that singleton's **`vt[0x30]`**.
+  The operator being data means these rows look like `count < N`.
+- **Blocked**: the singleton in instance slot 30 is unnamed, so "count of what" is unknown. 1202 has
+  the same "count/check over a manager" shape, so the two will very likely be solved together.
+- Nothing else moved: 223 is the lottery provider, 3012 is a predicate call `0x14018e960`, 1110 is
+  `%d %u %u %u %d %u %u`, 1106 is a list predicate `0x140118860`. All labelled BLOCKED rather than
+  approximated.
+

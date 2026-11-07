@@ -889,4 +889,10 @@ and re-run it on its own before investigating.
   tens buckets of profession/old_prof/first_prof must all match. The three bytes were already pinned
   (`+0xEEE` profession, `+0xEDB` old_prof, `+0xEDA` first_prof) in docs/attrib_writer.md and
   docs/lua_key_table.md, so no inference was needed. Suite 98/98, coverage 163/217 = 99.72%.
+- v136: 1102's grammar is `count < N` (`"%s %s %I64d"`, tokens `count`(0x14070e334) and `<`
+  (0x14070be94)) evaluated through singleton getter `0x140118320()` (instance slot 30) and
+  `0x140118800(id)` -> `vt[0x30]`. Blocked on naming that singleton; 1202 shares the shape, so decode
+  both together. Remaining unported types are now all subsystem-bound: 403 (93, home+furniture),
+  1082 (52, couple), 1654 (28, two CNpc fields + `CUser+0x154`), 1508/1509/223 (26, lottery),
+  1078/1079 (8, emoney grant+checksum), 1094 done, and the small ones above.
 
