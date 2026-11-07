@@ -25,6 +25,16 @@
 // (3 guards: layer data / item from file / file name is null, owner:%u). None of those are ported yet -
 // they are listed here so the module surface stays visible and nothing gets invented in their place.
 //
+// SECOND MODULE in the same stack (docs/worker_v157_mapmanager_layer.md): mapmanager.cpp / mapmanager.h
+// (`npcserver\pckernel\`) provides CGameMap, which owns users+monsters and asks IMapData for a document.
+// Its verified entry points, again from its own log strings: CGameMap::EnterMap / LeaveMap (with Flag),
+// CGameMap::ChangeMapDoc (swaps the document under a live map: DelMonster[] / DelUser[]),
+// CGameMap::AddTerrainObj + GetTerrainNpcFileName (action 403's furniture resolves a file name per item type),
+// and the CUser::Create/FlyMap/MoveForward/JumpPos "NotStandEnable" checks which log MapID[] *and* MapDoc[] -
+// proving MapDoc is a separate id from MapID. The IMapData registry itself is a global std::map at
+// 0x140104630 whose static initialiser (0x1400bbd40) leaves it EMPTY; its writer is still unread, which is
+// exactly why 403/1509 stay BLOCKED.
+//
 // BLOCKED / not invented: the value CMapData::cell returns for an IN-RANGE cell (it is looked up
 // in a std::map at CMapData+0x1c0 that a loader not present in this binary fills). Because of that
 // walkable() cannot be completed today, so this module exposes the verified pieces only and reports

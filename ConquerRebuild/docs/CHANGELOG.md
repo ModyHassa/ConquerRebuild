@@ -2575,3 +2575,20 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Still BLOCKED: 403 (93) + 1509 (9) need the `IMapData` registry populator (writes `+0x1c` gridsize and
   `+0x20` path) - that reader names directory/extension/gridsize. No map document invented.
 
+### v157 — `mapmanager` module named; IMapData registry proves empty at start-up; seam narrowed to one writer
+- NpcServer's own strings name a **second module** in the terrain stack:
+  `npcserver\pckernel\mapmanager.h` / `mapmanager.cpp` (`CGameMap`), separate from `mapdata` (`IMapData` +
+  `CMapData`, ported v155). Documented surface: `CGameMap::EnterMap`/`LeaveMap` (with Flag),
+  `CGameMap::ChangeMapDoc` (document swapped under a live map -> `DelMonster[]`/`DelUser[]`),
+  `CGameMap::AddTerrainObj` + `GetTerrainNpcFileName` (the 403 furniture path resolves a **file name per item
+  type**), and the `CUser::Create/FlyMap/MoveForward/JumpPos` "NotStandEnable" checks that log **`MapID[]` and
+  `MapDoc[]` side by side**, proving MapDoc is a separate id.
+- The **IMapData registry init is verified**: `0x1400bbd40` allocates the 8-byte sentinel (`0x140072596`), points
+  head/prev/next at itself, sets the element count at `0x140104618` to 0 and registers the destructor
+  (`0x140072cb4`) -> the registry is a plain global `std::map` that starts **empty**.
+- Consequence recorded honestly: records `{ ..., gridsize @+0x1c, path @+0x20 }` must be inserted by a writer we
+  have not read; 403 (93) + 1509 (9) remain **BLOCKED**, nothing invented. Next probe: the `insert` call whose
+  pair holds `(int mapdoc, MAPINFO{gridsize, path})` - that names directory + extension, and `cq_map.mapdoc`
+  (a column we have) keys it.
+- Both new checklists written into `src/systems/mapdoc.hpp` so the module surface stays visible in code.
+

@@ -1029,4 +1029,12 @@ and re-run it on its own before investigating.
   IMapData registry (`0x140104630`), miss logs `IMapData cannot find map %d`. **MsgServer's factory
   `0x140568d50` has NO caller at all** (no call/jmp/vtable slot/function pointer/rel32 table entry) = dead path.
   Next: find the registry populator (writer of `+0x1c`/`+0x20`); 403 (93) + 1509 (9) stay BLOCKED, nothing invented.
+- v157: terrain = TWO modules. `mapdata` (IMapData+CMapData, ported v155) and **`mapmanager`**
+  (`npcserver\pckernel\mapmanager.h/.cpp` -> **CGameMap**): verified surface EnterMap/LeaveMap(Flag),
+  **ChangeMapDoc** (swaps document under a live map, DelMonster[]/DelUser[]), **AddTerrainObj +
+  GetTerrainNpcFileName** (403 furniture resolves a file name per item type), and the CUser
+  Create/FlyMap/MoveForward/JumpPos "NotStandEnable" checks that log **MapID[] and MapDoc[]** -> MapDoc is a
+  separate id from MapID. IMapData registry verified as a global std::map at 0x140104630 whose static
+  initialiser 0x1400bbd40 leaves it **empty** (sentinel alloc 0x140072596, count at 0x140104618 = 0). The
+  record writer (node +0x1c gridsize / +0x20 path) is the ONE remaining seam; 403 (93) + 1509 (9) stay BLOCKED.
 
