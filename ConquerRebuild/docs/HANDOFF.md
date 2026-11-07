@@ -880,4 +880,9 @@ and re-run it on its own before investigating.
   `cq_user.home_id` pointing at the map - so 403's ownership gates are evidence-based; only the
   item-driven entry point and `CNpc::Create` remain. Next credit: build the home model + furniture
   item path and port 403 (93 rows) in one wave.
+- v135: trunk = `cq_item.position >= 9` (measured: 9,10,11,12,15..24 all populated); our
+  `load_player_items` filters position<=8 so trunks are not modelled yet. 1202 =
+  `ACTION_USER_CHECK_ITEM_IN_TRUNCK` but its two helpers are the `lastentertime` keyed store and a
+  cross-server path, so it stays BLOCKED (do not fake it with a position query). Also: the new-engine
+  case jumptable formula is UNRELIABLE (verified map bytes, wrong targets) - use tools/body_probe.py.
 

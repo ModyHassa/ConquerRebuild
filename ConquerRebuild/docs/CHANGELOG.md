@@ -2202,3 +2202,16 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Also recorded: 1509 is PARTIAL (router + map-flag gate portable, leaves `0x1401c7e10` /
   `0x1401c7c60` unknown) and 1508 is a pure forward into `pLotteryProvider` (BLOCKED).
 
+### v135 — the trunk (warehouse) model measured; a jump-table warning recorded
+- `cq_item.position` distribution proves the storage layout: 0 = inventory (5475 rows), 1..8 =
+  equipment, **9+ = trunk slots** (7,5,5,7,... rows). `load_player_items` only reads position<=8, so
+  trunk items are invisible to the rebuild today.
+- **1202** is `ACTION_USER_CHECK_ITEM_IN_TRUNCK` (its own failure log), body `0x1401329bf`:
+  `sscanf "%d"` + two helper calls (`0x140167070`, `0x1401787e0`). Both helpers were read and neither
+  is a trunk query (`lastentertime` keyed store; `cq_vipminetime`/`crossuser` cross-server path), so
+  **1202 stays BLOCKED** rather than being approximated with a `position >= 9` query.
+- **WARNING recorded**: the case-byte map `DAT_14013aa9c` is verified (1040->0x22 ... 1651->0xA6), but
+  the jumptable at `0x14013a7ac` does not produce the real bodies with the obvious formula (1082 ->
+  0x1402698f1 vs the real 0x14012f025), so any "types share a body" conclusion drawn that way is
+  bogus. Use `tools/body_probe.py` or read `FUN_14012a6e0`'s switch.
+
