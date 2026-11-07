@@ -2498,3 +2498,19 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
   inventing the format. Next probe recorded: find the vtable whose slots 0x18/0x20/0x28 have the cell
   accessors' signatures, name it with the v150 chain, then read its `Load`.
 
+### v152 — SOLVED: [GameMap+0x60] is CMapData; cells are a std::map<width*y+x>; walkable chain exact
+- **RTTI root cause fixed**: the TypeDescriptor is at **(name address - 16)** and the COL stores its **RVA**.
+  With that, 639 classes resolve and `CMapData` HAS a vtable (`0x1407a5698`) - the "no vtable" finding in
+  v145/v148/v150 was this bug. Also named: `CGameMap` (`0x140745728`, ctors at 0x1402d444e/0x1402d4546),
+  `CTerrainObj` (`0x1407a6bc0`), `CMapItem` (`0x14075be08`), `CMapManager` (`0x14074cb98`).
+- **CMapData layout measured**: `+0x100` -> static data `{int width @+0x0; int height @+0x4}` exposed as
+  `vt[0x28]=width`, `vt[0x20]=height` (thunks at 0x14055fbc0/bd0 -> 0x14056aaf0/a b00: `mov eax,[rcx+4]` /
+  `mov eax,[rcx]`); `+0x1c0` -> a **std::map<int,Cell>**; `+0x190` also used in the lookup.
+- **Three primitives verified byte by byte**: `0x14056ab10` = `valid(x,y)` = `0<=x<width && 0<=y<height`;
+  `0x14056ab30` = `index = width*y + x` (row-major, x fast); `0x1405623a0` = `cell(x,y)` which returns
+  **1 when out of bounds** (=> not walkable) and otherwise does the red-black `lower_bound` for `width*y+x`
+  in the `+0x1c0` map. Together with v151's `attr == 0` rule the walkability semantics are complete.
+- Still missing (and it is the ONLY thing missing): the producer that sets width/height and inserts entries
+  into `+0x1c0`, i.e. the map-file reader. 403/1509 stay BLOCKED until that reader is found - no parser was
+  invented. Next probe recorded: find writers of `CMapData+0x1c0` and the setter of `+0x100`.
+

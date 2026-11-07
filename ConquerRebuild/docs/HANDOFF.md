@@ -992,4 +992,12 @@ and re-run it on its own before investigating.
   derivable from the files (path-length-dependent header end 0xea..0xfe, remainders don't factor as w*h) and
   every file embeds a client `.pul` path -> no parser was written. Next: find the vtable with cell accessors
   at slots 0x18/0x20/0x28, name it via the v150 chain, read its Load, then port `walkable()` verbatim.
+- v152: **`[GameMap+0x60]` = `CMapData`** (vtable 0x1407a5698). RTTI root cause fixed: TypeDescriptor is at
+  **(name-16)** and the COL holds its RVA - 639 classes now resolve, and `CGameMap` = 0x140745728,
+  `CTerrainObj` = 0x1407a6bc0, `CMapItem` = 0x14075be08, `CMapManager` = 0x14074cb98. Layout: `+0x100` ->
+  `{int width@0, int height@4}` (exposed as vt[0x28]=width, vt[0x20]=height); `+0x1c0` -> **std::map<int,Cell>**
+  keyed by `width*y+x`; `+0x190` used in the lookup. Verified primitives: `0x14056ab10` bounds test,
+  `0x14056ab30` `index=width*y+x`, `0x1405623a0` `cell(x,y)` returning **1 for out-of-bounds**. With v151's
+  `attr==0` rule, walkability is fully specified. STILL MISSING: the loader that fills width/height and inserts
+  into `+0x1c0` (the map-file reader) - find writers of `+0x1c0` next; 403/1509 remain BLOCKED, nothing invented.
 
