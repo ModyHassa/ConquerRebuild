@@ -1038,3 +1038,11 @@ and re-run it on its own before investigating.
   initialiser 0x1400bbd40 leaves it **empty** (sentinel alloc 0x140072596, count at 0x140104618 = 0). The
   record writer (node +0x1c gridsize / +0x20 path) is the ONE remaining seam; 403 (93) + 1509 (9) stay BLOCKED.
 
+## Next step (v158 hand-off)
+The map-document seam is closed on the data side: `ini/GameMap.ini` gives mapdoc -> `File=map/map/<name>.DMap`
+plus `PuzzleGridSize=256`, and both are vendored/parsed (data/game_map.ini + MapDocRegistry).
+REMAINING before 403 (93 rows) / 1509 (9 rows) can be ported: re-read the block reader at
+0x14056fa80..0x14056fdb0 against a real .DMap (e.g. newplain.DMap) as a 256x256-block document,
+i.e. find the chunk index table and the per-chunk cell stride. Do NOT write a parser from the
+flat-array assumption - v154 already proved that never fits. `walkable()` itself is fully
+specified (0x1402c3cc0 + 0x14056ab10/0x14056ab30/0x1405623a0).

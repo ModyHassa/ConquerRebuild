@@ -46,6 +46,7 @@
 #include <string>
 #include <vector>
 #include <cstdarg>
+#include <cstdlib>
 
 namespace conquer {
 namespace mapdoc {
@@ -189,6 +190,102 @@ public:
 private:
     CMapStaticData static_;
 };
+
+// ---------------------------------------------------------------------------
+// IMapData registry source: `ini/GameMap.ini`
+//
+// This is ORIGINAL DATA, vendors verbatim as data/game_map.ini
+// (md5 b5428ceee64b30fa20d3e87d01dffbf8). Layout exactly as shipped:
+//     Amount=N                      -- number of [Map*] sections
+//     [Map<mapdoc>]                 -- one section per map document id
+//     File=map/map/<name>.DMap      -- the document path handed to CMapData
+//     PuzzleGridSize=256            -- the gridsize printed by the original log
+//                                      "load map %d from file %s, gridsize=%d"
+// The original INI reader is case-insensitive, so keys and the "Map" section
+// prefix are matched case-insensitively here as well.
+// ---------------------------------------------------------------------------
+struct MapDocEntry {
+    int mapdoc = 0;            // [Map<id>] key
+    std::string file;          // File=
+    int puzzle_grid_size = 0;  // PuzzleGridSize=
+};
+
+struct MapDocRegistry {
+    int amount = 0;                    // Amount=
+    std::vector<MapDocEntry> entries;  // in file order
+
+    const MapDocEntry* find(int mapdoc) const {
+        for (const auto& e : entries)
+            if (e.mapdoc == mapdoc) return &e;
+        return nullptr;
+    }
+};
+
+inline std::string map_ini_trim(const std::string& in) {
+    size_t a = 0, b = in.size();
+    while (a < b && (in[a] == ' ' || in[a] == '\t' || in[a] == '\r' ||
+                     in[a] == '\n' || in[a] == '\xef' || in[a] == '\xbb' ||
+                     in[a] == '\xbf'))
+        ++a;
+    while (b > a && (in[b - 1] == ' ' || in[b - 1] == '\t' ||
+                     in[b - 1] == '\r' || in[b - 1] == '\n'))
+        --b;
+    return in.substr(a, b - a);
+}
+
+inline bool map_ini_ieq(const std::string& a, const char* b) {
+    size_t i = 0;
+    for (; i < a.size(); ++i) {
+        char c = b[i];
+        if (!c) return false;
+        char x = a[i], y = c;
+        if (x >= 'A' && x <= 'Z') x = char(x - 'A' + 'a');
+        if (y >= 'A' && y <= 'Z') y = char(y - 'A' + 'a');
+        if (x != y) return false;
+    }
+    return b[i] == '\0';
+}
+
+// Parses the shipped GameMap.ini. Returns false only when the file cannot be
+// opened; malformed lines are skipped exactly like the original INI reader.
+inline bool load_game_map_ini(const std::string& path, MapDocRegistry& out) {
+    std::FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) return false;
+    out = MapDocRegistry{};
+    char line[512];
+    MapDocEntry* cur = nullptr;
+    while (std::fgets(line, sizeof line, f)) {
+        std::string s = map_ini_trim(line);
+        if (s.empty() || s[0] == ';' || s[0] == '#') continue;
+        if (s.front() == '[') {
+            size_t close = s.find(']');
+            if (close == std::string::npos) continue;
+            std::string sec = s.substr(1, close - 1);
+            if (sec.size() > 3 && map_ini_ieq(sec.substr(0, 3), "Map")) {
+                MapDocEntry e;
+                e.mapdoc = std::atoi(sec.c_str() + 3);
+                out.entries.push_back(e);
+                cur = &out.entries.back();
+            } else {
+                cur = nullptr;
+            }
+            continue;
+        }
+        size_t eq = s.find('=');
+        if (eq == std::string::npos) continue;
+        std::string key = map_ini_trim(s.substr(0, eq));
+        std::string val = map_ini_trim(s.substr(eq + 1));
+        if (cur) {
+            if (map_ini_ieq(key, "File")) cur->file = val;
+            else if (map_ini_ieq(key, "PuzzleGridSize"))
+                cur->puzzle_grid_size = std::atoi(val.c_str());
+        } else if (map_ini_ieq(key, "Amount")) {
+            out.amount = std::atoi(val.c_str());
+        }
+    }
+    std::fclose(f);
+    return true;
+}
 
 }  // namespace mapdoc
 }  // namespace conquer

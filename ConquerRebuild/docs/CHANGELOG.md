@@ -2575,7 +2575,18 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Still BLOCKED: 403 (93) + 1509 (9) need the `IMapData` registry populator (writes `+0x1c` gridsize and
   `+0x20` path) - that reader names directory/extension/gridsize. No map document invented.
 
-### v157 — `mapmanager` module named; IMapData registry proves empty at start-up; seam narrowed to one writer
+### v158 (2026-11-08) - IMapData registry source found and ported: ini/GameMap.ini
+
+* `ini/GameMap.ini` (vendored verbatim as `data/game_map.ini`, md5 b5428ceee64b30fa20d3e87d01dffbf8)
+  supplies exactly the registry record fields v156/v157 could not source: `[Map<mapdoc>]`,
+  `File=map/map/<name>.DMap`, `PuzzleGridSize=256`, `Amount=115`.
+* CORRECTION of v154: the `map/map/*.DMap` files ARE the server's map documents; the flat
+  size law failed only because documents are stored as 256x256 puzzle blocks.
+* Code: `MapDocEntry` / `MapDocRegistry` / `load_game_map_ini()` in `src/systems/mapdoc.hpp`
+  (case-insensitive INI parsing); `tests/mapdoc_unit_test.cpp` validates 115 entries and the
+  1000/1002/1626 paths + gridsize. Suite 102/102.
+
+## v157 — `mapmanager` module named; IMapData registry proves empty at start-up; seam narrowed to one writer
 - NpcServer's own strings name a **second module** in the terrain stack:
   `npcserver\pckernel\mapmanager.h` / `mapmanager.cpp` (`CGameMap`), separate from `mapdata` (`IMapData` +
   `CMapData`, ported v155). Documented surface: `CGameMap::EnterMap`/`LeaveMap` (with Flag),

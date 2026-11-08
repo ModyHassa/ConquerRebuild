@@ -84,6 +84,25 @@ int main() {
     CMapData none;
     CHECK(!none.load("/tmp/definitely_not_here_6159.bin"));
 
+    // ---- 6. IMapData registry source: the shipped ini/GameMap.ini (vendored) ----
+    conquer::mapdoc::MapDocRegistry reg;
+    const char* ini_paths[] = {"data/game_map.ini", "../data/game_map.ini"};
+    bool loaded = false;
+    for (const char* ip : ini_paths)
+        if (conquer::mapdoc::load_game_map_ini(ip, reg)) { loaded = true; break; }
+    CHECK(loaded);
+    CHECK(reg.amount == 115);
+    CHECK(reg.entries.size() == 115);
+    const conquer::mapdoc::MapDocEntry* e1002 = reg.find(1002);
+    CHECK(e1002 != nullptr);
+    CHECK(e1002 && e1002->file == "map/map/newplain.DMap");
+    CHECK(e1002 && e1002->puzzle_grid_size == 256);
+    const conquer::mapdoc::MapDocEntry* e1000 = reg.find(1000);
+    CHECK(e1000 && e1000->file == "map/map/desert.DMap");
+    const conquer::mapdoc::MapDocEntry* e1626 = reg.find(1626);
+    CHECK(e1626 && e1626->file == "map/map/Easter.DMap");
+    CHECK(reg.find(999999) == nullptr);
+
     if (failures == 0) std::printf("mapdoc_unit: all checks passed (%d cells, %dx%d)\n", W * H, W, H);
     else               std::printf("mapdoc_unit: %d FAILURES\n", failures);
     return failures == 0 ? 0 : 1;
