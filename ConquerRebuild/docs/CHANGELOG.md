@@ -2611,3 +2611,9 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 
 ## v160 (Nov 8 2026)
 - Measured the layer container: `0x140571a80` = ([\+0x40]-[\+0x38])/0x10 -> vector of 16-byte layer entries; layer object carries width@+0x0C, height@+0x10, sub-struct@+0x18, dword@+0x20 (`0x140570bd0/b e0/b f0/c00`). Merge semantics per layer = guard inside doc dims, cell at [doc+0x10]+(docW*y+x)*4, 0xFFFF sentinel -> range vector [+0x70]/[+0x78]. Only the file-side parser for the layer vector is still unread; no code changed (no invented parser).
+
+## v161 (Nov 8 2026)
+- Found the puzzle loader strings: "CMapStaticData cannot open puzzle file %s" and "CMapStaticData map %d (%s) cannot load puzzle %s, blocksize=%d" -> document and puzzle are different files and the puzzle has a blocksize (= GameMap.ini PuzzleGridSize=256).
+- Map root layout in the archive: Source/map/{*.DMap, map/*.DMap, puzzle/*.pul (300), Scene, ScenePart, data}.
+- Measured negatives: the flat law 276+A*(6A+4)+4+12n matches no .DMap (all offsets 0..1200) and no .pul; .pul files are 3-5KB descriptors, not cell grids.
+- Layer composer 0x14056f380 has exactly one caller: 0x14056ffcb -> the entry point for the .DMap layer parser. 403/1509 still BLOCKED, no code changed, suite untouched.

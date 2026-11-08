@@ -6,3 +6,6 @@
 
 ### v160
 - Layer container/object offsets measured (see docs/worker_v160_layer_struct.md). SINGLE remaining unknown: the .DMap parser that fills the 0x10-byte layer-entry vector.
+
+### v161
+- Puzzle is a separate file (blocksize = PuzzleGridSize). Only one caller of the layer composer: 0x14056ffcb. Start the next wave there to reach the .DMap layer parser (then walkable() unblocks 403 + 1509).
