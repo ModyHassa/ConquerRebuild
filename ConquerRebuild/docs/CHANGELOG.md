@@ -2608,3 +2608,6 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Re-read the map reader from its true entry `0x14056f380`: it is a **layer composer** (per-layer width/height via `0x140571a80` GetLayerCount, `0x140572280` GetLayer, `0x140570bd0/bf0` layer w/h), merging each layer into the doc grid at `idx = doc.width*y + x` with a 4-byte cell.
 - This CORRECTS the v154 frame: the flat law `276 + dim*(6*dim+4) + 4 + 12n` can never match a .DMap because a .DMap stores LAYERS. The v155 flat reader stays faithful for its own block but is not the DMap path.
 - 403 (93 rows) / 1509 (9 rows) remain BLOCKED; next probes are the layer-source vtable and `0x14056f73d..0x14056f9ba` (AddTerrainObj/ranges). Suite unchanged at 102/102.
+
+## v160 (Nov 8 2026)
+- Measured the layer container: `0x140571a80` = ([\+0x40]-[\+0x38])/0x10 -> vector of 16-byte layer entries; layer object carries width@+0x0C, height@+0x10, sub-struct@+0x18, dword@+0x20 (`0x140570bd0/b e0/b f0/c00`). Merge semantics per layer = guard inside doc dims, cell at [doc+0x10]+(docW*y+x)*4, 0xFFFF sentinel -> range vector [+0x70]/[+0x78]. Only the file-side parser for the layer vector is still unread; no code changed (no invented parser).
