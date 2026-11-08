@@ -2629,3 +2629,7 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - So the v159/v160 'layers' are **CTerrainObjPart** entries: the 0x10-byte vector at source+0x38..+0x40 holds parts, each with width@+0x0C and height@+0x10. That is why the flat A*(6A+4) law could never match a .DMap: it is a terrain object made of PARTS.
 - Full stack now named: IMapData/CMapData (mapdata.cpp) -> CMapStaticData (cells) -> CTerrainObj (file) -> CTerrainObjPart (per-part grid) -> CGameMap (mapmanager.cpp, AddTerrainObj/ChangeMapDoc).
 - Next: read 0x1405733c0 body (the terrain-object file format + meaning of header dwords A,B), then CTerrainObj vt[0x8]. 403/1509 still BLOCKED; no code changed; suite 102/102.
+
+## v164 (Nov 8 2026)
+- CTerrainObj loader 0x1405733c0: fopen(path,"rb") verified at 0x140573402; parse sub-steps named (0x140573160, 0x140571f00, 0x140571170, 0x140570d20, 0x140573260, 0x14055f8d0); terrain cell accessors byte-exact at 0x1405737c0/7d0/7e0 (u16@+0, u16@+2, u8@+0) which matches the 4-byte stride from v152.
+- On-disk record layout + sur/mask/flr assignment remain UNKNOWN and are explicitly not guessed. 403/1509 still BLOCKED; no code changed; suite 102/102.

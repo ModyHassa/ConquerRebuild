@@ -15,3 +15,6 @@
 
 ### v163
 - 0x1405733c0 = CTerrainObj file loader ("CTerrainObj cannot open file %s" 0x1407a6c98, "CTerrainObj cannot create terrain data" 0x1407a6c70). Layers = CTerrainObjPart. Next wave: read 0x1405733c0 in full to get the terrain-object file format and what A/B mean.
+
+### v164
+- CTerrainObj loader = 0x1405733c0 (fopen "rb" @0x140573402). Cell accessors @0x1405737c0/7d0/7e0: u16@+0, u16@+2, u8@+0. Next: read the parse sub-steps 0x140571170 / 0x140570d20 / 0x140573260 for the record layout.
