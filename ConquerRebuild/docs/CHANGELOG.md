@@ -2623,3 +2623,9 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - 0x1405733c0 verified as the file opener: lea rdx -> 0x140707AD8 (literal "rb") and call [0x1406D8B00] = fopen(path,"rb"), 0x80-byte frame, returns the source.
 - Consequence: .DMap is opened here (binary mode), A/B are INPUTS to the source (not square dims) -> another reason the v154 flat/square reading does not describe .DMap.
 - Next: read 0x1405733c0 fully (fread layout) + source vt[0x8]; then walkable() unblocks 403 (93) and 1509 (9). No code changed; suite still 102/102.
+
+## v163 (Nov 8 2026)
+- The 'layer source' is NAMED: 0x1405733c0 is the **CTerrainObj** file loader - its own failure literals are "CTerrainObj cannot open file %s" (0x1407a6c98, referenced at 0x140573413) and "CTerrainObj cannot create terrain data" (0x1407a6c70, referenced at 0x1405734a6), around its fopen(path,"rb").
+- So the v159/v160 'layers' are **CTerrainObjPart** entries: the 0x10-byte vector at source+0x38..+0x40 holds parts, each with width@+0x0C and height@+0x10. That is why the flat A*(6A+4) law could never match a .DMap: it is a terrain object made of PARTS.
+- Full stack now named: IMapData/CMapData (mapdata.cpp) -> CMapStaticData (cells) -> CTerrainObj (file) -> CTerrainObjPart (per-part grid) -> CGameMap (mapmanager.cpp, AddTerrainObj/ChangeMapDoc).
+- Next: read 0x1405733c0 body (the terrain-object file format + meaning of header dwords A,B), then CTerrainObj vt[0x8]. 403/1509 still BLOCKED; no code changed; suite 102/102.
