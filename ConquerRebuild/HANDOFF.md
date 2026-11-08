@@ -9,3 +9,6 @@
 
 ### v161
 - Puzzle is a separate file (blocksize = PuzzleGridSize). Only one caller of the layer composer: 0x14056ffcb. Start the next wave there to reach the .DMap layer parser (then walkable() unblocks 403 + 1509).
+
+### v162
+- .DMap open path = 0x1405733c0 -> fopen(path,"rb") (literal at 0x140707AD8, IAT 0x1406D8B00); two header dwords A/B are inputs to the layer source, then source->vt[0x8](A,B), then composer 0x14056f380. Start the next wave by reading 0x1405733c0's fread sequence.

@@ -2617,3 +2617,9 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 - Map root layout in the archive: Source/map/{*.DMap, map/*.DMap, puzzle/*.pul (300), Scene, ScenePart, data}.
 - Measured negatives: the flat law 276+A*(6A+4)+4+12n matches no .DMap (all offsets 0..1200) and no .pul; .pul files are 3-5KB descriptors, not cell grids.
 - Layer composer 0x14056f380 has exactly one caller: 0x14056ffcb -> the entry point for the .DMap layer parser. 403/1509 still BLOCKED, no code changed, suite untouched.
+
+## v162 (Nov 8 2026)
+- Located the .DMap open/parse path: 0x14056ff0b/0x14056ff21 read two dwords (A,B) via 0x1405739a0, 0x1405733c0 builds the refcounted layer SOURCE, then source->vt[0x8](A,B), then 0x14056f380 composes.
+- 0x1405733c0 verified as the file opener: lea rdx -> 0x140707AD8 (literal "rb") and call [0x1406D8B00] = fopen(path,"rb"), 0x80-byte frame, returns the source.
+- Consequence: .DMap is opened here (binary mode), A/B are INPUTS to the source (not square dims) -> another reason the v154 flat/square reading does not describe .DMap.
+- Next: read 0x1405733c0 fully (fread layout) + source vt[0x8]; then walkable() unblocks 403 (93) and 1509 (9). No code changed; suite still 102/102.
