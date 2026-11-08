@@ -18,3 +18,6 @@
 
 ### v164
 - CTerrainObj loader = 0x1405733c0 (fopen "rb" @0x140573402). Cell accessors @0x1405737c0/7d0/7e0: u16@+0, u16@+2, u8@+0. Next: read the parse sub-steps 0x140571170 / 0x140570d20 / 0x140573260 for the record layout.
+
+### v165
+- Cell = {u16 packed (bit0 flag, bits1..15 value), u16 second} with proven accessors 0x1405737c0/7e0/800/7d0/7f0/7b6. Code + tests updated; suite 102/102. Next: the terrain-object record layout (fread args near 0x14057384a + 0x140571170/0x140570d20/0x140573260).

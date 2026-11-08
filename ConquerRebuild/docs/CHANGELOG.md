@@ -2633,3 +2633,8 @@ family, 1041-1102, 1106-1202, 1508-1654, 128/223/224/2014/2202-2204/3011/3012/39
 ## v164 (Nov 8 2026)
 - CTerrainObj loader 0x1405733c0: fopen(path,"rb") verified at 0x140573402; parse sub-steps named (0x140573160, 0x140571f00, 0x140571170, 0x140570d20, 0x140573260, 0x14055f8d0); terrain cell accessors byte-exact at 0x1405737c0/7d0/7e0 (u16@+0, u16@+2, u8@+0) which matches the 4-byte stride from v152.
 - On-disk record layout + sur/mask/flr assignment remain UNKNOWN and are explicitly not guessed. 403/1509 still BLOCKED; no code changed; suite 102/102.
+
+## v165 (Nov 8 2026)
+- Terrain cell bit layout PROVEN from the inline accessors: 0x1405737c0 = (u16@+0)>>1, 0x1405737e0 = ((u8@+0)&1)==1, 0x140573800 = u16@+0 |= 1, 0x1405737d0 = u16@+2, 0x1405737f0 / 0x1405737b6 = store u16@+2.
+- src/systems/mapdoc.hpp Cell is now that exact 4-byte layout: packed{u16 bit0=flag, bits1..15=value} + second{u16}; accessors flag()/value(). Tests assert through them. Neutral names kept because flr-vs-sur assignment is NOT proven (debug string only orders them).
+- Suite 102/102 green. 403/1509 still BLOCKED on the terrain-object record layout.

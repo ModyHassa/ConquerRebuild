@@ -54,9 +54,9 @@ int main() {
     CHECK(md.static_data().name() == std::string(name));
     CHECK((int)md.static_data().cells().size() == W * H);
     CHECK(md.static_data().tail().size() == 2);
-    CHECK(md.static_data().cells()[md.index(2, 1)].sur == 100 + 1 * W + 2);
-    CHECK(md.static_data().cells()[md.index(2, 1)].mask == 1);
-    CHECK(md.static_data().cells()[md.index(1, 1)].mask == 0);
+    CHECK(md.static_data().cells()[md.index(2, 1)].second == 100 + 1 * W + 2);
+    CHECK(md.static_data().cells()[md.index(2, 1)].flag() == 1);
+    CHECK(md.static_data().cells()[md.index(1, 1)].flag() == 0);
     CHECK(md.static_data().tail()[1].bytes[3] == 13);
 
     // ---- 2. valid() / index()  (0x14056ab10 / 0x14056ab30)

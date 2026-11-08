@@ -58,11 +58,20 @@ constexpr int kTailRecordBytes  = 12;
 constexpr int kAttributeOutOfBounds = 1;  // 0x1405623a0 returns 1 out of bounds
 constexpr int kUnknownAttribute = -1;     // in-range value is BLOCKED (see header note)
 
-// 4-byte cell, matching `lea rcx,[cells + idx*4]` in the reader and the (sur, mask) pair
-// that 0x1405737a0 receives.
+// 4-byte terrain cell. The bit layout is PROVEN by the inline accessors:
+//   0x1405737c0 -> return (uint16@+0) >> 1        (15-bit value in bits 1..15)
+//   0x1405737e0 -> return ((byte@+0) & 1) == 1    (boolean flag in bit 0)
+//   0x140573800 -> (uint16@+0) |= 1               (sets that flag)
+//   0x1405737d0 -> return uint16@+2               (second value)
+//   0x1405737f0 / 0x1405737b6 -> store uint16@+2
+// The binary's own debug string "cell(%d,%d), flr=%d, sur=%d, mask=%d" (0x14073d840) is
+// consistent with (value, second, flag) but which of flr/sur is which is NOT proven,
+// so the fields keep neutral names.
 struct Cell {
-    uint16_t sur  = 0;
-    uint16_t mask = 0;   // reader stores (first u16 != 0)
+    uint16_t packed = 0;  // bit0 = flag, bits 1..15 = value
+    uint16_t second = 0;  // uint16 at +2
+    uint16_t flag() const { return uint16_t(packed & 1u); }
+    uint16_t value() const { return uint16_t(packed >> 1); }
 };
 
 struct TailRecord { uint8_t bytes[kTailRecordBytes] = {}; };
@@ -114,8 +123,8 @@ public:
                 }
                 (void)skipped;                       // read and discarded, exactly like rdx=0 in the original
                 Cell& c = cells_[size_t(index(x, y))];
-                c.sur  = c2;
-                c.mask = (c0 != 0) ? 1 : 0;
+                c.second = c2;
+                c.packed = (c0 != 0) ? 1u : 0u;
             }
             skip(f, kSkippedRowBytes);
         }
